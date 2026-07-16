@@ -19,6 +19,7 @@
     "presync": "node ../../scripts/sync-schemas.mjs",
     "prebuild": "pnpm run presync",
     "pretest": "pnpm run presync",
+    "pretest:coverage": "pnpm run presync",
     "build": "tsc -b",
     "typecheck": "tsc -b",
     "test": "vitest run",
