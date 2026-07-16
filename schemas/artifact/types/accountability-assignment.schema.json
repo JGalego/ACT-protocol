@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.act-protocol.org/1.0/artifact/types/accountability-assignment.schema.json",
+  "title": "AccountabilityAssignment",
+  "description": "A versioned assignment of a role to an actor over a scope and time window (ACT-1.0.md section 8.4).",
+  "allOf": [
+    {
+      "$ref": "https://schemas.act-protocol.org/1.0/artifact/artifact-envelope.schema.json"
+    },
+    {
+      "type": "object",
+      "required": ["artifact_type", "data"],
+      "properties": {
+        "artifact_type": {
+          "const": "AccountabilityAssignment"
+        },
+        "data": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["role", "assignee", "scope", "issuer", "authority", "start_time", "status"],
+          "properties": {
+            "role": {
+              "type": "string",
+              "enum": [
+                "proposer",
+                "author",
+                "reviewer",
+                "approver",
+                "executor",
+                "operator",
+                "owner",
+                "incident_owner"
+              ]
+            },
+            "assignee": {
+              "$ref": "https://schemas.act-protocol.org/1.0/common/actor-ref.schema.json"
+            },
+            "scope": {
+              "type": "string",
+              "minLength": 1
+            },
+            "issuer": {
+              "$ref": "https://schemas.act-protocol.org/1.0/common/actor-ref.schema.json"
+            },
+            "authority": {
+              "type": "string",
+              "minLength": 1
+            },
+            "start_time": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "end_time": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "status": {
+              "type": "string",
+              "enum": ["active", "ended", "revoked"]
+            }
+          }
+        }
+      }
+    }
+  ]
+}

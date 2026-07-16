@@ -1,0 +1,4 @@
+{
+  "description": "Atomic 9-step append",
+  "components": ["validator", "store", "projector"]
+}

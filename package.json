@@ -1,0 +1,36 @@
+{
+  "name": "act-protocol",
+  "version": "1.0.0-rc.1",
+  "private": true,
+  "license": "Apache-2.0",
+  "description": "ACT (Accountability and Chain of Transformation) protocol monorepo",
+  "engines": {
+    "node": ">=22.0.0",
+    "pnpm": ">=9.0.0"
+  },
+  "packageManager": "pnpm@11.13.1",
+  "scripts": {
+    "build": "pnpm -r --if-present run build",
+    "lint": "eslint . --ext .ts,.tsx",
+    "format": "prettier --check .",
+    "format:fix": "prettier --write .",
+    "typecheck": "pnpm -r --if-present run typecheck",
+    "test": "pnpm -r --if-present run test",
+    "test:coverage": "pnpm -r --if-present run test:coverage",
+    "schemas:validate": "tsx scripts/validate-schemas.ts",
+    "generate:types": "node scripts/generate-schema-types.mjs",
+    "generate:artifact-types": "node scripts/generate-artifact-types.mjs",
+    "clean": "pnpm -r --if-present run clean"
+  },
+  "devDependencies": {
+    "@apidevtools/json-schema-ref-parser": "^11.7.3",
+    "@typescript-eslint/eslint-plugin": "^8.18.0",
+    "@typescript-eslint/parser": "^8.18.0",
+    "eslint": "^9.17.0",
+    "eslint-config-prettier": "^9.1.0",
+    "json-schema-to-typescript": "^15.0.3",
+    "prettier": "^3.4.2",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  }
+}

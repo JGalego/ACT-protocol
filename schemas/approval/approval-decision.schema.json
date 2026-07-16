@@ -1,0 +1,74 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.act-protocol.org/1.0/approval/approval-decision.schema.json",
+  "title": "ApprovalDecision",
+  "description": "A signed decision bound to an exact subject id and digest. See ACT-1.0.md section 8.1.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "decision_id",
+    "request_id",
+    "subject",
+    "decision",
+    "scope",
+    "reviewer",
+    "reviewer_authority",
+    "policy_id",
+    "policy_version",
+    "conditions",
+    "comments",
+    "issued_at",
+    "expires_at",
+    "supersedes",
+    "signature"
+  ],
+  "properties": {
+    "decision_id": { "$ref": "https://schemas.act-protocol.org/1.0/common/uuid.schema.json" },
+    "request_id": { "$ref": "https://schemas.act-protocol.org/1.0/common/uuid.schema.json" },
+    "subject": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["artifact_id", "version_id"],
+      "properties": {
+        "artifact_id": { "$ref": "https://schemas.act-protocol.org/1.0/common/uuid.schema.json" },
+        "version_id": { "$ref": "https://schemas.act-protocol.org/1.0/common/digest.schema.json" }
+      }
+    },
+    "decision": { "type": "string", "enum": ["approved", "rejected", "changes_requested"] },
+    "scope": { "type": "string", "minLength": 1 },
+    "reviewer": { "$ref": "https://schemas.act-protocol.org/1.0/common/actor-ref.schema.json" },
+    "reviewer_authority": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["assignment_id", "role"],
+      "properties": {
+        "assignment_id": { "$ref": "https://schemas.act-protocol.org/1.0/common/uuid.schema.json" },
+        "role": { "type": "string", "minLength": 1 }
+      }
+    },
+    "policy_id": { "$ref": "https://schemas.act-protocol.org/1.0/common/uuid.schema.json" },
+    "policy_version": { "$ref": "https://schemas.act-protocol.org/1.0/common/digest.schema.json" },
+    "conditions": { "type": "array", "items": { "type": "string" } },
+    "comments": { "type": "string" },
+    "issued_at": { "type": "string", "format": "date-time" },
+    "expires_at": {
+      "oneOf": [{ "type": "string", "format": "date-time" }, { "type": "null" }]
+    },
+    "supersedes": {
+      "oneOf": [
+        { "$ref": "https://schemas.act-protocol.org/1.0/common/uuid.schema.json" },
+        { "type": "null" }
+      ]
+    },
+    "signature": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["key_id", "algorithm", "signature"],
+      "properties": {
+        "key_id": { "type": "string" },
+        "algorithm": { "type": "string", "enum": ["ed25519"] },
+        "signature": { "type": "string" }
+      }
+    }
+  }
+}

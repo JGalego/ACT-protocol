@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.act-protocol.org/1.0/artifact/types/actor.schema.json",
+  "title": "Actor",
+  "description": "A registered protocol actor.",
+  "allOf": [
+    {
+      "$ref": "https://schemas.act-protocol.org/1.0/artifact/artifact-envelope.schema.json"
+    },
+    {
+      "type": "object",
+      "required": ["artifact_type", "data"],
+      "properties": {
+        "artifact_type": {
+          "const": "Actor"
+        },
+        "data": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["actor_type", "display_name", "keys"],
+          "properties": {
+            "actor_type": {
+              "type": "string",
+              "enum": ["human", "ai-system", "service", "organization", "group"]
+            },
+            "display_name": {
+              "type": "string",
+              "minLength": 1
+            },
+            "keys": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

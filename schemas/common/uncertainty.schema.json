@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.act-protocol.org/1.0/common/uncertainty.schema.json",
+  "title": "Uncertainty",
+  "description": "An uncertainty record, per ACT-1.0.md section 10.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "description",
+    "category",
+    "source",
+    "affected_artifacts",
+    "impact",
+    "likelihood",
+    "owner",
+    "status",
+    "resolution_criteria",
+    "inherited_from"
+  ],
+  "properties": {
+    "id": { "$ref": "https://schemas.act-protocol.org/1.0/common/uuid.schema.json" },
+    "description": { "type": "string", "minLength": 1 },
+    "category": {
+      "type": "string",
+      "enum": [
+        "known-unknown",
+        "assumption",
+        "speculation",
+        "residual-risk",
+        "human-input-required"
+      ]
+    },
+    "source": { "$ref": "https://schemas.act-protocol.org/1.0/common/actor-ref.schema.json" },
+    "introducing_transformation": {
+      "$ref": "https://schemas.act-protocol.org/1.0/common/digest.schema.json"
+    },
+    "affected_artifacts": {
+      "type": "array",
+      "items": { "$ref": "https://schemas.act-protocol.org/1.0/common/digest.schema.json" },
+      "minItems": 1
+    },
+    "impact": { "type": "string", "enum": ["low", "medium", "high", "critical"] },
+    "likelihood": { "type": "string", "enum": ["low", "medium", "high"] },
+    "owner": { "$ref": "https://schemas.act-protocol.org/1.0/common/actor-ref.schema.json" },
+    "status": { "type": "string", "enum": ["open", "discharged", "accepted"] },
+    "resolution_criteria": { "type": "string", "minLength": 1 },
+    "inherited_from": {
+      "type": "array",
+      "items": { "$ref": "https://schemas.act-protocol.org/1.0/common/uuid.schema.json" }
+    },
+    "resolving_evidence_or_decision": {
+      "oneOf": [
+        { "$ref": "https://schemas.act-protocol.org/1.0/common/digest.schema.json" },
+        { "type": "null" }
+      ]
+    }
+  }
+}

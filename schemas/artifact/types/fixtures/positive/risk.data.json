@@ -1,0 +1,6 @@
+{
+  "description": "Key compromise before rotation.",
+  "likelihood": "low",
+  "impact": "high",
+  "mitigation": "short rotation window"
+}

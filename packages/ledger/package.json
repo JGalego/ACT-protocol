@@ -1,0 +1,36 @@
+{
+  "name": "@act/ledger",
+  "version": "1.0.0-rc.1",
+  "description": "ACT content-addressed, hash-chained ledger with a SQLite adapter.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "clean": "rm -rf dist *.tsbuildinfo"
+  },
+  "dependencies": {
+    "@act/core": "workspace:*",
+    "@act/crypto": "workspace:*",
+    "better-sqlite3": "^11.7.0"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.12",
+    "@vitest/coverage-v8": "^3.2.6",
+    "typescript": "^5.7.2",
+    "vitest": "^3.2.6"
+  }
+}

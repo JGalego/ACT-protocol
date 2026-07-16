@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.act-protocol.org/1.0/artifact/types/constraint.schema.json",
+  "title": "Constraint",
+  "description": "A boundary condition that limits acceptable solutions.",
+  "allOf": [
+    {
+      "$ref": "https://schemas.act-protocol.org/1.0/artifact/artifact-envelope.schema.json"
+    },
+    {
+      "type": "object",
+      "required": ["artifact_type", "data"],
+      "properties": {
+        "artifact_type": {
+          "const": "Constraint"
+        },
+        "data": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["statement", "constraint_type", "hard"],
+          "properties": {
+            "statement": {
+              "type": "string",
+              "minLength": 1
+            },
+            "constraint_type": {
+              "type": "string",
+              "enum": ["technical", "legal", "business", "resource"]
+            },
+            "hard": {
+              "type": "boolean"
+            }
+          }
+        }
+      }
+    }
+  ]
+}

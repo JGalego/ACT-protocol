@@ -1,0 +1,5 @@
+{
+  "name": "canonicalizes RFC 8785 vectors",
+  "framework": "vitest",
+  "status": "passing"
+}

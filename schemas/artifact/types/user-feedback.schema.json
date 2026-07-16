@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.act-protocol.org/1.0/artifact/types/user-feedback.schema.json",
+  "title": "UserFeedback",
+  "description": "Feedback from a human user.",
+  "allOf": [
+    {
+      "$ref": "https://schemas.act-protocol.org/1.0/artifact/artifact-envelope.schema.json"
+    },
+    {
+      "type": "object",
+      "required": ["artifact_type", "data"],
+      "properties": {
+        "artifact_type": {
+          "const": "UserFeedback"
+        },
+        "data": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["comment"],
+          "properties": {
+            "rating": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 5
+            },
+            "comment": {
+              "type": "string",
+              "minLength": 1
+            },
+            "sentiment": {
+              "type": "string",
+              "enum": ["positive", "neutral", "negative"]
+            }
+          }
+        }
+      }
+    }
+  ]
+}

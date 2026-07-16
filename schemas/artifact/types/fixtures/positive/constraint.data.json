@@ -1,0 +1,5 @@
+{
+  "statement": "Must run offline without paid services.",
+  "constraint_type": "technical",
+  "hard": true
+}

@@ -1,0 +1,37 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.act-protocol.org/1.0/artifact/types/human-proposal.schema.json",
+  "title": "HumanProposal",
+  "description": "A proposal authored by a human.",
+  "allOf": [
+    {
+      "$ref": "https://schemas.act-protocol.org/1.0/artifact/artifact-envelope.schema.json"
+    },
+    {
+      "type": "object",
+      "required": ["artifact_type", "data"],
+      "properties": {
+        "artifact_type": {
+          "const": "HumanProposal"
+        },
+        "data": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["proposer", "content_digest", "rationale"],
+          "properties": {
+            "proposer": {
+              "$ref": "https://schemas.act-protocol.org/1.0/common/actor-ref.schema.json"
+            },
+            "content_digest": {
+              "$ref": "https://schemas.act-protocol.org/1.0/common/digest.schema.json"
+            },
+            "rationale": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      }
+    }
+  ]
+}

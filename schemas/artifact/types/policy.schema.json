@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.act-protocol.org/1.0/artifact/types/policy.schema.json",
+  "title": "PolicyArtifact",
+  "description": "Wraps schemas/policy/policy.schema.json as a lineage-tracked artifact.",
+  "allOf": [
+    {
+      "$ref": "https://schemas.act-protocol.org/1.0/artifact/artifact-envelope.schema.json"
+    },
+    {
+      "type": "object",
+      "required": ["artifact_type", "data"],
+      "properties": {
+        "artifact_type": {
+          "const": "Policy"
+        },
+        "data": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["policy"],
+          "properties": {
+            "policy": {
+              "$ref": "https://schemas.act-protocol.org/1.0/policy/policy.schema.json"
+            }
+          }
+        }
+      }
+    }
+  ]
+}

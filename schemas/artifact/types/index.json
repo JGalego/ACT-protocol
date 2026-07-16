@@ -1,0 +1,144 @@
+{
+  "types": [
+    {
+      "name": "Intent",
+      "file": "intent.schema.json",
+      "id": "https://schemas.act-protocol.org/1.0/artifact/types/intent.schema.json"
+    },
+    {
+      "name": "Goal",
+      "file": "goal.schema.json",
+      "id": "https://schemas.act-protocol.org/1.0/artifact/types/goal.schema.json"
+    },
+    {
+      "name": "Constraint",
+      "file": "constraint.schema.json",
+      "id": "https://schemas.act-protocol.org/1.0/artifact/types/constraint.schema.json"
+    },
+    {
+      "name": "Requirement",
+      "file": "requirement.schema.json",
+      "id": "https://schemas.act-protocol.org/1.0/artifact/types/requirement.schema.json"
+    },
+    {
+      "name": "Assumption",
+      "file": "assumption.schema.json",
+      "id": "https://schemas.act-protocol.org/1.0/artifact/types/assumption.schema.json"
+    },
+    {
+      "name": "Ambiguity",
+      "file": "ambiguity.schema.json",
+      "id": "https://schemas.act-protocol.org/1.0/artifact/types/ambiguity.schema.json"
+    },
+    {
+      "name": "Risk",
+      "file": "risk.schema.json",
+      "id": "https://schemas.act-protocol.org/1.0/artifact/types/risk.schema.json"
+    },
+    {
+      "name": "Decision",
+      "file": "decision.schema.json",
+      "id": "https://schemas.act-protocol.org/1.0/artifact/types/decision.schema.json"
+    },
+    {
+      "name": "Architecture",
+      "file": "architecture.schema.json",
+      "id": "https://schemas.act-protocol.org/1.0/artifact/types/architecture.schema.json"
+    },
+    {
+      "name": "Task",
+      "file": "task.schema.json",
+      "id": "https://schemas.act-protocol.org/1.0/artifact/types/task.schema.json"
+    },
+    {
+      "name": "Prompt",
+      "file": "prompt.schema.json",
+      "id": "https://schemas.act-protocol.org/1.0/artifact/types/prompt.schema.json"
+    },
+    {
+      "name": "ToolInvocation",
+      "file": "tool-invocation.schema.json",
+      "id": "https://schemas.act-protocol.org/1.0/artifact/types/tool-invocation.schema.json"
+    },
+    {
+      "name": "SourceCode",
+      "file": "source-code.schema.json",
+      "id": "https://schemas.act-protocol.org/1.0/artifact/types/source-code.schema.json"
+    },
+    {
+      "name": "Test",
+      "file": "test.schema.json",
+      "id": "https://schemas.act-protocol.org/1.0/artifact/types/test.schema.json"
+    },
+    {
+      "name": "Evidence",
+      "file": "evidence.schema.json",
+      "id": "https://schemas.act-protocol.org/1.0/artifact/types/evidence.schema.json"
+    },
+    {
+      "name": "VerificationReport",
+      "file": "verification-report.schema.json",
+      "id": "https://schemas.act-protocol.org/1.0/artifact/types/verification-report.schema.json"
+    },
+    {
+      "name": "RuntimeObservation",
+      "file": "runtime-observation.schema.json",
+      "id": "https://schemas.act-protocol.org/1.0/artifact/types/runtime-observation.schema.json"
+    },
+    {
+      "name": "UserFeedback",
+      "file": "user-feedback.schema.json",
+      "id": "https://schemas.act-protocol.org/1.0/artifact/types/user-feedback.schema.json"
+    },
+    {
+      "name": "AIProposal",
+      "file": "ai-proposal.schema.json",
+      "id": "https://schemas.act-protocol.org/1.0/artifact/types/ai-proposal.schema.json"
+    },
+    {
+      "name": "HumanProposal",
+      "file": "human-proposal.schema.json",
+      "id": "https://schemas.act-protocol.org/1.0/artifact/types/human-proposal.schema.json"
+    },
+    {
+      "name": "ApprovalRequest",
+      "file": "approval-request.schema.json",
+      "id": "https://schemas.act-protocol.org/1.0/artifact/types/approval-request.schema.json"
+    },
+    {
+      "name": "ApprovalDecision",
+      "file": "approval-decision.schema.json",
+      "id": "https://schemas.act-protocol.org/1.0/artifact/types/approval-decision.schema.json"
+    },
+    {
+      "name": "Challenge",
+      "file": "challenge.schema.json",
+      "id": "https://schemas.act-protocol.org/1.0/artifact/types/challenge.schema.json"
+    },
+    {
+      "name": "Revision",
+      "file": "revision.schema.json",
+      "id": "https://schemas.act-protocol.org/1.0/artifact/types/revision.schema.json"
+    },
+    {
+      "name": "Policy",
+      "file": "policy.schema.json",
+      "id": "https://schemas.act-protocol.org/1.0/artifact/types/policy.schema.json"
+    },
+    {
+      "name": "Actor",
+      "file": "actor.schema.json",
+      "id": "https://schemas.act-protocol.org/1.0/artifact/types/actor.schema.json"
+    },
+    {
+      "name": "Key",
+      "file": "key.schema.json",
+      "id": "https://schemas.act-protocol.org/1.0/artifact/types/key.schema.json"
+    },
+    {
+      "name": "AccountabilityAssignment",
+      "file": "accountability-assignment.schema.json",
+      "id": "https://schemas.act-protocol.org/1.0/artifact/types/accountability-assignment.schema.json"
+    }
+  ]
+}

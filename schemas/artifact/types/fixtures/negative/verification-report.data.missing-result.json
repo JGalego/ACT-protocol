@@ -1,0 +1,11 @@
+{
+  "verifier": {
+    "actor_id": "018f5b1a-0000-7000-8000-000000000002",
+    "key_id": "ed25519:bbbbbbbbbbbbbbbb"
+  },
+  "method": "schema-validation",
+  "method_version": "1.0.0",
+  "subject_digest": "sha-256:2222222222222222222222222222222222222222222222222222222222222222",
+  "execution_environment": "node-22.23.1",
+  "limitations": "structural only"
+}

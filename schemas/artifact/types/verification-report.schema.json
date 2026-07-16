@@ -1,0 +1,63 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.act-protocol.org/1.0/artifact/types/verification-report.schema.json",
+  "title": "VerificationReport",
+  "description": "A verification result (ACT-1.0.md section 11.3).",
+  "allOf": [
+    {
+      "$ref": "https://schemas.act-protocol.org/1.0/artifact/artifact-envelope.schema.json"
+    },
+    {
+      "type": "object",
+      "required": ["artifact_type", "data"],
+      "properties": {
+        "artifact_type": {
+          "const": "VerificationReport"
+        },
+        "data": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "result",
+            "verifier",
+            "method",
+            "method_version",
+            "subject_digest",
+            "execution_environment",
+            "limitations"
+          ],
+          "properties": {
+            "result": {
+              "type": "string",
+              "enum": ["pass", "fail", "inconclusive"]
+            },
+            "verifier": {
+              "$ref": "https://schemas.act-protocol.org/1.0/common/actor-ref.schema.json"
+            },
+            "method": {
+              "type": "string",
+              "minLength": 1
+            },
+            "method_version": {
+              "type": "string",
+              "minLength": 1
+            },
+            "subject_digest": {
+              "$ref": "https://schemas.act-protocol.org/1.0/common/digest.schema.json"
+            },
+            "execution_environment": {
+              "type": "string",
+              "minLength": 1
+            },
+            "confidence": {
+              "$ref": "https://schemas.act-protocol.org/1.0/common/confidence-assessment.schema.json"
+            },
+            "limitations": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    }
+  ]
+}

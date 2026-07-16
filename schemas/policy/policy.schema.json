@@ -1,0 +1,86 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.act-protocol.org/1.0/policy/policy.schema.json",
+  "title": "Policy",
+  "description": "A versioned, immutable policy document governing authorization, approval, retention, verification, or trust. See ACT-1.0.md section 12.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "policy_id",
+    "policy_version",
+    "kind",
+    "name",
+    "issued_by",
+    "issued_at",
+    "rules",
+    "signatures"
+  ],
+  "properties": {
+    "policy_id": { "$ref": "https://schemas.act-protocol.org/1.0/common/uuid.schema.json" },
+    "policy_version": { "$ref": "https://schemas.act-protocol.org/1.0/common/digest.schema.json" },
+    "kind": {
+      "type": "string",
+      "enum": ["authorization", "approval", "retention", "verification", "trust", "authority"]
+    },
+    "name": { "type": "string", "minLength": 1 },
+    "description": { "type": "string" },
+    "issued_by": { "$ref": "https://schemas.act-protocol.org/1.0/common/actor-ref.schema.json" },
+    "issued_at": { "type": "string", "format": "date-time" },
+    "supersedes": {
+      "oneOf": [
+        { "$ref": "https://schemas.act-protocol.org/1.0/common/digest.schema.json" },
+        { "type": "null" }
+      ]
+    },
+    "rules": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["rule_id", "when", "require"],
+        "properties": {
+          "rule_id": { "type": "string", "minLength": 1 },
+          "when": {
+            "type": "object",
+            "description": "A declarative match predicate over subject type, semantic_change_claim.classification, artifact_type, sensitivity, or tenant.",
+            "additionalProperties": false,
+            "properties": {
+              "subject_kind": { "type": "array", "items": { "type": "string" } },
+              "artifact_type": { "type": "array", "items": { "type": "string" } },
+              "semantic_change_classification": { "type": "array", "items": { "type": "string" } },
+              "sensitivity": { "type": "array", "items": { "type": "string" } }
+            }
+          },
+          "require": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "approval": { "type": "boolean" },
+              "quorum": { "type": "integer", "minimum": 1 },
+              "reviewer_roles": { "type": "array", "items": { "type": "string" } },
+              "separation_of_duties": {
+                "type": "boolean",
+                "description": "If true, the reviewer MUST NOT be the same actor as the transformation's author."
+              }
+            }
+          }
+        }
+      }
+    },
+    "signatures": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["key_id", "algorithm", "signature"],
+        "properties": {
+          "key_id": { "type": "string" },
+          "algorithm": { "type": "string", "enum": ["ed25519"] },
+          "signature": { "type": "string" }
+        }
+      }
+    }
+  }
+}

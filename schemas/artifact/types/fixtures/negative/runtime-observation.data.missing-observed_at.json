@@ -1,0 +1,5 @@
+{
+  "metric_name": "ledger_append_latency_ms",
+  "value": 4.2,
+  "environment": "staging"
+}

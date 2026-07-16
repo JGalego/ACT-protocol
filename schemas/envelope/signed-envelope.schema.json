@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.act-protocol.org/1.0/envelope/signed-envelope.schema.json",
+  "title": "SignedEnvelope",
+  "description": "A DSSE-compatible envelope wrapping a canonical unsigned event payload with one or more signatures. See ACT-1.0.md section 4.2.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["payloadType", "payload", "payloadDigest", "signatures"],
+  "properties": {
+    "payloadType": {
+      "type": "string",
+      "const": "application/vnd.act.event+json"
+    },
+    "payload": {
+      "$ref": "https://schemas.act-protocol.org/1.0/event/unsigned-event.schema.json",
+      "description": "The unsigned event payload, in-band for local/embedded use. Wire transport MAY instead base64-encode this per raw DSSE; both representations MUST hash identically once canonicalized."
+    },
+    "payloadDigest": {
+      "$ref": "https://schemas.act-protocol.org/1.0/common/digest.schema.json",
+      "description": "SHA-256 digest of the RFC 8785 canonical bytes of payload. This is the event_id."
+    },
+    "signatures": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["key_id", "algorithm", "signature"],
+        "properties": {
+          "key_id": { "type": "string" },
+          "algorithm": { "type": "string", "enum": ["ed25519"] },
+          "signature": {
+            "type": "string",
+            "description": "base64-encoded Ed25519 signature over the DSSE PAE(payloadType, canonical payload bytes) construction, per https://github.com/secure-systems-lab/dsse/blob/master/protocol.md"
+          }
+        }
+      }
+    }
+  }
+}

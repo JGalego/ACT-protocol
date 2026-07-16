@@ -1,0 +1,18 @@
+{
+  "challenge_id": "018f5b1a-0000-7000-8000-000000000060",
+  "disputed_claim": "sha-256:7777777777777777777777777777777777777777777777777777777777777777",
+  "challenger": {
+    "actor_id": "018f5b1a-0000-7000-8000-000000000042",
+    "key_id": "ed25519:ffffffffffffffff"
+  },
+  "grounds": "The classification of exact-preservation is not supported by the cited equivalence procedure.",
+  "evidence": [],
+  "requested_remedy": "Reclassify the transformation as semantic-modification and require approval.",
+  "status": "open",
+  "issued_at": "2026-07-16T04:00:00Z",
+  "signature": {
+    "key_id": "ed25519:ffffffffffffffff",
+    "algorithm": "ed25519",
+    "signature": "ZmFrZS1zaWduYXR1cmU="
+  }
+}

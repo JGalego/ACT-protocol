@@ -1,0 +1,24 @@
+{
+  "protocol_version": "act/1.0",
+  "event_type": "transformation_recorded",
+  "occurred_at": "2026-07-16T01:00:00Z",
+  "actor": {
+    "actor_id": "018f5b1a-0000-7000-8000-000000000012",
+    "key_id": "ed25519:bbbbbbbbbbbbbbbb"
+  },
+  "tenant": "act-protocol",
+  "subject": { "kind": "transformation", "artifact_id": "018f5b1a-0000-7000-8000-000000000011" },
+  "causal_parents": [
+    {
+      "event_id": "sha-256:1111111111111111111111111111111111111111111111111111111111111111",
+      "relation": "input"
+    }
+  ],
+  "content_descriptors": [],
+  "policy_context": {
+    "policy_id": "018f5b1a-0000-7000-8000-000000000013",
+    "policy_version": "sha-256:2222222222222222222222222222222222222222222222222222222222222222"
+  },
+  "payload": { "note": "clarified ambiguous requirement" },
+  "extensions": {}
+}

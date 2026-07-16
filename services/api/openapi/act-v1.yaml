@@ -1,0 +1,371 @@
+openapi: 3.1.0
+info:
+  title: ACT Protocol Reference API
+  version: '1.0.0-rc.1'
+  summary: Reference implementation of a subset of the ACT 1.0 /v1 HTTP contract.
+  description: >
+    This document describes the endpoints actually implemented by
+    services/api in this release candidate. Request bodies for write
+    endpoints are DSSE-compatible signed event envelopes; their authoritative
+    shape is defined by the JSON Schemas under /schemas
+    (schemas/envelope/signed-envelope.schema.json and
+    schemas/event/unsigned-event.schema.json), which the server validates
+    every request against. This OpenAPI document is kept in sync by hand
+    with services/api/src/routes/*.ts; docs/api-reference.md links each
+    operation back to its handler and to conformance/fixtures.
+  license:
+    name: Apache-2.0
+    url: https://www.apache.org/licenses/LICENSE-2.0
+servers:
+  - url: /v1
+security:
+  - bearerAuth: []
+paths:
+  /health/live:
+    get:
+      operationId: healthLive
+      summary: Liveness probe
+      security: []
+      responses:
+        '200':
+          {
+            description: OK,
+            content: { application/json: { schema: { $ref: '#/components/schemas/Status' } } },
+          }
+  /health/ready:
+    get:
+      operationId: healthReady
+      summary: Readiness probe
+      security: []
+      responses:
+        '200':
+          {
+            description: OK,
+            content: { application/json: { schema: { $ref: '#/components/schemas/Status' } } },
+          }
+  /schemas:
+    get:
+      operationId: listSchemas
+      summary: Lists the canonical schema $ids this server validates against
+      security: []
+      responses:
+        '200': { description: OK }
+  /keys:
+    post:
+      operationId: registerKey
+      summary: Registers a new Ed25519 key via self-signed proof of possession (trust bootstrap)
+      requestBody:
+        {
+          required: true,
+          content:
+            { application/json: { schema: { $ref: '#/components/schemas/SignedEnvelope' } } },
+        }
+      responses:
+        '201':
+          {
+            description: Created,
+            content:
+              { application/json: { schema: { $ref: '#/components/schemas/AppendResult' } } },
+          }
+        '400': { $ref: '#/components/responses/Problem' }
+  /actors:
+    post:
+      operationId: registerActor
+      summary: Registers an Actor (signing key must already be registered via POST /v1/keys)
+      requestBody:
+        {
+          required: true,
+          content:
+            { application/json: { schema: { $ref: '#/components/schemas/SignedEnvelope' } } },
+        }
+      responses:
+        '201':
+          {
+            description: Created,
+            content:
+              { application/json: { schema: { $ref: '#/components/schemas/AppendResult' } } },
+          }
+        '400': { $ref: '#/components/responses/Problem' }
+  /intents:
+    post:
+      operationId: submitIntent
+      summary: Submits an Intent genesis, revision, or authority-selection event
+      requestBody:
+        {
+          required: true,
+          content:
+            { application/json: { schema: { $ref: '#/components/schemas/SignedEnvelope' } } },
+        }
+      responses:
+        '201':
+          {
+            description: Created,
+            content:
+              { application/json: { schema: { $ref: '#/components/schemas/AppendResult' } } },
+          }
+        '400': { $ref: '#/components/responses/Problem' }
+  /transformations:
+    post:
+      operationId: submitTransformation
+      summary: Records a Transformation
+      requestBody:
+        {
+          required: true,
+          content:
+            { application/json: { schema: { $ref: '#/components/schemas/SignedEnvelope' } } },
+        }
+      responses:
+        '201':
+          {
+            description: Created,
+            content:
+              { application/json: { schema: { $ref: '#/components/schemas/AppendResult' } } },
+          }
+        '400': { $ref: '#/components/responses/Problem' }
+  /artifacts:
+    post:
+      operationId: submitArtifact
+      summary: Submits a generic artifact-version event (any artifact type without its own dedicated endpoint)
+      requestBody:
+        {
+          required: true,
+          content:
+            { application/json: { schema: { $ref: '#/components/schemas/SignedEnvelope' } } },
+        }
+      responses:
+        '201':
+          {
+            description: Created,
+            content:
+              { application/json: { schema: { $ref: '#/components/schemas/AppendResult' } } },
+          }
+        '400': { $ref: '#/components/responses/Problem' }
+  /artifacts/{id}:
+    get:
+      operationId: getArtifact
+      summary: Gets the current head (latest accepted version) of a logical artifact
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      responses:
+        '200': { description: OK }
+        '404': { $ref: '#/components/responses/Problem' }
+  /artifacts/{id}/versions:
+    get:
+      operationId: listArtifactVersions
+      summary: Lists every accepted event for a logical artifact, oldest first
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      responses:
+        '200': { description: OK }
+  /approval-requests:
+    post:
+      operationId: submitApprovalRequest
+      summary: Submits an Approval Request
+      requestBody:
+        {
+          required: true,
+          content:
+            { application/json: { schema: { $ref: '#/components/schemas/SignedEnvelope' } } },
+        }
+      responses:
+        '201':
+          {
+            description: Created,
+            content:
+              { application/json: { schema: { $ref: '#/components/schemas/AppendResult' } } },
+          }
+  /approval-decisions:
+    post:
+      operationId: submitApprovalDecision
+      summary: Submits an Approval Decision (approved / rejected / changes_requested / revoked / expired / cancelled)
+      requestBody:
+        {
+          required: true,
+          content:
+            { application/json: { schema: { $ref: '#/components/schemas/SignedEnvelope' } } },
+        }
+      responses:
+        '201':
+          {
+            description: Created,
+            content:
+              { application/json: { schema: { $ref: '#/components/schemas/AppendResult' } } },
+          }
+  /approvals/{id}:
+    get:
+      operationId: getApproval
+      summary: Gets a specific approval-related event by its event id
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      responses:
+        '200': { description: OK }
+  /challenges:
+    post:
+      operationId: submitChallenge
+      summary: Raises or resolves a Challenge
+      requestBody:
+        {
+          required: true,
+          content:
+            { application/json: { schema: { $ref: '#/components/schemas/SignedEnvelope' } } },
+        }
+      responses:
+        '201':
+          {
+            description: Created,
+            content:
+              { application/json: { schema: { $ref: '#/components/schemas/AppendResult' } } },
+          }
+  /verifications:
+    post:
+      operationId: submitVerification
+      summary: Records a Verification Report
+      requestBody:
+        {
+          required: true,
+          content:
+            { application/json: { schema: { $ref: '#/components/schemas/SignedEnvelope' } } },
+        }
+      responses:
+        '201':
+          {
+            description: Created,
+            content:
+              { application/json: { schema: { $ref: '#/components/schemas/AppendResult' } } },
+          }
+  /verifications/{id}:
+    get:
+      operationId: getVerification
+      summary: Gets a specific verification event by its event id
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      responses:
+        '200': { description: OK }
+  /policies:
+    post:
+      operationId: publishPolicy
+      summary: Publishes a new Policy version
+      requestBody:
+        {
+          required: true,
+          content:
+            { application/json: { schema: { $ref: '#/components/schemas/SignedEnvelope' } } },
+        }
+      responses:
+        '201':
+          {
+            description: Created,
+            content:
+              { application/json: { schema: { $ref: '#/components/schemas/AppendResult' } } },
+          }
+  /lineage/{id}:
+    get:
+      operationId: getLineage
+      summary: Bounded lineage traversal (ancestors, descendants, and any missing-parent boundaries) around an event
+      parameters:
+        - { $ref: '#/components/parameters/Id' }
+        - name: maxDepth
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 500 }
+      responses:
+        '200': { description: OK }
+        '404': { $ref: '#/components/responses/Problem' }
+  /history/{id}:
+    get:
+      operationId: getHistory
+      summary: Full ordered version history for a logical artifact
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      responses:
+        '200': { description: OK }
+  /events:
+    get:
+      operationId: listEvents
+      summary: Cursor-paginated list of every accepted event, in acceptance order
+      parameters:
+        - name: cursor
+          in: query
+          schema: { type: string }
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 500 }
+      responses:
+        '200': { description: OK }
+  /bundles/export:
+    post:
+      operationId: exportBundle
+      summary: Exports a signed event bundle (optionally scoped to a set of artifact ids)
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties: { artifactIds: { type: array, items: { type: string } } }
+      responses:
+        '200': { description: OK }
+  /bundles/import:
+    post:
+      operationId: importBundle
+      summary: Imports a signed event bundle, quarantining any event that fails validation
+      requestBody:
+        {
+          required: true,
+          content: { application/json: { schema: { $ref: '#/components/schemas/Bundle' } } },
+        }
+      responses:
+        '200': { description: OK }
+        '400': { $ref: '#/components/responses/Problem' }
+  /quarantine:
+    get:
+      operationId: listQuarantine
+      summary: Lists quarantined (rejected) import events with their rejection reason
+      responses:
+        '200': { description: OK }
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: >
+        Local development scheme only in this release candidate (ACT_DEV_MODE=true):
+        the bearer token is the caller's actor id, used for tenant scoping and
+        rate limiting. It does NOT authorize any ledger write on its own --
+        every write additionally requires the submitted event envelope to
+        carry a valid Ed25519 signature from a registered key. Production
+        OIDC/JWT validation is tracked in docs/roadmap.md.
+  parameters:
+    Id:
+      name: id
+      in: path
+      required: true
+      schema: { type: string }
+  responses:
+    Problem:
+      description: RFC 9457 Problem Details
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/ProblemDetails' }
+  schemas:
+    Status:
+      type: object
+      properties: { status: { type: string, enum: [ok] } }
+    SignedEnvelope:
+      type: object
+      description: See schemas/envelope/signed-envelope.schema.json for the authoritative shape.
+      additionalProperties: true
+    Bundle:
+      type: object
+      description: See schemas/federation/bundle.schema.json for the authoritative shape.
+      additionalProperties: true
+    AppendResult:
+      type: object
+      properties:
+        eventId: { type: string }
+        sequence: { type: integer }
+        duplicate: { type: boolean }
+        receipt: { type: object }
+    ProblemDetails:
+      type: object
+      required: [type, title, status, code]
+      properties:
+        type: { type: string }
+        title: { type: string }
+        status: { type: integer }
+        detail: { type: string }
+        instance: { type: string }
+        code: { type: string }

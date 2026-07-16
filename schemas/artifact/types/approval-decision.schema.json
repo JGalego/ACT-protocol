@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.act-protocol.org/1.0/artifact/types/approval-decision.schema.json",
+  "title": "ApprovalDecisionArtifact",
+  "description": "Wraps schemas/approval/approval-decision.schema.json as a lineage-tracked artifact.",
+  "allOf": [
+    {
+      "$ref": "https://schemas.act-protocol.org/1.0/artifact/artifact-envelope.schema.json"
+    },
+    {
+      "type": "object",
+      "required": ["artifact_type", "data"],
+      "properties": {
+        "artifact_type": {
+          "const": "ApprovalDecision"
+        },
+        "data": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["decision"],
+          "properties": {
+            "decision": {
+              "$ref": "https://schemas.act-protocol.org/1.0/approval/approval-decision.schema.json"
+            }
+          }
+        }
+      }
+    }
+  ]
+}

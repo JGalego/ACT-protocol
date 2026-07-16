@@ -1,0 +1,12 @@
+{
+  "protocol_version": "act/1.0",
+  "event_type": "genesis",
+  "occurred_at": "2026-07-16T00:00:00Z",
+  "tenant": "act-protocol",
+  "subject": { "kind": "artifact", "artifact_id": "018f5b1a-0000-7000-8000-000000000011" },
+  "causal_parents": [],
+  "content_descriptors": [],
+  "policy_context": { "not_applicable": true, "reason": "test" },
+  "payload": {},
+  "extensions": {}
+}

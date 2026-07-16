@@ -1,0 +1,5 @@
+{
+  "role": "user",
+  "content": "Implement the ledger write path.",
+  "redacted": false
+}

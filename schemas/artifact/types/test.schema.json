@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.act-protocol.org/1.0/artifact/types/test.schema.json",
+  "title": "Test",
+  "description": "A test definition or run record.",
+  "allOf": [
+    {
+      "$ref": "https://schemas.act-protocol.org/1.0/artifact/artifact-envelope.schema.json"
+    },
+    {
+      "type": "object",
+      "required": ["artifact_type", "data"],
+      "properties": {
+        "artifact_type": {
+          "const": "Test"
+        },
+        "data": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["name", "framework", "status"],
+          "properties": {
+            "name": {
+              "type": "string",
+              "minLength": 1
+            },
+            "framework": {
+              "type": "string",
+              "minLength": 1
+            },
+            "status": {
+              "type": "string",
+              "enum": ["passing", "failing", "skipped"]
+            },
+            "coverage_percent": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 100
+            }
+          }
+        }
+      }
+    }
+  ]
+}

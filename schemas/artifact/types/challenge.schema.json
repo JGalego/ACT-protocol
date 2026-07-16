@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.act-protocol.org/1.0/artifact/types/challenge.schema.json",
+  "title": "ChallengeArtifact",
+  "description": "Wraps schemas/challenge/challenge.schema.json as a lineage-tracked artifact.",
+  "allOf": [
+    {
+      "$ref": "https://schemas.act-protocol.org/1.0/artifact/artifact-envelope.schema.json"
+    },
+    {
+      "type": "object",
+      "required": ["artifact_type", "data"],
+      "properties": {
+        "artifact_type": {
+          "const": "Challenge"
+        },
+        "data": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["challenge"],
+          "properties": {
+            "challenge": {
+              "$ref": "https://schemas.act-protocol.org/1.0/challenge/challenge.schema.json"
+            }
+          }
+        }
+      }
+    }
+  ]
+}

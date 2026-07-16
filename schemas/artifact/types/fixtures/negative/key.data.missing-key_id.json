@@ -1,0 +1,6 @@
+{
+  "algorithm": "ed25519",
+  "public_key": "base64-encoded-placeholder",
+  "status": "active",
+  "owner_actor_id": "018f5b1a-0000-7000-8000-000000000005"
+}

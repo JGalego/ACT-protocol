@@ -1,0 +1,138 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.act-protocol.org/1.0/artifact/transformation.schema.json",
+  "title": "Transformation",
+  "description": "The transformation contract, per ACT-1.0.md section 7.2.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "transformation_id",
+    "mode",
+    "actor",
+    "inputs",
+    "outputs",
+    "semantic_change_claim",
+    "assumptions",
+    "ambiguities",
+    "alternatives",
+    "rationale",
+    "confidence_assessments",
+    "uncertainties",
+    "evidence",
+    "verification_results",
+    "applicable_policy",
+    "approval_requirement"
+  ],
+  "properties": {
+    "transformation_id": {
+      "$ref": "https://schemas.act-protocol.org/1.0/common/digest.schema.json"
+    },
+    "mode": { "type": "string", "enum": ["preservation", "discovery"] },
+    "actor": { "$ref": "https://schemas.act-protocol.org/1.0/common/actor-ref.schema.json" },
+    "inputs": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "https://schemas.act-protocol.org/1.0/common/digest.schema.json" }
+    },
+    "outputs": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "https://schemas.act-protocol.org/1.0/common/digest.schema.json" }
+    },
+    "semantic_change_claim": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["classification", "assessor"],
+      "properties": {
+        "classification": {
+          "type": "string",
+          "enum": [
+            "exact-preservation",
+            "clarification",
+            "constraint-refinement",
+            "assumption-introduction",
+            "alternative-proposal",
+            "intent-challenge",
+            "semantic-modification"
+          ]
+        },
+        "assessor": { "$ref": "https://schemas.act-protocol.org/1.0/common/actor-ref.schema.json" },
+        "method": { "type": "string" },
+        "equivalence_procedure": {
+          "type": "string",
+          "enum": [
+            "byte-identity",
+            "canonical-structural-equality",
+            "reproducible-build",
+            "formal-proof",
+            "not_applicable"
+          ]
+        },
+        "confidence": {
+          "$ref": "https://schemas.act-protocol.org/1.0/common/confidence-assessment.schema.json"
+        },
+        "dispute_status": { "type": "string", "enum": ["undisputed", "disputed", "resolved"] }
+      }
+    },
+    "assumptions": { "type": "array", "items": { "type": "string" } },
+    "ambiguities": { "type": "array", "items": { "type": "string" } },
+    "alternatives": { "type": "array", "items": { "type": "string" } },
+    "rationale": { "type": "string" },
+    "confidence_assessments": {
+      "type": "array",
+      "items": {
+        "$ref": "https://schemas.act-protocol.org/1.0/common/confidence-assessment.schema.json"
+      }
+    },
+    "uncertainties": {
+      "type": "array",
+      "items": { "$ref": "https://schemas.act-protocol.org/1.0/common/uncertainty.schema.json" }
+    },
+    "evidence": {
+      "type": "array",
+      "items": { "$ref": "https://schemas.act-protocol.org/1.0/common/digest.schema.json" }
+    },
+    "verification_results": {
+      "type": "array",
+      "items": { "$ref": "https://schemas.act-protocol.org/1.0/common/digest.schema.json" }
+    },
+    "applicable_policy": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["policy_id", "policy_version"],
+          "properties": {
+            "policy_id": { "$ref": "https://schemas.act-protocol.org/1.0/common/uuid.schema.json" },
+            "policy_version": {
+              "$ref": "https://schemas.act-protocol.org/1.0/common/digest.schema.json"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["not_applicable", "reason"],
+          "properties": {
+            "not_applicable": { "const": true },
+            "reason": { "type": "string", "minLength": 1 }
+          }
+        }
+      ]
+    },
+    "approval_requirement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["required", "reason"],
+      "description": "The result of evaluating applicable_policy against semantic_change_claim.classification and subject. This is a policy-evaluation snapshot recorded for audit, not a mutable authority field.",
+      "properties": {
+        "required": { "type": "boolean" },
+        "reason": { "type": "string" },
+        "satisfied_by": {
+          "type": "array",
+          "items": { "$ref": "https://schemas.act-protocol.org/1.0/common/digest.schema.json" }
+        }
+      }
+    }
+  }
+}

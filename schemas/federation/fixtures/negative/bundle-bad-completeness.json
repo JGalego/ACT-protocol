@@ -1,0 +1,12 @@
+{
+  "bundle_id": "sha-256:9999999999999999999999999999999999999999999999999999999999999999",
+  "source_ledger_id": "018f5b1a-0000-7000-8000-000000000020",
+  "exported_at": "2026-07-16T05:00:00Z",
+  "events": [],
+  "completeness": { "scope": "mostly", "known_gaps": [] },
+  "signature": {
+    "key_id": "ed25519:aaaaaaaaaaaaaaaa",
+    "algorithm": "ed25519",
+    "signature": "ZmFrZS1zaWduYXR1cmU="
+  }
+}

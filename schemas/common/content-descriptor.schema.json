@@ -1,0 +1,61 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.act-protocol.org/1.0/common/content-descriptor.schema.json",
+  "title": "ContentDescriptor",
+  "description": "Describes artifact content separately from immutable event metadata, per ACT-1.0.md section 15.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "media_type",
+    "byte_length",
+    "digest",
+    "storage",
+    "sensitivity",
+    "availability_state"
+  ],
+  "properties": {
+    "media_type": { "type": "string", "minLength": 1, "maxLength": 255 },
+    "byte_length": { "type": "integer", "minimum": 0 },
+    "digest": { "$ref": "https://schemas.act-protocol.org/1.0/common/digest.schema.json" },
+    "storage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind"],
+      "properties": {
+        "kind": { "type": "string", "enum": ["inline", "filesystem", "database", "external"] },
+        "inline_value": {
+          "type": "string",
+          "description": "base64-encoded content, present only when kind is inline"
+        },
+        "location": {
+          "type": "string",
+          "description": "opaque storage-provider locator, present when kind is filesystem/database/external"
+        }
+      }
+    },
+    "encryption": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["algorithm"],
+      "properties": {
+        "algorithm": { "type": "string", "enum": ["none", "aes-256-gcm"] },
+        "key_id": { "type": "string" },
+        "nonce": {
+          "type": "string",
+          "description": "base64-encoded nonce, required when algorithm is not none"
+        }
+      }
+    },
+    "sensitivity": {
+      "type": "string",
+      "enum": ["public", "internal", "confidential", "restricted"]
+    },
+    "retention_policy_id": {
+      "$ref": "https://schemas.act-protocol.org/1.0/common/uuid.schema.json"
+    },
+    "availability_state": {
+      "type": "string",
+      "enum": ["available", "redacted", "erased", "unavailable"]
+    }
+  }
+}

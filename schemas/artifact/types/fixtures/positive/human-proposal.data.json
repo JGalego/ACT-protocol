@@ -1,0 +1,8 @@
+{
+  "proposer": {
+    "actor_id": "018f5b1a-0000-7000-8000-000000000004",
+    "key_id": "ed25519:dddddddddddddddd"
+  },
+  "content_digest": "sha-256:4444444444444444444444444444444444444444444444444444444444444444",
+  "rationale": "align with updated requirement"
+}

@@ -1,0 +1,8 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.act-protocol.org/1.0/common/digest.schema.json",
+  "title": "Digest",
+  "description": "A content or event digest in the form algorithm:encoded-value. Version 1.0 requires sha-256.",
+  "type": "string",
+  "pattern": "^(sha-256):[0-9a-f]{64}$"
+}

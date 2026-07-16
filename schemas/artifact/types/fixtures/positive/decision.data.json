@@ -1,0 +1,6 @@
+{
+  "statement": "Storage engine for embedded mode.",
+  "options_considered": ["SQLite", "LevelDB"],
+  "chosen_option": "SQLite",
+  "rationale": "ubiquitous, transactional, zero-config"
+}

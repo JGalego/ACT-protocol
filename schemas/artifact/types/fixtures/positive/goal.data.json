@@ -1,0 +1,4 @@
+{
+  "statement": "Ship a working ledger.",
+  "success_criteria": ["make verify passes", "receipt chain verified"]
+}

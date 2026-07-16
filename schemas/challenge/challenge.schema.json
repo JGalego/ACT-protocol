@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.act-protocol.org/1.0/challenge/challenge.schema.json",
+  "title": "Challenge",
+  "description": "A first-class signed dispute attestation. See ACT-1.0.md section 11.4.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "challenge_id",
+    "disputed_claim",
+    "challenger",
+    "grounds",
+    "evidence",
+    "requested_remedy",
+    "status",
+    "issued_at",
+    "signature"
+  ],
+  "properties": {
+    "challenge_id": { "$ref": "https://schemas.act-protocol.org/1.0/common/uuid.schema.json" },
+    "disputed_claim": { "$ref": "https://schemas.act-protocol.org/1.0/common/digest.schema.json" },
+    "challenger": { "$ref": "https://schemas.act-protocol.org/1.0/common/actor-ref.schema.json" },
+    "grounds": { "type": "string", "minLength": 1 },
+    "evidence": {
+      "type": "array",
+      "items": { "$ref": "https://schemas.act-protocol.org/1.0/common/digest.schema.json" }
+    },
+    "requested_remedy": { "type": "string", "minLength": 1 },
+    "status": {
+      "type": "string",
+      "enum": ["open", "resolved_upheld", "resolved_rejected", "resolved_remedied"]
+    },
+    "resolution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["resolved_by", "resolved_at", "rationale"],
+      "properties": {
+        "resolved_by": {
+          "$ref": "https://schemas.act-protocol.org/1.0/common/actor-ref.schema.json"
+        },
+        "resolved_at": { "type": "string", "format": "date-time" },
+        "rationale": { "type": "string" },
+        "remediating_event_id": {
+          "$ref": "https://schemas.act-protocol.org/1.0/common/digest.schema.json"
+        }
+      }
+    },
+    "issued_at": { "type": "string", "format": "date-time" },
+    "signature": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["key_id", "algorithm", "signature"],
+      "properties": {
+        "key_id": { "type": "string" },
+        "algorithm": { "type": "string", "enum": ["ed25519"] },
+        "signature": { "type": "string" }
+      }
+    }
+  }
+}

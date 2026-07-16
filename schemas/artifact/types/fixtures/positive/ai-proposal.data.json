@@ -1,0 +1,9 @@
+{
+  "proposer": {
+    "actor_id": "018f5b1a-0000-7000-8000-000000000003",
+    "key_id": "ed25519:cccccccccccccccc"
+  },
+  "model": "claude-sonnet-5",
+  "content_digest": "sha-256:3333333333333333333333333333333333333333333333333333333333333333",
+  "rationale": "refactor for clarity"
+}

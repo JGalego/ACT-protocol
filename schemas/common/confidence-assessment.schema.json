@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.act-protocol.org/1.0/common/confidence-assessment.schema.json",
+  "title": "ConfidenceAssessment",
+  "description": "A single-dimension, attributed confidence assessment, per ACT-1.0.md section 9.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "dimension",
+    "score",
+    "assessor",
+    "method",
+    "method_version",
+    "evidence",
+    "timestamp",
+    "rationale"
+  ],
+  "properties": {
+    "dimension": {
+      "type": "string",
+      "enum": [
+        "semantic",
+        "requirement",
+        "architectural",
+        "implementation",
+        "verification",
+        "runtime",
+        "source"
+      ]
+    },
+    "score": {
+      "oneOf": [
+        { "type": "integer", "minimum": 0, "maximum": 100 },
+        { "type": "string", "const": "unassessed" }
+      ]
+    },
+    "assessor": { "$ref": "https://schemas.act-protocol.org/1.0/common/actor-ref.schema.json" },
+    "method": { "type": "string", "minLength": 1 },
+    "method_version": { "type": "string", "minLength": 1 },
+    "evidence": {
+      "type": "array",
+      "items": { "$ref": "https://schemas.act-protocol.org/1.0/common/digest.schema.json" }
+    },
+    "calibration_context": { "type": "string" },
+    "timestamp": { "type": "string", "format": "date-time" },
+    "rationale": { "type": "string", "minLength": 1 }
+  }
+}

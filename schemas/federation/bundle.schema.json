@@ -1,0 +1,75 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.act-protocol.org/1.0/federation/bundle.schema.json",
+  "title": "SignedEventBundle",
+  "description": "The unit of export/import between independent ledgers. See spec/federation.md section 2.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "bundle_id",
+    "source_ledger_id",
+    "exported_at",
+    "events",
+    "completeness",
+    "signature"
+  ],
+  "properties": {
+    "bundle_id": { "$ref": "https://schemas.act-protocol.org/1.0/common/digest.schema.json" },
+    "source_ledger_id": { "$ref": "https://schemas.act-protocol.org/1.0/common/uuid.schema.json" },
+    "exported_at": { "type": "string", "format": "date-time" },
+    "events": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["signed_envelope", "source_receipt"],
+        "properties": {
+          "signed_envelope": {
+            "$ref": "https://schemas.act-protocol.org/1.0/envelope/signed-envelope.schema.json"
+          },
+          "source_receipt": {
+            "$ref": "https://schemas.act-protocol.org/1.0/event/ledger-receipt.schema.json"
+          }
+        }
+      }
+    },
+    "completeness": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["scope", "known_gaps"],
+      "properties": {
+        "scope": {
+          "type": "string",
+          "enum": ["complete", "partial"]
+        },
+        "description": { "type": "string" },
+        "known_gaps": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["missing_event_id", "referenced_by"],
+            "properties": {
+              "missing_event_id": {
+                "$ref": "https://schemas.act-protocol.org/1.0/common/digest.schema.json"
+              },
+              "referenced_by": {
+                "$ref": "https://schemas.act-protocol.org/1.0/common/digest.schema.json"
+              }
+            }
+          }
+        }
+      }
+    },
+    "signature": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["key_id", "algorithm", "signature"],
+      "properties": {
+        "key_id": { "type": "string" },
+        "algorithm": { "type": "string", "enum": ["ed25519"] },
+        "signature": { "type": "string" }
+      }
+    }
+  }
+}

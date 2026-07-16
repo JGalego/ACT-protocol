@@ -1,0 +1,4 @@
+{
+  "candidate_interpretations": ["p50 < 100ms", "p99 < 500ms"],
+  "resolved": false
+}

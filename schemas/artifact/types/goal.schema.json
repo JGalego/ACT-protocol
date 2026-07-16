@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.act-protocol.org/1.0/artifact/types/goal.schema.json",
+  "title": "Goal",
+  "description": "A measurable objective in service of an Intent.",
+  "allOf": [
+    {
+      "$ref": "https://schemas.act-protocol.org/1.0/artifact/artifact-envelope.schema.json"
+    },
+    {
+      "type": "object",
+      "required": ["artifact_type", "data"],
+      "properties": {
+        "artifact_type": {
+          "const": "Goal"
+        },
+        "data": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["statement", "success_criteria"],
+          "properties": {
+            "statement": {
+              "type": "string",
+              "minLength": 1
+            },
+            "success_criteria": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "minItems": 1
+            },
+            "parent_intent_id": {
+              "$ref": "https://schemas.act-protocol.org/1.0/common/uuid.schema.json"
+            }
+          }
+        }
+      }
+    }
+  ]
+}

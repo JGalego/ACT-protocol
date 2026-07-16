@@ -1,0 +1,10 @@
+{
+  "collection_method": "automated test execution",
+  "custody": [
+    {
+      "actor_id": "018f5b1a-0000-7000-8000-000000000001",
+      "key_id": "ed25519:aaaaaaaaaaaaaaaa"
+    }
+  ],
+  "limitations": "covers only the happy path"
+}

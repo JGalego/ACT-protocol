@@ -1,0 +1,6 @@
+{
+  "statement": "Ledger receipts must be hash-chained.",
+  "requirement_type": "functional",
+  "priority": "must",
+  "traces_to": []
+}

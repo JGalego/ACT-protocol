@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.act-protocol.org/1.0/registry/algorithms.json",
+  "title": "Algorithm Registry",
+  "description": "The authoritative registry of signature and digest algorithms recognized by ACT 1.0. Adding an entry is additive and MUST ship with conformance vectors (spec/ACT-1.0.md section 4.4) before use. Removing or deprecating an entry is a protocol-version-relevant change.",
+  "signature_algorithms": [
+    {
+      "id": "ed25519",
+      "status": "required",
+      "reference": "https://www.rfc-editor.org/rfc/rfc8032",
+      "since_protocol_version": "act/1.0"
+    }
+  ],
+  "digest_algorithms": [
+    {
+      "id": "sha-256",
+      "status": "required",
+      "reference": "https://www.rfc-editor.org/rfc/rfc6234",
+      "since_protocol_version": "act/1.0"
+    }
+  ]
+}

@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.act-protocol.org/1.0/artifact/types/approval-request.schema.json",
+  "title": "ApprovalRequestArtifact",
+  "description": "Wraps schemas/approval/approval-request.schema.json as a lineage-tracked artifact.",
+  "allOf": [
+    {
+      "$ref": "https://schemas.act-protocol.org/1.0/artifact/artifact-envelope.schema.json"
+    },
+    {
+      "type": "object",
+      "required": ["artifact_type", "data"],
+      "properties": {
+        "artifact_type": {
+          "const": "ApprovalRequest"
+        },
+        "data": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["request"],
+          "properties": {
+            "request": {
+              "$ref": "https://schemas.act-protocol.org/1.0/approval/approval-request.schema.json"
+            }
+          }
+        }
+      }
+    }
+  ]
+}

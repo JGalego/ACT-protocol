@@ -1,0 +1,8 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.act-protocol.org/1.0/common/uuid.schema.json",
+  "title": "UUID",
+  "description": "A UUID, RFC 9562. ACT logical identities MUST use UUIDv7 (time-ordered) when newly generated; this pattern accepts any RFC 9562 UUID so that imported/legacy identifiers are not rejected on shape alone.",
+  "type": "string",
+  "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+}

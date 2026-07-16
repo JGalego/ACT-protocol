@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.act-protocol.org/1.0/artifact/types/ai-proposal.schema.json",
+  "title": "AIProposal",
+  "description": "A proposal authored by an AI system.",
+  "allOf": [
+    {
+      "$ref": "https://schemas.act-protocol.org/1.0/artifact/artifact-envelope.schema.json"
+    },
+    {
+      "type": "object",
+      "required": ["artifact_type", "data"],
+      "properties": {
+        "artifact_type": {
+          "const": "AIProposal"
+        },
+        "data": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["proposer", "model", "content_digest", "rationale"],
+          "properties": {
+            "proposer": {
+              "$ref": "https://schemas.act-protocol.org/1.0/common/actor-ref.schema.json"
+            },
+            "model": {
+              "type": "string",
+              "minLength": 1
+            },
+            "model_version": {
+              "type": "string"
+            },
+            "content_digest": {
+              "$ref": "https://schemas.act-protocol.org/1.0/common/digest.schema.json"
+            },
+            "rationale": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      }
+    }
+  ]
+}

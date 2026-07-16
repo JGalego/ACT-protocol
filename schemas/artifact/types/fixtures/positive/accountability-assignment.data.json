@@ -1,0 +1,15 @@
+{
+  "role": "reviewer",
+  "assignee": {
+    "actor_id": "018f5b1a-0000-7000-8000-000000000006",
+    "key_id": "ed25519:aaaaaaaaaaaaaaaa"
+  },
+  "scope": "act-protocol/packages/ledger",
+  "issuer": {
+    "actor_id": "018f5b1a-0000-7000-8000-000000000007",
+    "key_id": "ed25519:bbbbbbbbbbbbbbbb"
+  },
+  "authority": "project-maintainer",
+  "start_time": "2026-07-16T00:00:00Z",
+  "status": "active"
+}

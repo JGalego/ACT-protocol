@@ -1,0 +1,32 @@
+{
+  "name": "@act/cli",
+  "version": "1.0.0-rc.1",
+  "description": "The act command-line tool.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "bin": {
+    "act": "./dist/bin/act.js"
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "clean": "rm -rf dist *.tsbuildinfo"
+  },
+  "dependencies": {
+    "@act/core": "workspace:*",
+    "@act/crypto": "workspace:*",
+    "@act/ledger": "workspace:*",
+    "@act/policy": "workspace:*",
+    "@act/sdk": "workspace:*",
+    "@act/verification": "workspace:*",
+    "commander": "^12.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "@vitest/coverage-v8": "^3.2.6",
+    "typescript": "^5.7.2",
+    "vitest": "^3.2.6"
+  }
+}

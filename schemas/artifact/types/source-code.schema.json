@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.act-protocol.org/1.0/artifact/types/source-code.schema.json",
+  "title": "SourceCode",
+  "description": "A versioned source-code artifact.",
+  "allOf": [
+    {
+      "$ref": "https://schemas.act-protocol.org/1.0/artifact/artifact-envelope.schema.json"
+    },
+    {
+      "type": "object",
+      "required": ["artifact_type", "data"],
+      "properties": {
+        "artifact_type": {
+          "const": "SourceCode"
+        },
+        "data": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["language", "path"],
+          "properties": {
+            "language": {
+              "type": "string",
+              "minLength": 1
+            },
+            "path": {
+              "type": "string",
+              "minLength": 1
+            },
+            "repository_ref": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    }
+  ]
+}

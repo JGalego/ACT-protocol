@@ -1,0 +1,139 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.act-protocol.org/1.0/artifact/artifact-envelope.schema.json",
+  "title": "ArtifactEnvelope",
+  "description": "The shared envelope every artifact-version payload extends, per ACT-1.0.md section 7.1 and PROMPT.md's Artifact Types requirements. Concrete type schemas under schemas/artifact/types/ set artifact_type to a fixed const and add a type-specific `data` object.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "artifact_id",
+    "version_id",
+    "artifact_type",
+    "schema_version",
+    "protocol_version",
+    "authoring_actor",
+    "created_at_claim",
+    "content",
+    "lineage",
+    "applicable_policy",
+    "confidence_assessments",
+    "uncertainties",
+    "evidence_refs",
+    "signatures",
+    "sensitivity",
+    "retention_policy_id",
+    "data"
+  ],
+  "properties": {
+    "artifact_id": {
+      "$ref": "https://schemas.act-protocol.org/1.0/common/uuid.schema.json",
+      "description": "Logical artifact identity, stable across revisions."
+    },
+    "version_id": {
+      "$ref": "https://schemas.act-protocol.org/1.0/common/digest.schema.json",
+      "description": "Immutable version identity, the digest of this record's canonical bytes excluding signatures."
+    },
+    "artifact_type": { "type": "string", "minLength": 1 },
+    "schema_version": { "type": "string", "minLength": 1 },
+    "protocol_version": { "type": "string", "const": "act/1.0" },
+    "authoring_actor": {
+      "$ref": "https://schemas.act-protocol.org/1.0/common/actor-ref.schema.json"
+    },
+    "created_at_claim": { "type": "string", "format": "date-time" },
+    "content": {
+      "$ref": "https://schemas.act-protocol.org/1.0/common/content-descriptor.schema.json"
+    },
+    "lineage": {
+      "type": "array",
+      "description": "Typed, many-to-many edges from this version to prior nodes it depends on. Empty only for a Genesis version.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["relation", "target_version_id"],
+        "properties": {
+          "relation": {
+            "type": "string",
+            "enum": [
+              "revises",
+              "input-of",
+              "output-of",
+              "merges",
+              "responds-to",
+              "external-import-of"
+            ]
+          },
+          "target_version_id": {
+            "$ref": "https://schemas.act-protocol.org/1.0/common/digest.schema.json"
+          }
+        }
+      }
+    },
+    "applicable_policy": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["policy_id", "policy_version"],
+          "properties": {
+            "policy_id": { "$ref": "https://schemas.act-protocol.org/1.0/common/uuid.schema.json" },
+            "policy_version": {
+              "$ref": "https://schemas.act-protocol.org/1.0/common/digest.schema.json"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["not_applicable", "reason"],
+          "properties": {
+            "not_applicable": { "const": true },
+            "reason": { "type": "string", "minLength": 1 }
+          }
+        }
+      ]
+    },
+    "confidence_assessments": {
+      "type": "array",
+      "items": {
+        "$ref": "https://schemas.act-protocol.org/1.0/common/confidence-assessment.schema.json"
+      }
+    },
+    "uncertainties": {
+      "type": "array",
+      "items": { "$ref": "https://schemas.act-protocol.org/1.0/common/uncertainty.schema.json" }
+    },
+    "evidence_refs": {
+      "type": "array",
+      "items": { "$ref": "https://schemas.act-protocol.org/1.0/common/digest.schema.json" }
+    },
+    "signatures": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["key_id", "algorithm", "signature"],
+        "properties": {
+          "key_id": { "type": "string" },
+          "algorithm": { "type": "string", "enum": ["ed25519"] },
+          "signature": { "type": "string" }
+        }
+      }
+    },
+    "sensitivity": {
+      "type": "string",
+      "enum": ["public", "internal", "confidential", "restricted"]
+    },
+    "retention_policy_id": {
+      "oneOf": [
+        { "$ref": "https://schemas.act-protocol.org/1.0/common/uuid.schema.json" },
+        { "type": "null" }
+      ]
+    },
+    "data": {
+      "type": "object",
+      "description": "Type-specific payload, defined by the concrete artifact type schema."
+    },
+    "extensions": { "type": "object" }
+  }
+}

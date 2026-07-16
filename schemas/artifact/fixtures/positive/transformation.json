@@ -1,0 +1,34 @@
+{
+  "transformation_id": "sha-256:5555555555555555555555555555555555555555555555555555555555555555",
+  "mode": "preservation",
+  "actor": {
+    "actor_id": "018f5b1a-0000-7000-8000-000000000030",
+    "key_id": "ed25519:dddddddddddddddd"
+  },
+  "inputs": ["sha-256:6666666666666666666666666666666666666666666666666666666666666666"],
+  "outputs": ["sha-256:7777777777777777777777777777777777777777777777777777777777777777"],
+  "semantic_change_claim": {
+    "classification": "clarification",
+    "assessor": {
+      "actor_id": "018f5b1a-0000-7000-8000-000000000030",
+      "key_id": "ed25519:dddddddddddddddd"
+    },
+    "dispute_status": "undisputed"
+  },
+  "assumptions": [],
+  "ambiguities": [],
+  "alternatives": [],
+  "rationale": "restated the requirement without changing its meaning",
+  "confidence_assessments": [],
+  "uncertainties": [],
+  "evidence": [],
+  "verification_results": [],
+  "applicable_policy": {
+    "not_applicable": true,
+    "reason": "no policy configured for this fixture"
+  },
+  "approval_requirement": {
+    "required": false,
+    "reason": "clarification does not require approval by default policy"
+  }
+}

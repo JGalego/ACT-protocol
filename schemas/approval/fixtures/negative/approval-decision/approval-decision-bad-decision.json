@@ -1,0 +1,30 @@
+{
+  "decision_id": "018f5b1a-0000-7000-8000-000000000051",
+  "request_id": "018f5b1a-0000-7000-8000-000000000050",
+  "subject": {
+    "artifact_id": "018f5b1a-0000-7000-8000-000000000011",
+    "version_id": "sha-256:7777777777777777777777777777777777777777777777777777777777777777"
+  },
+  "decision": "maybe",
+  "scope": "act-protocol/spec",
+  "reviewer": {
+    "actor_id": "018f5b1a-0000-7000-8000-000000000041",
+    "key_id": "ed25519:eeeeeeeeeeeeeeee"
+  },
+  "reviewer_authority": {
+    "assignment_id": "018f5b1a-0000-7000-8000-000000000052",
+    "role": "reviewer"
+  },
+  "policy_id": "018f5b1a-0000-7000-8000-000000000040",
+  "policy_version": "sha-256:8888888888888888888888888888888888888888888888888888888888888888",
+  "conditions": [],
+  "comments": "",
+  "issued_at": "2026-07-16T03:00:00Z",
+  "expires_at": null,
+  "supersedes": null,
+  "signature": {
+    "key_id": "ed25519:eeeeeeeeeeeeeeee",
+    "algorithm": "ed25519",
+    "signature": "ZmFrZS1zaWduYXR1cmU="
+  }
+}

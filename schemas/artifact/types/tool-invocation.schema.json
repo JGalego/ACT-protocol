@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.act-protocol.org/1.0/artifact/types/tool-invocation.schema.json",
+  "title": "ToolInvocation",
+  "description": "A recorded invocation of a tool by an actor, redactable.",
+  "allOf": [
+    {
+      "$ref": "https://schemas.act-protocol.org/1.0/artifact/artifact-envelope.schema.json"
+    },
+    {
+      "type": "object",
+      "required": ["artifact_type", "data"],
+      "properties": {
+        "artifact_type": {
+          "const": "ToolInvocation"
+        },
+        "data": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["tool_name", "arguments_digest", "redacted"],
+          "properties": {
+            "tool_name": {
+              "type": "string",
+              "minLength": 1
+            },
+            "arguments_digest": {
+              "$ref": "https://schemas.act-protocol.org/1.0/common/digest.schema.json"
+            },
+            "result_digest": {
+              "$ref": "https://schemas.act-protocol.org/1.0/common/digest.schema.json"
+            },
+            "redacted": {
+              "type": "boolean"
+            }
+          }
+        }
+      }
+    }
+  ]
+}

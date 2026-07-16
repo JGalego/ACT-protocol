@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.act-protocol.org/1.0/artifact/types/key.schema.json",
+  "title": "Key",
+  "description": "A cryptographic key bound to an actor.",
+  "allOf": [
+    {
+      "$ref": "https://schemas.act-protocol.org/1.0/artifact/artifact-envelope.schema.json"
+    },
+    {
+      "type": "object",
+      "required": ["artifact_type", "data"],
+      "properties": {
+        "artifact_type": {
+          "const": "Key"
+        },
+        "data": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["key_id", "algorithm", "public_key", "status", "owner_actor_id"],
+          "properties": {
+            "key_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "algorithm": {
+              "type": "string",
+              "enum": ["ed25519"]
+            },
+            "public_key": {
+              "type": "string",
+              "minLength": 1
+            },
+            "status": {
+              "type": "string",
+              "enum": ["issued", "active", "rotated", "expired", "revoked", "compromised"]
+            },
+            "owner_actor_id": {
+              "$ref": "https://schemas.act-protocol.org/1.0/common/uuid.schema.json"
+            }
+          }
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,5 @@
+{
+  "model": "claude-sonnet-5",
+  "content_digest": "sha-256:3333333333333333333333333333333333333333333333333333333333333333",
+  "rationale": "refactor for clarity"
+}

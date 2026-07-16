@@ -1,0 +1,32 @@
+{
+  "policy_id": "018f5b1a-0000-7000-8000-000000000040",
+  "policy_version": "sha-256:8888888888888888888888888888888888888888888888888888888888888888",
+  "kind": "approval",
+  "name": "Default semantic-modification approval policy",
+  "description": "Requires one reviewer approval for any semantic-modification transformation on an effective intent.",
+  "issued_by": {
+    "actor_id": "018f5b1a-0000-7000-8000-000000000041",
+    "key_id": "ed25519:eeeeeeeeeeeeeeee"
+  },
+  "issued_at": "2026-07-16T00:00:00Z",
+  "supersedes": null,
+  "rules": [
+    {
+      "rule_id": "require-approval-for-semantic-modification",
+      "when": { "semantic_change_classification": ["semantic-modification"] },
+      "require": {
+        "approval": true,
+        "quorum": 1,
+        "reviewer_roles": ["reviewer"],
+        "separation_of_duties": true
+      }
+    }
+  ],
+  "signatures": [
+    {
+      "key_id": "ed25519:eeeeeeeeeeeeeeee",
+      "algorithm": "ed25519",
+      "signature": "ZmFrZS1zaWduYXR1cmU="
+    }
+  ]
+}

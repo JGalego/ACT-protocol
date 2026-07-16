@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.act-protocol.org/1.0/artifact/types/requirement.schema.json",
+  "title": "Requirement",
+  "description": "A functional or non-functional requirement traceable to intent.",
+  "allOf": [
+    {
+      "$ref": "https://schemas.act-protocol.org/1.0/artifact/artifact-envelope.schema.json"
+    },
+    {
+      "type": "object",
+      "required": ["artifact_type", "data"],
+      "properties": {
+        "artifact_type": {
+          "const": "Requirement"
+        },
+        "data": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["statement", "requirement_type", "priority", "traces_to"],
+          "properties": {
+            "statement": {
+              "type": "string",
+              "minLength": 1
+            },
+            "requirement_type": {
+              "type": "string",
+              "enum": ["functional", "non-functional"]
+            },
+            "priority": {
+              "type": "string",
+              "enum": ["must", "should", "could", "wont"]
+            },
+            "traces_to": {
+              "type": "array",
+              "items": {
+                "$ref": "https://schemas.act-protocol.org/1.0/common/uuid.schema.json"
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

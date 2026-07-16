@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.act-protocol.org/1.0/event/ledger-receipt.schema.json",
+  "title": "LedgerReceipt",
+  "description": "A signed, hash-chained receipt a ledger issues when it accepts an event. See ACT-1.0.md section 5.3.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "ledger_id",
+    "sequence",
+    "event_id",
+    "accepted_at",
+    "previous_receipt_digest",
+    "receipt_digest",
+    "signature"
+  ],
+  "properties": {
+    "ledger_id": { "$ref": "https://schemas.act-protocol.org/1.0/common/uuid.schema.json" },
+    "sequence": { "type": "integer", "minimum": 0 },
+    "event_id": { "$ref": "https://schemas.act-protocol.org/1.0/common/digest.schema.json" },
+    "accepted_at": { "type": "string", "format": "date-time" },
+    "previous_receipt_digest": {
+      "$ref": "https://schemas.act-protocol.org/1.0/common/digest.schema.json",
+      "description": "Digest of the immediately preceding receipt in this ledger, or the reserved all-zero genesis constant when sequence is 0 (both are syntactically digests; the allOf rule below pins sequence 0 to the constant)."
+    },
+    "receipt_digest": {
+      "$ref": "https://schemas.act-protocol.org/1.0/common/digest.schema.json",
+      "description": "SHA-256 digest of the canonical bytes of this receipt's other fields, including previous_receipt_digest."
+    },
+    "signature": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["key_id", "algorithm", "signature"],
+      "properties": {
+        "key_id": { "type": "string" },
+        "algorithm": { "type": "string", "enum": ["ed25519"] },
+        "signature": { "type": "string" }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "sequence": { "const": 0 } }, "required": ["sequence"] },
+      "then": {
+        "properties": {
+          "previous_receipt_digest": {
+            "const": "sha-256:0000000000000000000000000000000000000000000000000000000000000000"
+          }
+        }
+      }
+    }
+  ]
+}

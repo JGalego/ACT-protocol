@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.act-protocol.org/1.0/policy/authority-policy.schema.json",
+  "title": "AuthorityPolicy",
+  "description": "Defines who may select, merge, or supersede an effective Intent for a project/branch, and whether quorum or separation of duties applies. See ACT-1.0.md section 7.3.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "policy_id",
+    "policy_version",
+    "scope",
+    "authorized_roles",
+    "quorum",
+    "issued_by",
+    "issued_at",
+    "signatures"
+  ],
+  "properties": {
+    "policy_id": { "$ref": "https://schemas.act-protocol.org/1.0/common/uuid.schema.json" },
+    "policy_version": { "$ref": "https://schemas.act-protocol.org/1.0/common/digest.schema.json" },
+    "scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["project"],
+      "properties": {
+        "project": { "type": "string", "minLength": 1 },
+        "branch": { "type": "string" }
+      }
+    },
+    "authorized_roles": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string" }
+    },
+    "quorum": { "type": "integer", "minimum": 1 },
+    "separation_of_duties": { "type": "boolean", "default": false },
+    "issued_by": { "$ref": "https://schemas.act-protocol.org/1.0/common/actor-ref.schema.json" },
+    "issued_at": { "type": "string", "format": "date-time" },
+    "signatures": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["key_id", "algorithm", "signature"],
+        "properties": {
+          "key_id": { "type": "string" },
+          "algorithm": { "type": "string", "enum": ["ed25519"] },
+          "signature": { "type": "string" }
+        }
+      }
+    }
+  }
+}

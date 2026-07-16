@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.act-protocol.org/1.0/artifact/types/intent.schema.json",
+  "title": "Intent",
+  "description": "A stated purpose or objective, the root or a revision in an intent lineage (ACT-1.0.md section 7.3).",
+  "allOf": [
+    {
+      "$ref": "https://schemas.act-protocol.org/1.0/artifact/artifact-envelope.schema.json"
+    },
+    {
+      "type": "object",
+      "required": ["artifact_type", "data"],
+      "properties": {
+        "artifact_type": {
+          "const": "Intent"
+        },
+        "data": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["statement", "scope"],
+          "properties": {
+            "statement": {
+              "type": "string",
+              "minLength": 1
+            },
+            "scope": {
+              "type": "string",
+              "minLength": 1
+            },
+            "priority": {
+              "type": "string",
+              "enum": ["low", "medium", "high", "critical"]
+            }
+          }
+        }
+      }
+    }
+  ]
+}

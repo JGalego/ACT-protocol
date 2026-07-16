@@ -1,0 +1,12 @@
+packages:
+  - 'packages/*'
+  - 'services/*'
+  - 'apps/*'
+allowBuilds:
+  better-sqlite3: true
+  esbuild: true
+overrides:
+  # Forces the transitive vite dependency pulled in by vitest/@vitest/coverage-v8
+  # past known moderate/high advisories (GHSA-v6wh-96g9-6wx3 and related);
+  # see docs/dependency-audit.md.
+  vite: '>=6.4.3'

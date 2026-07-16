@@ -1,0 +1,117 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.act-protocol.org/1.0/event/unsigned-event.schema.json",
+  "title": "UnsignedEvent",
+  "description": "The canonical (RFC 8785) unsigned event payload whose SHA-256 digest is the event_id. See ACT-1.0.md section 5.1.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "protocol_version",
+    "event_type",
+    "occurred_at",
+    "actor",
+    "tenant",
+    "subject",
+    "causal_parents",
+    "content_descriptors",
+    "policy_context",
+    "payload",
+    "extensions"
+  ],
+  "properties": {
+    "protocol_version": { "type": "string", "const": "act/1.0" },
+    "event_type": { "$ref": "https://schemas.act-protocol.org/1.0/event/event-type.schema.json" },
+    "occurred_at": { "type": "string", "format": "date-time" },
+    "actor": { "$ref": "https://schemas.act-protocol.org/1.0/common/actor-ref.schema.json" },
+    "tenant": {
+      "oneOf": [
+        { "type": "string", "minLength": 1 },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["not_applicable", "reason"],
+          "properties": {
+            "not_applicable": { "const": true },
+            "reason": { "type": "string", "minLength": 1 }
+          }
+        }
+      ]
+    },
+    "subject": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind"],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": ["artifact", "transformation", "attestation", "policy", "evidence"]
+        },
+        "artifact_id": { "$ref": "https://schemas.act-protocol.org/1.0/common/uuid.schema.json" },
+        "version_id": { "$ref": "https://schemas.act-protocol.org/1.0/common/digest.schema.json" },
+        "artifact_type": { "type": "string" }
+      }
+    },
+    "causal_parents": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["event_id"],
+        "properties": {
+          "event_id": { "$ref": "https://schemas.act-protocol.org/1.0/common/digest.schema.json" },
+          "relation": {
+            "type": "string",
+            "enum": ["input", "output", "revision-of", "merge-of", "approval-of", "response-to"],
+            "default": "input"
+          }
+        }
+      }
+    },
+    "content_descriptors": {
+      "type": "array",
+      "items": {
+        "$ref": "https://schemas.act-protocol.org/1.0/common/content-descriptor.schema.json"
+      }
+    },
+    "policy_context": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["policy_id", "policy_version"],
+          "properties": {
+            "policy_id": { "$ref": "https://schemas.act-protocol.org/1.0/common/uuid.schema.json" },
+            "policy_version": {
+              "$ref": "https://schemas.act-protocol.org/1.0/common/digest.schema.json"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["not_applicable", "reason"],
+          "properties": {
+            "not_applicable": { "const": true },
+            "reason": { "type": "string", "minLength": 1 }
+          }
+        }
+      ]
+    },
+    "payload": { "type": "object" },
+    "extensions": { "type": "object" }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": { "event_type": { "const": "genesis" } },
+        "required": ["event_type"]
+      },
+      "then": {
+        "properties": { "causal_parents": { "type": "array", "maxItems": 0 } }
+      },
+      "else": {
+        "properties": { "causal_parents": { "type": "array", "minItems": 1 } }
+      }
+    }
+  ]
+}

@@ -1,0 +1,97 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Keeps the local development bearer scheme opt-in and explicit even
+  # when running services/api's server-construction tests in CI.
+  NODE_ENV: test
+
+jobs:
+  verify:
+    name: make verify (format, lint, typecheck, schemas, tests)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Check formatting
+        run: pnpm run format
+
+      - name: Lint
+        run: pnpm run lint
+
+      - name: Type check (all packages, project references)
+        run: pnpm run typecheck
+
+      - name: Validate schema fixtures
+        run: pnpm run schemas:validate
+
+      - name: Run tests with coverage (enforces per-package coverage floors)
+        run: pnpm run test:coverage
+
+  audit:
+    name: Dependency audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Audit dependencies (fails on high or critical advisories)
+        run: pnpm audit --audit-level=high
+
+  build:
+    name: Build every package
+    runs-on: ubuntu-latest
+    needs: verify
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build all workspace packages
+        run: pnpm run build
+
+      - name: Confirm the act CLI binary runs
+        run: |
+          node apps/cli/dist/bin/act.js --help

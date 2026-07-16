@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.act-protocol.org/1.0/artifact/types/ambiguity.schema.json",
+  "title": "Ambiguity",
+  "description": "A recorded point where meaning is not yet settled.",
+  "allOf": [
+    {
+      "$ref": "https://schemas.act-protocol.org/1.0/artifact/artifact-envelope.schema.json"
+    },
+    {
+      "type": "object",
+      "required": ["artifact_type", "data"],
+      "properties": {
+        "artifact_type": {
+          "const": "Ambiguity"
+        },
+        "data": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["description", "candidate_interpretations", "resolved"],
+          "properties": {
+            "description": {
+              "type": "string",
+              "minLength": 1
+            },
+            "candidate_interpretations": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "minItems": 1
+            },
+            "resolved": {
+              "type": "boolean"
+            }
+          }
+        }
+      }
+    }
+  ]
+}

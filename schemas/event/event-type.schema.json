@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.act-protocol.org/1.0/event/event-type.schema.json",
+  "title": "EventType",
+  "description": "The closed enumeration of ACT 1.0 event types. An implementation MUST reject an unrecognized value rather than reinterpret it (ACT-1.0.md section 16.4).",
+  "type": "string",
+  "enum": [
+    "genesis",
+    "external_import",
+    "artifact_version_created",
+    "artifact_revised",
+    "transformation_recorded",
+    "approval_requested",
+    "approval_decided",
+    "approval_cancelled",
+    "approval_revoked",
+    "approval_expired",
+    "challenge_raised",
+    "challenge_resolved",
+    "verification_recorded",
+    "policy_published",
+    "actor_registered",
+    "key_issued",
+    "key_rotated",
+    "key_revoked",
+    "key_compromised",
+    "accountability_assigned",
+    "content_redacted",
+    "content_erased",
+    "intent_effective_selected",
+    "intent_merged"
+  ]
+}
