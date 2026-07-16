@@ -1,12 +1,8 @@
 # ACT State Machines
 
-Status: Normative, companion to `spec/ACT-1.0.md`. Machine-readable
-definitions of these state machines live in `formal/state-machines/*.json`
-and are consumed by the TLA+ model in `formal/` and by
-`packages/verification`'s lifecycle checks.
+Status: Normative, companion to `spec/ACT-1.0.md`. Machine-readable definitions of these state machines live in `formal/state-machines/*.json` and are consumed by the TLA+ model in `formal/` and by `packages/verification`'s lifecycle checks.
 
-Every transition below is effected by exactly one new signed Event; no
-transition is a mutation of an existing record.
+Every transition below is effected by exactly one new signed Event; no transition is a mutation of an existing record.
 
 ## 1. Artifact Version Lifecycle
 
@@ -24,15 +20,9 @@ transition is a mutation of an existing record.
                            +--------------+
 ```
 
-- `active`: the version exists, its content availability is `available`
-  (or `inline`/`referenced` per storage), and no newer revision has been
-  recorded for its lineage tip.
-- `superseded`: a `Revision` event named a newer version as the tip of this
-  lineage. `superseded` is orthogonal to content availability — a
-  superseded version's content MAY still be `available`.
-- Availability (`available` -> `redacted` -> `erased`, or `available` ->
-  `unavailable`) is tracked independently per §15 of `ACT-1.0.md`; it never
-  regresses from `erased` back to `available`.
+- `active`: the version exists, its content availability is `available` (or `inline`/`referenced` per storage), and no newer revision has been recorded for its lineage tip.
+- `superseded`: a `Revision` event named a newer version as the tip of this lineage. `superseded` is orthogonal to content availability — a superseded version's content MAY still be `available`.
+- Availability (`available` -> `redacted` -> `erased`, or `available` -> `unavailable`) is tracked independently per §15 of `ACT-1.0.md`; it never regresses from `erased` back to `available`.
 
 ## 2. Approval Lifecycle
 
@@ -48,14 +38,9 @@ approved  --[new approval supersedes]--> superseded
 
 Invariants (checked in `formal/`, model `ApprovalLifecycle`):
 
-- `rejected`, `cancelled`, `expired`, `revoked`, and `superseded` are
-  terminal for that Approval Decision record; no further transition event
-  referencing it is valid except a Challenge.
-- `changes_requested` is terminal for that decision but does not block a
-  new Approval Request from being opened for a revised subject.
-- An `approved` decision only authorizes an action while it is in the
-  `approved` state AND every joint condition in `ACT-1.0.md` §8.3 holds
-  (matching subject digest, non-revoked key, satisfied quorum, etc.).
+- `rejected`, `cancelled`, `expired`, `revoked`, and `superseded` are terminal for that Approval Decision record; no further transition event referencing it is valid except a Challenge.
+- `changes_requested` is terminal for that decision but does not block a new Approval Request from being opened for a revised subject.
+- An `approved` decision only authorizes an action while it is in the `approved` state AND every joint condition in `ACT-1.0.md` §8.3 holds (matching subject digest, non-revoked key, satisfied quorum, etc.).
 
 ## 3. Challenge Lifecycle
 
@@ -65,9 +50,7 @@ open --reject()-->     resolved_rejected   (challenge found without merit)
 open --remedy()-->     resolved_remedied   (a new event addresses the grounds)
 ```
 
-A Challenge never causes deletion of the original disputed claim (per
-`ACT-1.0.md` §11.4); `resolved_remedied` links to the remediating event
-without altering the original.
+A Challenge never causes deletion of the original disputed claim (per `ACT-1.0.md` §11.4); `resolved_remedied` links to the remediating event without altering the original.
 
 ## 4. Intent Authority State (per project/branch)
 
@@ -79,11 +62,7 @@ proposed  --[conflicting proposal, no resolving event]--> branched (both remain 
 branched  --[authority-policy-sanctioned merge or selection]--> effective (one version), others -> superseded
 ```
 
-Invariant `EffectiveIntentSafety` (`formal/`): at most one Intent version
-is `effective` per (project, branch) at any point in the event sequence,
-and a version transitions to `effective` only via an event whose actor and
-policy context satisfy the applicable authority policy's quorum/authority
-rule evaluated at that point in the sequence.
+Invariant `EffectiveIntentSafety` (`formal/`): at most one Intent version is `effective` per (project, branch) at any point in the event sequence, and a version transitions to `effective` only via an event whose actor and policy context satisfy the applicable authority policy's quorum/authority rule evaluated at that point in the sequence.
 
 ## 5. Key Lifecycle
 
@@ -96,12 +75,7 @@ active --revoke()--> revoked
 active --flag_compromised()--> compromised
 ```
 
-`rotated`, `expired`, `revoked`, and `compromised` all mean "do not accept
-new signatures from this key" but are recorded distinctly because they
-carry different implications for past-signature validity (`ACT-1.0.md`
-§11.2): a `compromised` flag MAY retroactively cast doubt on signatures
-made shortly before detection (per the configured grace-period trust-policy
-rule), while `expired` and `rotated` do not.
+`rotated`, `expired`, `revoked`, and `compromised` all mean "do not accept new signatures from this key" but are recorded distinctly because they carry different implications for past-signature validity (`ACT-1.0.md` §11.2): a `compromised` flag MAY retroactively cast doubt on signatures made shortly before detection (per the configured grace-period trust-policy rule), while `expired` and `rotated` do not.
 
 ## 6. Ledger Receipt Chain (per ledger)
 
@@ -110,7 +84,4 @@ rule), while `expired` and `rotated` do not.
 receipt_n --append(event_n+1)--> receipt_n+1 { sequence: n+1, previous_receipt_digest: digest(receipt_n) }
 ```
 
-Invariant `ReceiptChainIntegrity` (`formal/`): for every `n > 0`,
-`receipt_n.previous_receipt_digest == digest(receipt_{n-1})`, and
-`sequence` is strictly increasing by exactly 1 with no gaps within one
-ledger's chain.
+Invariant `ReceiptChainIntegrity` (`formal/`): for every `n > 0`, `receipt_n.previous_receipt_digest == digest(receipt_{n-1})`, and `sequence` is strictly increasing by exactly 1 with no gaps within one ledger's chain.

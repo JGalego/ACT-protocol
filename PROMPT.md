@@ -2,8 +2,7 @@
 
 ## Accountability and Chain of Transformation
 
-> An open protocol for preserving meaning, provenance, evidence, and accountable
-> decisions across human and AI collaboration.
+> An open protocol for preserving meaning, provenance, evidence, and accountable decisions across human and AI collaboration.
 
 ### Motto
 
@@ -17,52 +16,29 @@
 
 ## Execution Directive
 
-Act as a principal protocol designer, security engineer, distributed-systems
-engineer, full-stack engineer, SDK author, formal-methods practitioner,
-technical writer, and test engineer.
+Act as a principal protocol designer, security engineer, distributed-systems engineer, full-stack engineer, SDK author, formal-methods practitioner, technical writer, and test engineer.
 
-Build the complete ACT Protocol repository in the current workspace. Do not
-respond with only a proposal, architecture sketch, sample, or implementation
-plan. Create the files, install the dependencies, implement every required
-component, run every available quality gate, fix failures, and leave a usable
-version 1.0 release candidate.
+Build the complete ACT Protocol repository in the current workspace. Do not respond with only a proposal, architecture sketch, sample, or implementation plan. Create the files, install the dependencies, implement every required component, run every available quality gate, fix failures, and leave a usable version 1.0 release candidate.
 
-This is a single-execution build specification. Every requirement in this
-document is part of the required result. Do not leave unfinished-work markers,
-empty packages, placeholder handlers, illustrative-only core logic, disabled
-tests, or APIs that return fabricated data. A configurable external integration
-is acceptable only when the repository also includes a deterministic local
-implementation or emulator that makes the feature usable and testable without
-paid services.
+This is a single-execution build specification. Every requirement in this document is part of the required result. Do not leave unfinished-work markers, empty packages, placeholder handlers, illustrative-only core logic, disabled tests, or APIs that return fabricated data. A configurable external integration is acceptable only when the repository also includes a deterministic local implementation or emulator that makes the feature usable and testable without paid services.
 
-When a minor implementation detail is unspecified, choose the simplest secure
-design consistent with this document, record the choice in an Architecture
-Decision Record, and continue. Ask a question only when a genuinely external
-decision makes correct implementation impossible.
+When a minor implementation detail is unspecified, choose the simplest secure design consistent with this document, record the choice in an Architecture Decision Record, and continue. Ask a question only when a genuinely external decision makes correct implementation impossible.
 
-The finished repository MUST be self-contained, reproducible, documented, secure
-by default, and operable by a new contributor from the root README.
+The finished repository MUST be self-contained, reproducible, documented, secure by default, and operable by a new contributor from the root README.
 
 ---
 
 ## Normative Language
 
-The key words **MUST**, **MUST NOT**, **REQUIRED**, **SHALL**, **SHALL NOT**,
-**SHOULD**, **SHOULD NOT**, **RECOMMENDED**, **NOT RECOMMENDED**, **MAY**, and
-**OPTIONAL** are to be interpreted as described by BCP 14 when, and only when,
-they appear in all capitals.
+The key words **MUST**, **MUST NOT**, **REQUIRED**, **SHALL**, **SHALL NOT**, **SHOULD**, **SHOULD NOT**, **RECOMMENDED**, **NOT RECOMMENDED**, **MAY**, and **OPTIONAL** are to be interpreted as described by BCP 14 when, and only when, they appear in all capitals.
 
-Normative protocol behavior belongs in the specification. Explanatory material,
-examples, and implementation notes MUST be clearly identified as non-normative.
+Normative protocol behavior belongs in the specification. Explanatory material, examples, and implementation notes MUST be clearly identified as non-normative.
 
 ---
 
 ## Objective
 
-Design and implement **ACT (Accountability and Chain of Transformation)**, an
-implementation-independent protocol and production-ready reference system that
-enables people, AI systems, services, and organizations to collaborate while
-preserving:
+Design and implement **ACT (Accountability and Chain of Transformation)**, an implementation-independent protocol and production-ready reference system that enables people, AI systems, services, and organizations to collaborate while preserving:
 
 - human intent and its revisions
 - semantic claims and their assessors
@@ -86,18 +62,12 @@ For any recorded artifact, ACT MUST make it possible to determine mechanically:
 - the assumptions and uncertainties explicitly recorded
 - the evidence and verification records attached to it
 - whether hashes, signatures, ledger receipts, and lineage are valid
-- whether required records or approvals are missing, stale, revoked, or
-  conflicting
+- whether required records or approvals are missing, stale, revoked, or conflicting
 - which intent baseline was used for a semantic assessment
 
-ACT MUST make semantic conclusions inspectable and attributable. It MUST NOT
-claim that arbitrary natural-language meanings can always be proven equivalent
-by a machine. It MUST distinguish cryptographic facts, structural checks, policy
-evaluations, automated assessments, formal proofs, and human judgments.
+ACT MUST make semantic conclusions inspectable and attributable. It MUST NOT claim that arbitrary natural-language meanings can always be proven equivalent by a machine. It MUST distinguish cryptographic facts, structural checks, policy evaluations, automated assessments, formal proofs, and human judgments.
 
-ACT is not an agent framework and not an orchestration engine. It is the
-protocol that agents, orchestrators, IDEs, code generators, CI/CD systems,
-governance tools, and organizations implement or consume.
+ACT is not an agent framework and not an orchestration engine. It is the protocol that agents, orchestrators, IDEs, code generators, CI/CD systems, governance tools, and organizations implement or consume.
 
 ---
 
@@ -105,49 +75,31 @@ governance tools, and organizations implement or consume.
 
 ### 1. Trust Is Not a Primitive
 
-Trust is an output of evidence, verification, provenance, policy, and explicit
-trust decisions. A valid signature proves control of a key; it does not by
-itself prove that the signer is truthful, authorized, competent, or trusted.
+Trust is an output of evidence, verification, provenance, policy, and explicit trust decisions. A valid signature proves control of a key; it does not by itself prove that the signer is truthful, authorized, competent, or trusted.
 
 ### 2. Every Transformation Leaves Evidence
 
-Every transformation MUST record its inputs, outputs, actor, mode,
-semantic-change claim, assumptions, ambiguities, rationale, alternatives,
-confidence assessments, uncertainties, evidence, and applicable approval policy.
-Fields that do not apply MUST use an explicit `not_applicable` representation
-with a reason rather than being silently omitted.
+Every transformation MUST record its inputs, outputs, actor, mode, semantic-change claim, assumptions, ambiguities, rationale, alternatives, confidence assessments, uncertainties, evidence, and applicable approval policy. Fields that do not apply MUST use an explicit `not_applicable` representation with a reason rather than being silently omitted.
 
 ### 3. Approval Is an Attributable Authorization Decision
 
-Approval MUST be represented as a signed, policy-scoped attestation over an
-exact immutable subject. Approval MAY authorize a state transition. It does not
-erase or universally transfer the responsibilities of authors, operators,
-deployers, organizations, or other participants.
+Approval MUST be represented as a signed, policy-scoped attestation over an exact immutable subject. Approval MAY authorize a state transition. It does not erase or universally transfer the responsibilities of authors, operators, deployers, organizations, or other participants.
 
 ### 4. Preservation and Discovery Are Distinct
 
-ACT-P preserves an approved intent baseline. ACT-D proposes improvements or
-challenges to that baseline. Discovery is encouraged; silent reinterpretation is
-prohibited.
+ACT-P preserves an approved intent baseline. ACT-D proposes improvements or challenges to that baseline. Discovery is encouraged; silent reinterpretation is prohibited.
 
 ### 5. History Is Immutable; Interpretation Can Evolve
 
-Events and signed artifact versions are immutable. Corrections, revocations,
-supersessions, redactions, merges, and revised interpretations MUST be
-represented by new events.
+Events and signed artifact versions are immutable. Corrections, revocations, supersessions, redactions, merges, and revised interpretations MUST be represented by new events.
 
 ### 6. Privacy Is Part of Provenance
 
-Transparency does not imply universal disclosure. ACT MUST support access
-control, encryption, data minimization, selective disclosure, retention
-policies, and cryptographic erasure while preserving verifiable metadata about
-permitted removals.
+Transparency does not imply universal disclosure. ACT MUST support access control, encryption, data minimization, selective disclosure, retention policies, and cryptographic erasure while preserving verifiable metadata about permitted removals.
 
 ### 7. No Hidden Global Authority
 
-ACT MUST make trust roots, policy authorities, ledger operators, identity
-providers, and conflict-resolution rules explicit. The protocol MUST NOT assume
-a universally trusted server, clock, actor, model, or organization.
+ACT MUST make trust roots, policy authorities, ledger operators, identity providers, and conflict-resolution rules explicit. The protocol MUST NOT assume a universally trusted server, clock, actor, model, or organization.
 
 ---
 
@@ -163,14 +115,10 @@ The reference system MUST provide:
 - embedded operation with SQLite
 - service operation with PostgreSQL
 - signed event-bundle export and import between independent ledgers
-- duplicate detection, partial-history handling, trust-policy evaluation, and
-  quarantine of invalid or untrusted imports
-- fork and equivocation detection based on immutable identities and causal
-  lineage
+- duplicate detection, partial-history handling, trust-policy evaluation, and quarantine of invalid or untrusted imports
+- fork and equivocation detection based on immutable identities and causal lineage
 
-Federation MUST NOT depend on global consensus or a universal event order.
-Events MUST carry causal parent links. Each ledger MUST issue its own
-tamper-evident receipt chain that establishes local acceptance order.
+Federation MUST NOT depend on global consensus or a universal event order. Events MUST carry causal parent links. Each ledger MUST issue its own tamper-evident receipt chain that establishes local acceptance order.
 
 ### Technology Stack
 
@@ -192,11 +140,7 @@ Use a polyglot monorepo with these required technologies:
 - Helm manifests for Kubernetes deployment
 - OpenTelemetry for traces and metrics
 
-Use current stable dependency versions that are compatible with the selected
-runtimes. Commit lockfiles. Avoid duplicating authoritative domain definitions:
-generate language models and API clients from the JSON Schemas and OpenAPI
-document where practical, then add hand-written cryptographic and ergonomic
-layers.
+Use current stable dependency versions that are compatible with the selected runtimes. Commit lockfiles. Avoid duplicating authoritative domain definitions: generate language models and API clients from the JSON Schemas and OpenAPI document where practical, then add hand-written cryptographic and ergonomic layers.
 
 ### Required Repository Shape
 
@@ -248,12 +192,9 @@ The repository MUST contain, at minimum:
 |-- tests/
 ```
 
-Equivalent organization is allowed only when it improves build-system
-conventions and is documented in an Architecture Decision Record.
+Equivalent organization is allowed only when it improves build-system conventions and is documented in an Architecture Decision Record.
 
-The repository MUST use the Apache License 2.0 and semantic versioning. Protocol
-version, implementation version, schema version, and API version MUST be
-distinguishable.
+The repository MUST use the Apache License 2.0 and semantic versioning. Protocol version, implementation version, schema version, and API version MUST be distinguishable.
 
 ---
 
@@ -272,29 +213,17 @@ ACT MUST distinguish:
 - a key ID
 - a policy ID and immutable policy version
 
-Digest values MUST use the form `algorithm:encoded-value`. Version 1.0 MUST
-support SHA-256. IDs derived from content MUST be recomputable and verified on
-every untrusted read or import.
+Digest values MUST use the form `algorithm:encoded-value`. Version 1.0 MUST support SHA-256. IDs derived from content MUST be recomputable and verified on every untrusted read or import.
 
 ### Canonicalization and Signatures
 
-Canonical JSON MUST follow RFC 8785 JSON Canonicalization Scheme. Protocol
-schemas MUST avoid values whose cross-language representation is ambiguous.
-Confidence scores, sequence numbers, and other bounded numeric fields SHOULD use
-integers.
+Canonical JSON MUST follow RFC 8785 JSON Canonicalization Scheme. Protocol schemas MUST avoid values whose cross-language representation is ambiguous. Confidence scores, sequence numbers, and other bounded numeric fields SHOULD use integers.
 
-Signed events and receipts MUST use a DSSE-compatible envelope with an
-ACT-specific payload type. The event ID MUST be the SHA-256 digest of the
-canonical unsigned event payload. Signatures and storage metadata MUST NOT be
-included in those canonical bytes.
+Signed events and receipts MUST use a DSSE-compatible envelope with an ACT-specific payload type. The event ID MUST be the SHA-256 digest of the canonical unsigned event payload. Signatures and storage metadata MUST NOT be included in those canonical bytes.
 
-Version 1.0 MUST support Ed25519 signatures. The specification MUST define an
-algorithm registry and an extension process without allowing silent algorithm
-downgrade.
+Version 1.0 MUST support Ed25519 signatures. The specification MUST define an algorithm registry and an extension process without allowing silent algorithm downgrade.
 
-Every signature MUST identify its key. Actor and key records MUST support
-issuance, rotation, expiry, compromise, and revocation. Verification MUST report
-separately:
+Every signature MUST identify its key. Actor and key records MUST support issuance, rotation, expiry, compromise, and revocation. Verification MUST report separately:
 
 - cryptographic signature validity
 - event and content digest validity
@@ -307,8 +236,7 @@ The implementation MUST NOT collapse those results into a single `valid` flag.
 
 ### Event Envelope
 
-Define authoritative JSON Schemas for an unsigned event payload, a signed
-envelope, and a ledger receipt. The unsigned event payload MUST include:
+Define authoritative JSON Schemas for an unsigned event payload, a signed envelope, and a ledger receipt. The unsigned event payload MUST include:
 
 ```yaml
 protocol_version:
@@ -324,8 +252,7 @@ payload:
 extensions:
 ```
 
-The signed envelope MUST contain the canonical payload and one or more
-signatures. The ledger receipt MUST contain:
+The signed envelope MUST contain the canonical payload and one or more signatures. The ledger receipt MUST contain:
 
 ```yaml
 ledger_id:
@@ -337,45 +264,30 @@ receipt_digest:
 signature:
 ```
 
-The receipt digest MUST cover the previous receipt digest, making deletion,
-insertion, reordering, or mutation detectable within a ledger history. Imported
-source receipts MUST be preserved. A receiving ledger MUST add its own receipt
-rather than rewriting the source receipt.
+The receipt digest MUST cover the previous receipt digest, making deletion, insertion, reordering, or mutation detectable within a ledger history. Imported source receipts MUST be preserved. A receiving ledger MUST add its own receipt rather than rewriting the source receipt.
 
-Wall-clock timestamps are claims. The protocol MUST preserve actor time and
-ledger acceptance time separately and MUST define behavior for missing, skewed,
-or untrusted clocks.
+Wall-clock timestamps are claims. The protocol MUST preserve actor time and ledger acceptance time separately and MUST define behavior for missing, skewed, or untrusted clocks.
 
 ### Artifacts, Transformations, and Attestations
 
 The semantic graph MUST use distinct node classes:
 
 - **Artifact:** an immutable versioned semantic object
-- **Transformation:** an operation relating one or more inputs to one or more
-  outputs
+- **Transformation:** an operation relating one or more inputs to one or more outputs
 - **Attestation:** a signed claim about an immutable subject
-- **Policy:** versioned rules for authorization, approval, retention,
-  verification, and trust
+- **Policy:** versioned rules for authorization, approval, retention, verification, and trust
 - **Evidence:** content or a content reference supporting a claim
-- **Event:** an immutable statement that one of the above was created or changed
-  in status
+- **Event:** an immutable statement that one of the above was created or changed in status
 
-Lineage MUST be represented by typed, many-to-many edges from a new node to
-existing nodes. Persisted signed records MUST NOT contain mutable `children`
-arrays. Descendants and current state MUST be computed as projections.
+Lineage MUST be represented by typed, many-to-many edges from a new node to existing nodes. Persisted signed records MUST NOT contain mutable `children` arrays. Descendants and current state MUST be computed as projections.
 
-Every non-genesis node MUST have at least one typed causal parent. Root records
-MUST use an explicit Genesis event. External material MUST use an External
-Import event that records the source and the limits of available provenance.
+Every non-genesis node MUST have at least one typed causal parent. Root records MUST use an explicit Genesis event. External material MUST use an External Import event that records the source and the limits of available provenance.
 
-The ledger MUST reject cycles. It MUST support branches, merges, multiple
-inputs, multiple outputs, revisions, partial imported histories, and
-independently produced attestations.
+The ledger MUST reject cycles. It MUST support branches, merges, multiple inputs, multiple outputs, revisions, partial imported histories, and independently produced attestations.
 
 ### Artifact Types
 
-Provide a shared artifact envelope and a distinct payload schema for every
-required type:
+Provide a shared artifact envelope and a distinct payload schema for every required type:
 
 - Intent
 - Goal
@@ -421,10 +333,7 @@ Each artifact version MUST include or reference:
 - signatures
 - sensitivity and retention labels
 
-Schemas MUST use strict validation, documented extension points, stable
-enumerations, and reusable definitions. Unknown core fields MUST be rejected.
-Extensions MUST use collision-resistant namespaces and MUST survive a read-write
-round trip.
+Schemas MUST use strict validation, documented extension points, stable enumerations, and reusable definitions. Unknown core fields MUST be rejected. Extensions MUST use collision-resistant namespaces and MUST survive a read-write round trip.
 
 ### Transformation Contract
 
@@ -461,17 +370,9 @@ The semantic-change taxonomy MUST include:
 - intent-challenge
 - semantic-modification
 
-A classification is an attributed claim, not automatically a fact.
-`exact-preservation` MAY be mechanically verified only for transformations with
-an applicable equivalence procedure, such as byte identity, canonical structural
-equality, reproducible compilation evidence, or a cited formal proof.
-Natural-language equivalence MUST identify an assessor, method, evidence,
-confidence, and dispute status.
+A classification is an attributed claim, not automatically a fact. `exact-preservation` MAY be mechanically verified only for transformations with an applicable equivalence procedure, such as byte identity, canonical structural equality, reproducible compilation evidence, or a cited formal proof. Natural-language equivalence MUST identify an assessor, method, evidence, confidence, and dispute status.
 
-Policies MUST require approval for semantic modifications to an effective intent
-baseline. They MAY require approval for other classifications. Policy
-evaluation, rather than a mutable Boolean field, determines whether approval is
-required.
+Policies MUST require approval for semantic modifications to an effective intent baseline. They MAY require approval for other classifications. Policy evaluation, rather than a mutable Boolean field, determines whether approval is required.
 
 ### Intent Authority and Revision
 
@@ -479,21 +380,14 @@ ACT MUST distinguish:
 
 - **root intent:** the immutable historical origin of an intent lineage
 - **proposed intent:** a candidate that is not yet effective
-- **effective intent:** the approved baseline selected by policy for a project
-  or branch
+- **effective intent:** the approved baseline selected by policy for a project or branch
 - **intent revision:** a new immutable version linked to the version it changes
 - **superseded intent:** a formerly effective version retained in history
-- **merged intent:** a new version that explicitly reconciles two or more
-  branches
+- **merged intent:** a new version that explicitly reconciles two or more branches
 
-No revision may overwrite an earlier intent. Concurrent or conflicting revisions
-MUST create branches. A versioned authority policy MUST define who may select,
-merge, or supersede an effective intent and whether quorum or separation of
-duties is required. Until that policy is satisfied, the conflict MUST remain
-explicit and no branch may silently win by timestamp or write order.
+No revision may overwrite an earlier intent. Concurrent or conflicting revisions MUST create branches. A versioned authority policy MUST define who may select, merge, or supersede an effective intent and whether quorum or separation of duties is required. Until that policy is satisfied, the conflict MUST remain explicit and no branch may silently win by timestamp or write order.
 
-Drift assessments MUST identify their comparison target. The implementation MUST
-support comparison against:
+Drift assessments MUST identify their comparison target. The implementation MUST support comparison against:
 
 - the immediate parent, to explain a revision
 - the current effective baseline, to assess implementation fidelity
@@ -501,8 +395,7 @@ support comparison against:
 
 ### Approval and Accountability
 
-Approval MUST be a signed decision bound to an exact subject ID and digest. An
-Approval Decision MUST include:
+Approval MUST be a signed decision bound to an exact subject ID and digest. An Approval Decision MUST include:
 
 ```yaml
 decision_id:
@@ -536,22 +429,13 @@ approved  -> revoked
 approved  -> superseded
 ```
 
-Every transition MUST be represented by a new signed event. Approval validity
-MUST consider subject digest, policy version, reviewer authority, quorum,
-conditions, expiry, key status, revocation, supersession, and any required
-separation of duties. A new subject version MUST NOT inherit approval unless the
-applicable policy explicitly permits a narrowly defined equivalence rule.
+Every transition MUST be represented by a new signed event. Approval validity MUST consider subject digest, policy version, reviewer authority, quorum, conditions, expiry, key status, revocation, supersession, and any required separation of duties. A new subject version MUST NOT inherit approval unless the applicable policy explicitly permits a narrowly defined equivalence rule.
 
-Accountability MUST be modeled independently through versioned assignments for
-roles including proposer, author, reviewer, approver, executor, operator, owner,
-and incident owner. Assignments MUST have scope, issuer, authority, start time,
-end time, and status. Documentation MUST state that ACT records technical and
-organizational claims and does not itself determine legal liability.
+Accountability MUST be modeled independently through versioned assignments for roles including proposer, author, reviewer, approver, executor, operator, owner, and incident owner. Assignments MUST have scope, issuer, authority, start time, end time, and status. Documentation MUST state that ACT records technical and organizational claims and does not itself determine legal liability.
 
 ### Confidence
 
-Confidence MUST be multidimensional and attributed. A confidence assessment MUST
-contain:
+Confidence MUST be multidimensional and attributed. A confidence assessment MUST contain:
 
 - dimension
 - integer score from 0 through 100 or `unassessed`
@@ -562,26 +446,18 @@ contain:
 - timestamp
 - rationale
 
-Required dimensions are semantic, requirement, architectural, implementation,
-verification, runtime, and source confidence.
+Required dimensions are semantic, requirement, architectural, implementation, verification, runtime, and source confidence.
 
-The protocol MUST NOT compute a universal aggregate confidence score. A policy
-MAY define a named projection for a specific decision. Such a projection MUST
-retain all source assessments, formula, weights, thresholds, and policy version.
+The protocol MUST NOT compute a universal aggregate confidence score. A policy MAY define a named projection for a specific decision. Such a projection MUST retain all source assessments, formula, weights, thresholds, and policy version.
 
-Derived artifacts MUST retain links to contributing confidence assessments.
-Confidence MUST NOT automatically increase through transformation. The
-verification toolkit MUST detect missing assessments, unsupported increases,
-stale assessments, conflicting assessments, and policy-defined threshold
-collapse.
+Derived artifacts MUST retain links to contributing confidence assessments. Confidence MUST NOT automatically increase through transformation. The verification toolkit MUST detect missing assessments, unsupported increases, stale assessments, conflicting assessments, and policy-defined threshold collapse.
 
 ### Uncertainty
 
 An uncertainty record MUST include:
 
 - identifier and description
-- category: known-unknown, assumption, speculation, residual-risk, or
-  human-input-required
+- category: known-unknown, assumption, speculation, residual-risk, or human-input-required
 - source and introducing transformation
 - affected artifacts
 - impact and likelihood assessments
@@ -591,20 +467,13 @@ An uncertainty record MUST include:
 - inherited-from references
 - resolving evidence or decision
 
-Unresolved input uncertainties MUST propagate to derived outputs unless a
-transformation explicitly discharges them with evidence. The protocol MUST
-represent residual unknown risk without pretending to enumerate unknowable
-facts.
+Unresolved input uncertainties MUST propagate to derived outputs unless a transformation explicitly discharges them with evidence. The protocol MUST represent residual unknown risk without pretending to enumerate unknowable facts.
 
 ### Evidence and Verification
 
-Evidence MUST be immutable or content-addressed and MUST record origin,
-collection method, custody, media type, digest, sensitivity, and limitations.
+Evidence MUST be immutable or content-addressed and MUST record origin, collection method, custody, media type, digest, sensitivity, and limitations.
 
-Verification results MUST use `pass`, `fail`, or `inconclusive`; identify the
-verifier, method, method version, subject digest, evidence, execution
-environment, time, confidence, and limitations; and remain independently
-reproducible when the method permits it.
+Verification results MUST use `pass`, `fail`, or `inconclusive`; identify the verifier, method, method version, subject digest, evidence, execution environment, time, confidence, and limitations; and remain independently reproducible when the method permits it.
 
 Implement these verification layers:
 
@@ -622,14 +491,9 @@ Implement these verification layers:
 - independent AI assessment
 - adversarial verification
 
-Independent AI results MUST identify provider, model, model version when
-available, prompt digest, tool configuration, sampling parameters, and output
-digest. Private hidden reasoning MUST NOT be required. Store concise rationale
-and evidence instead.
+Independent AI results MUST identify provider, model, model version when available, prompt digest, tool configuration, sampling parameters, and output digest. Private hidden reasoning MUST NOT be required. Store concise rationale and evidence instead.
 
-Challenges and disputes MUST be first-class signed attestations. A challenge
-MUST identify the disputed claim, challenger, grounds, evidence, requested
-remedy, and resolution status. Resolution MUST not delete the original claim.
+Challenges and disputes MUST be first-class signed attestations. A challenge MUST identify the disputed claim, challenger, grounds, evidence, requested remedy, and resolution status. Resolution MUST not delete the original claim.
 
 ---
 
@@ -653,30 +517,21 @@ Implement a verification toolkit that detects and explains:
 - unavailable, redacted, or digest-mismatched evidence
 - forks, equivocation, replay, and duplicate events
 
-Every finding MUST include a stable rule ID, severity, affected records,
-evidence, explanation, remediation guidance, and whether the result is a
-mechanical fact, policy result, heuristic assessment, or human judgment.
+Every finding MUST include a stable rule ID, severity, affected records, evidence, explanation, remediation guidance, and whether the result is a mechanical fact, policy result, heuristic assessment, or human judgment.
 
 Provide three usable semantic assessors:
 
 1. A deterministic structural and normalized-text assessor that runs offline.
-2. A provider-neutral OpenAI-compatible assessor with prompt-injection defenses,
-   strict structured output, retries, provenance capture, and configurable
-   endpoint credentials.
+2. A provider-neutral OpenAI-compatible assessor with prompt-injection defenses, strict structured output, retries, provenance capture, and configurable endpoint credentials.
 3. A human assessment workflow in the API, CLI, and Explorer.
 
-Automated semantic assessors MUST NOT silently approve semantic modifications.
-They produce attestations that policy may require a human or organizational
-authority to review.
+Automated semantic assessors MUST NOT silently approve semantic modifications. They produce attestations that policy may require a human or organizational authority to review.
 
 ---
 
 ## Privacy and Content Handling
 
-Separate immutable event metadata from artifact content. A content descriptor
-MUST include media type, byte length, digest, storage location or inline
-representation, encryption metadata, sensitivity label, retention policy, and
-availability state.
+Separate immutable event metadata from artifact content. A content descriptor MUST include media type, byte length, digest, storage location or inline representation, encryption metadata, sensitivity label, retention policy, and availability state.
 
 Implement:
 
@@ -684,8 +539,7 @@ Implement:
 - filesystem and database-backed content stores
 - a storage-provider interface
 - AES-256-GCM envelope encryption for protected content
-- a key-provider interface with a usable local provider and documented
-  production secret-injection pattern
+- a key-provider interface with a usable local provider and documented production secret-injection pattern
 - tenant isolation
 - role- and policy-based access checks
 - field and artifact sensitivity labels
@@ -694,45 +548,33 @@ Implement:
 - signed redaction and deletion events
 - cryptographic erasure by destroying content-encryption keys
 
-Deletion MUST NOT rewrite signed history. It MUST leave the digest, deletion
-authorization, reason, time, and resulting availability state while removing
-content when policy requires it. Plaintext secrets, credentials, private keys,
-and authentication tokens MUST never appear in logs, examples, fixtures,
-exported diagnostics, or committed configuration.
+Deletion MUST NOT rewrite signed history. It MUST leave the digest, deletion authorization, reason, time, and resulting availability state while removing content when policy requires it. Plaintext secrets, credentials, private keys, and authentication tokens MUST never appear in logs, examples, fixtures, exported diagnostics, or committed configuration.
 
-Prompt and Tool Invocation artifacts MUST support redacted views. The
-implementation MUST scan common secret formats before persistence and require an
-explicit authorized override or redaction when sensitive values are detected.
+Prompt and Tool Invocation artifacts MUST support redacted views. The implementation MUST scan common secret formats before persistence and require an explicit authorized override or redaction when sensitive values are detected.
 
 ---
 
 ## Identity, Authentication, and Authorization
 
-Support actor types `human`, `ai-system`, `service`, `organization`, and
-`group`.
+Support actor types `human`, `ai-system`, `service`, `organization`, and `group`.
 
 The service MUST support:
 
 - OIDC/OAuth 2.0 JWT validation for production users and services
 - Ed25519 service identities for signed protocol events
-- a clearly marked local development identity provider that is disabled in
-  production mode
+- a clearly marked local development identity provider that is disabled in production mode
 - tenant-scoped role-based access control
 - policy-based authorization for sensitive actions
 - separation-of-duties and quorum rules
 - actor, key, group, role, and authority administration
 
-Authentication, signature verification, trust, and authorization MUST remain
-separate evaluations. API callers MUST NOT gain protocol authority merely
-because they are authenticated.
+Authentication, signature verification, trust, and authorization MUST remain separate evaluations. API callers MUST NOT gain protocol authority merely because they are authenticated.
 
 ---
 
 ## Threat Model and Security Requirements
 
-Produce a structured threat model that identifies assets, actors, attacker
-capabilities, trust boundaries, entry points, abuse cases, mitigations,
-detection, and residual risk.
+Produce a structured threat model that identifies assets, actors, attacker capabilities, trust boundaries, entry points, abuse cases, mitigations, detection, and residual risk.
 
 At minimum, analyze and test:
 
@@ -758,22 +600,15 @@ At minimum, analyze and test:
 - webhook forgery and replay
 - dependency, build, and tool supply-chain compromise
 
-Implement secure defaults, strict input limits, rate limiting, request timeouts,
-safe parsing, parameterized database access, output encoding, CORS and security
-headers, webhook signatures, replay protection, audit logging, and least
-privilege.
+Implement secure defaults, strict input limits, rate limiting, request timeouts, safe parsing, parameterized database access, output encoding, CORS and security headers, webhook signatures, replay protection, audit logging, and least privilege.
 
-Generate an SBOM. Pin dependencies through lockfiles. Add automated dependency,
-secret, static-analysis, and container-image checks. The release candidate MUST
-have no known critical or high-severity vulnerabilities in shipped runtime
-dependencies or container images.
+Generate an SBOM. Pin dependencies through lockfiles. Add automated dependency, secret, static-analysis, and container-image checks. The release candidate MUST have no known critical or high-severity vulnerabilities in shipped runtime dependencies or container images.
 
 ---
 
 ## Storage and Operational Semantics
 
-Implement a storage abstraction with behaviorally equivalent SQLite and
-PostgreSQL adapters.
+Implement a storage abstraction with behaviorally equivalent SQLite and PostgreSQL adapters.
 
 The ledger write path MUST atomically:
 
@@ -787,16 +622,9 @@ The ledger write path MUST atomically:
 8. update rebuildable projections
 9. enqueue outbound events transactionally
 
-Use idempotency keys and optimistic concurrency where commands depend on a
-current head. Projections MUST be rebuildable solely from accepted events.
-Include migration tooling, transactional migrations, seed data, backup and
-restore commands, projection rebuild commands, corruption checks, and
-operational documentation.
+Use idempotency keys and optimistic concurrency where commands depend on a current head. Projections MUST be rebuildable solely from accepted events. Include migration tooling, transactional migrations, seed data, backup and restore commands, projection rebuild commands, corruption checks, and operational documentation.
 
-Define deterministic handling for duplicate events, duplicate idempotency keys,
-missing parents, conflicting logical versions, imported forks, invalid
-signatures, unavailable content, failed projection updates, and interrupted
-imports.
+Define deterministic handling for duplicate events, duplicate idempotency keys, missing parents, conflicting logical versions, imported forks, invalid signatures, unavailable content, failed projection updates, and interrupted imports.
 
 ---
 
@@ -838,8 +666,7 @@ GET    /v1/health/ready
 GET    /v1/metrics
 ```
 
-Add the read, list, administration, revocation, supersession, redaction, and
-policy-evaluation operations required to make every workflow complete.
+Add the read, list, administration, revocation, supersession, redaction, and policy-evaluation operations required to make every workflow complete.
 
 The API MUST implement:
 
@@ -854,19 +681,16 @@ The API MUST implement:
 - body, depth, and complexity limits
 - correlation IDs
 - Server-Sent Events using CloudEvents-compatible messages
-- signed webhooks with retry, backoff, dead-letter handling, and replay
-  protection
+- signed webhooks with retry, backoff, dead-letter handling, and replay protection
 - an exposed OpenAPI document matching actual behavior
 
-No API operation may mutate an accepted signed event. Commands that change
-effective state MUST append events.
+No API operation may mutate an accepted signed event. Commands that change effective state MUST append events.
 
 ---
 
 ## SDKs
 
-Deliver complete SDKs for TypeScript, Python, Go, and Rust. Each SDK MUST
-provide:
+Deliver complete SDKs for TypeScript, Python, Go, and Rust. Each SDK MUST provide:
 
 - generated or schema-derived domain models
 - strict validation
@@ -875,10 +699,8 @@ provide:
 - Ed25519 key generation, signing, and verification
 - DSSE-compatible event envelopes
 - key and trust-policy evaluation helpers
-- synchronous and idiomatic asynchronous API clients where the language supports
-  them
-- authentication, pagination, idempotency, retries, timeouts, and structured
-  errors
+- synchronous and idiomatic asynchronous API clients where the language supports them
+- authentication, pagination, idempotency, retries, timeouts, and structured errors
 - bundle import and export helpers
 - lineage traversal helpers
 - runnable examples
@@ -886,10 +708,7 @@ provide:
 - unit and integration tests
 - publishable package metadata
 
-Create cross-language conformance fixtures proving that every SDK computes
-identical canonical bytes and IDs, verifies signatures produced by every other
-SDK, rejects the same malformed inputs, and interoperates with the reference
-API.
+Create cross-language conformance fixtures proving that every SDK computes identical canonical bytes and IDs, verifies signatures produced by every other SDK, rejects the same malformed inputs, and interoperates with the reference API.
 
 ---
 
@@ -926,18 +745,13 @@ act backup
 act restore
 ```
 
-Commands MUST support human-readable output and stable JSON output, documented
-exit codes, non-interactive automation, configuration files, environment
-variables, stdin/stdout where appropriate, and safe secret handling. Destructive
-or authority-bearing commands MUST display their exact subject and scope and
-require an explicit confirmation flag in non-interactive use.
+Commands MUST support human-readable output and stable JSON output, documented exit codes, non-interactive automation, configuration files, environment variables, stdin/stdout where appropriate, and safe secret handling. Destructive or authority-bearing commands MUST display their exact subject and scope and require an explicit confirmation flag in non-interactive use.
 
 ---
 
 ## ACT Explorer
 
-Build a production-quality authenticated web application for inspecting and
-operating ACT. It MUST be the usable application, not a marketing page.
+Build a production-quality authenticated web application for inspecting and operating ACT. It MUST be the usable application, not a marketing page.
 
 Required workflows:
 
@@ -964,11 +778,7 @@ Required visualizations:
 - Decision Tree
 - Evidence Graph
 
-The interface MUST handle loading, empty, partial-history, unauthorized,
-redacted, error, large-graph, and stale-data states. It MUST meet WCAG 2.2 AA
-for core workflows, support keyboard navigation, avoid color-only meaning,
-remain usable on desktop and mobile, and include Playwright end-to-end and
-visual-regression tests at representative viewport sizes.
+The interface MUST handle loading, empty, partial-history, unauthorized, redacted, error, large-graph, and stale-data states. It MUST meet WCAG 2.2 AA for core workflows, support keyboard navigation, avoid color-only meaning, remain usable on desktop and mobile, and include Playwright end-to-end and visual-regression tests at representative viewport sizes.
 
 ---
 
@@ -993,24 +803,15 @@ Produce an RFC-style normative specification for ACT 1.0 containing:
 - security and privacy considerations
 - conformance requirements
 
-Provide machine-readable state-machine definitions and a machine-checkable
-formal model covering at least append-only receipt integrity, immutable history,
-acyclic lineage, approval lifecycle safety, and prevention of an unauthorized
-effective-intent transition. Include commands and tests that execute the model
-checker reproducibly, using a container when host tooling is unavailable.
+Provide machine-readable state-machine definitions and a machine-checkable formal model covering at least append-only receipt integrity, immutable history, acyclic lineage, approval lifecycle safety, and prevention of an unauthorized effective-intent transition. Include commands and tests that execute the model checker reproducibly, using a container when host tooling is unavailable.
 
-The semantic model MUST define Intent, Interpretation, Artifact, Transformation,
-Revision, Evidence, Approval, Authorization, Accountability Assignment,
-Confidence Assessment, Uncertainty, Verification, Validation, Provenance,
-Challenge, Policy, Actor, Identity, Key, Event, Receipt, and Ledger.
+The semantic model MUST define Intent, Interpretation, Artifact, Transformation, Revision, Evidence, Approval, Authorization, Accountability Assignment, Confidence Assessment, Uncertainty, Verification, Validation, Provenance, Challenge, Policy, Actor, Identity, Key, Event, Receipt, and Ledger.
 
 ---
 
 ## Conformance and Compatibility
 
-Define ACT 1.0 conformance profiles for Core, Cryptographic Integrity, Secure
-Service, Federation, SDK, and Explorer. The reference repository MUST satisfy
-every profile.
+Define ACT 1.0 conformance profiles for Core, Cryptographic Integrity, Secure Service, Federation, SDK, and Explorer. The reference repository MUST satisfy every profile.
 
 Provide:
 
@@ -1025,10 +826,7 @@ Provide:
 - executable conformance runners in all four SDK languages
 - a machine-readable conformance report
 
-Specify semantic-version compatibility, protocol negotiation, schema evolution,
-field deprecation, extension namespaces, algorithm registration, and
-unknown-event handling. A conforming implementation MUST never silently
-reinterpret unknown normative data.
+Specify semantic-version compatibility, protocol negotiation, schema evolution, field deprecation, extension namespaces, algorithm registration, and unknown-event handling. A conforming implementation MUST never silently reinterpret unknown normative data.
 
 ---
 
@@ -1050,23 +848,13 @@ Produce:
 - backup, restore, migration, and incident-response runbooks
 - contributor and governance guides
 - Architecture Decision Records
-- a standards-adoption package describing governance, compatibility, extension
-  registration, and proposal processes
+- a standards-adoption package describing governance, compatibility, extension registration, and proposal processes
 
-Ground design choices in requirements engineering, formal methods,
-programming-language theory, HCI, explainable AI, AI alignment, distributed
-systems, knowledge representation, event sourcing, capability security,
-proof-carrying code, epistemology, and organizational theory.
+Ground design choices in requirements engineering, formal methods, programming-language theory, HCI, explainable AI, AI alignment, distributed systems, knowledge representation, event sourcing, capability security, proof-carrying code, epistemology, and organizational theory.
 
-Compare ACT concretely with relevant work such as W3C PROV, in-toto, SLSA, DSSE,
-Sigstore, Git, event-sourced systems, software bills of materials, requirements
-traceability systems, model cards, data lineage systems, and policy engines.
-Explain overlap, differences, and reasons for each ACT-specific mechanism.
+Compare ACT concretely with relevant work such as W3C PROV, in-toto, SLSA, DSSE, Sigstore, Git, event-sourced systems, software bills of materials, requirements traceability systems, model cards, data lineage systems, and policy engines. Explain overlap, differences, and reasons for each ACT-specific mechanism.
 
-Every citation and URL MUST be real, verified, and bibliographically sufficient.
-Do not invent standards, papers, authors, or links. Limitations MUST describe
-inherent boundaries and residual risks rather than missing required
-implementation.
+Every citation and URL MUST be real, verified, and bibliographically sufficient. Do not invent standards, papers, authors, or links. Limitations MUST describe inherent boundaries and residual risks rather than missing required implementation.
 
 ---
 
@@ -1075,24 +863,15 @@ implementation.
 Provide six executable, seeded examples:
 
 1. A single human collaborating with an AI coding assistant.
-2. A product team moving from intent through requirements, implementation,
-   tests, and approval.
+2. A product team moving from intent through requirements, implementation, tests, and approval.
 3. An AI-agent group producing competing proposals and a reviewed merge.
-4. An enterprise workflow with OIDC identities, quorum approval, restricted
-   evidence, and audit export.
-5. An open-source collaboration with external contributions and signed bundle
-   federation.
-6. An illustrative safety-critical workflow with strict separation of duties,
-   formal evidence, and an unresolved challenge that prevents release.
+4. An enterprise workflow with OIDC identities, quorum approval, restricted evidence, and audit export.
+5. An open-source collaboration with external contributions and signed bundle federation.
+6. An illustrative safety-critical workflow with strict separation of duties, formal evidence, and an unresolved challenge that prevents release.
 
-Each example MUST include signed fixtures, policies, assumptions, uncertainties,
-evidence, approvals, at least one revision, verification output, CLI commands,
-API calls, Explorer-visible data, and assertions proving the expected outcome.
+Each example MUST include signed fixtures, policies, assumptions, uncertainties, evidence, approvals, at least one revision, verification output, CLI commands, API calls, Explorer-visible data, and assertions proving the expected outcome.
 
-Dogfood ACT by including a seed ledger that records this repository's initiating
-intent, key architecture decisions, transformations, verification evidence, and
-release approval. Clearly mark generated demonstration identities and keys as
-non-production credentials.
+Dogfood ACT by including a seed ledger that records this repository's initiating intent, key architecture decisions, transformations, verification evidence, and release approval. Clearly mark generated demonstration identities and keys as non-production credentials.
 
 ---
 
@@ -1101,10 +880,8 @@ non-production credentials.
 Ship:
 
 - hardened multi-stage Dockerfiles running as non-root users
-- Docker Compose for API, PostgreSQL, Explorer, telemetry, and a local OIDC
-  development provider
-- a Helm chart with secure defaults, probes, resources, network policy, pod
-  security settings, secrets references, persistence, and migration jobs
+- Docker Compose for API, PostgreSQL, Explorer, telemetry, and a local OIDC development provider
+- a Helm chart with secure defaults, probes, resources, network policy, pod security settings, secrets references, persistence, and migration jobs
 - environment and configuration reference
 - database migrations and seed commands
 - health, readiness, metrics, and tracing endpoints
@@ -1114,9 +891,7 @@ Ship:
 - a documented upgrade and rollback procedure
 - a load-test scenario and recorded baseline
 
-Production mode MUST fail closed when required secrets, trusted issuers,
-encryption keys, or secure configuration are missing. Development shortcuts MUST
-be explicit and MUST NOT activate in production mode.
+Production mode MUST fail closed when required secrets, trusted issuers, encryption keys, or secure configuration are missing. Development shortcuts MUST be explicit and MUST NOT activate in production mode.
 
 ---
 
@@ -1127,8 +902,7 @@ Implement and pass:
 - formatting and lint checks
 - strict TypeScript type checking
 - unit tests
-- property-based tests for canonicalization, hashing, graph invariants, and
-  state machines
+- property-based tests for canonicalization, hashing, graph invariants, and state machines
 - SQLite and PostgreSQL integration tests
 - API contract tests generated from OpenAPI
 - cross-language SDK conformance tests
@@ -1143,20 +917,11 @@ Implement and pass:
 - load and resource-limit smoke tests
 - documentation link and code-sample tests
 
-Core protocol, cryptographic, policy, and ledger packages MUST maintain at least
-90 percent branch coverage. The remaining first-party implementation MUST
-maintain at least 80 percent branch coverage. Generated code, schema fixtures,
-and declarative deployment manifests MAY be excluded with documented tooling
-configuration.
+Core protocol, cryptographic, policy, and ledger packages MUST maintain at least 90 percent branch coverage. The remaining first-party implementation MUST maintain at least 80 percent branch coverage. Generated code, schema fixtures, and declarative deployment manifests MAY be excluded with documented tooling configuration.
 
-Create one root command, `make verify`, that performs every offline quality
-gate. Create `make verify-integration` for checks requiring Docker. Both
-commands MUST fail on any skipped, disabled, focused, or unexpectedly pending
-required test.
+Create one root command, `make verify`, that performs every offline quality gate. Create `make verify-integration` for checks requiring Docker. Both commands MUST fail on any skipped, disabled, focused, or unexpectedly pending required test.
 
-Continuous integration MUST run formatting, linting, type checking, all language
-tests, conformance, security checks, builds, formal checks, container builds,
-and end-to-end tests. Cache dependencies without weakening reproducibility.
+Continuous integration MUST run formatting, linting, type checking, all language tests, conformance, security checks, builds, formal checks, container builds, and end-to-end tests. Cache dependencies without weakening reproducibility.
 
 ---
 
@@ -1164,43 +929,22 @@ and end-to-end tests. Cache dependencies without weakening reproducibility.
 
 Automate all of these scenarios:
 
-1. Mutating an accepted event, artifact content, signature, sequence, or
-   previous receipt causes integrity verification to fail with an explained
-   finding.
-2. A two-input transformation and a two-branch intent merge produce a valid DAG
-   whose descendants are derived rather than stored in signed parents.
-3. A semantically modified intent cannot become effective without the exact
-   policy-required approvals and quorum.
-4. Approval of one artifact version does not authorize a changed version;
-   expiry, revocation, supersession, key revocation, and authority removal are
-   enforced.
-5. A conflicting concurrent intent remains branched until an authorized merge or
-   selection event resolves it.
-6. An unresolved uncertainty propagates to outputs; an evidence-backed discharge
-   stops propagation while preserving history.
-7. A semantic assessor records an attributed, contestable assessment and never
-   represents heuristic similarity as mathematical proof.
-8. Export from one ledger and import into another preserves source receipts,
-   adds destination receipts, deduplicates replay, and quarantines invalid or
-   untrusted events.
-9. Missing parents and partial histories are represented explicitly and cannot
-   masquerade as complete lineage.
-10. Content redaction or cryptographic erasure removes plaintext while
-    preserving authorized deletion evidence and immutable digests.
-11. Cross-tenant reads, graph traversals, streams, exports, and content fetches
-    are denied without authority.
-12. TypeScript, Python, Go, and Rust produce identical event IDs and verify one
-    another's signatures using shared vectors.
-13. Every artifact in each example can be traced to an effective or root intent,
-    or to an explicit External Import record.
-14. Requirement coverage identifies an intentionally unimplemented example
-    requirement and clears the finding after an implementation and test
-    transformation are appended.
-15. Backup and restore reproduce the same event IDs, receipt integrity,
-    projections, and verification results.
-16. Explorer users can inspect lineage, compare intent versions, review
-    evidence, approve within authority, challenge a claim, and understand why a
-    policy blocked an action.
+1. Mutating an accepted event, artifact content, signature, sequence, or previous receipt causes integrity verification to fail with an explained finding.
+2. A two-input transformation and a two-branch intent merge produce a valid DAG whose descendants are derived rather than stored in signed parents.
+3. A semantically modified intent cannot become effective without the exact policy-required approvals and quorum.
+4. Approval of one artifact version does not authorize a changed version; expiry, revocation, supersession, key revocation, and authority removal are enforced.
+5. A conflicting concurrent intent remains branched until an authorized merge or selection event resolves it.
+6. An unresolved uncertainty propagates to outputs; an evidence-backed discharge stops propagation while preserving history.
+7. A semantic assessor records an attributed, contestable assessment and never represents heuristic similarity as mathematical proof.
+8. Export from one ledger and import into another preserves source receipts, adds destination receipts, deduplicates replay, and quarantines invalid or untrusted events.
+9. Missing parents and partial histories are represented explicitly and cannot masquerade as complete lineage.
+10. Content redaction or cryptographic erasure removes plaintext while preserving authorized deletion evidence and immutable digests.
+11. Cross-tenant reads, graph traversals, streams, exports, and content fetches are denied without authority.
+12. TypeScript, Python, Go, and Rust produce identical event IDs and verify one another's signatures using shared vectors.
+13. Every artifact in each example can be traced to an effective or root intent, or to an explicit External Import record.
+14. Requirement coverage identifies an intentionally unimplemented example requirement and clears the finding after an implementation and test transformation are appended.
+15. Backup and restore reproduce the same event IDs, receipt integrity, projections, and verification results.
+16. Explorer users can inspect lineage, compare intent versions, review evidence, approve within authority, challenge a claim, and understand why a policy blocked an action.
 
 ---
 
@@ -1208,35 +952,26 @@ Automate all of these scenarios:
 
 The repository is complete only when all of the following are true:
 
-- every required file, package, service, SDK, command, visualization, schema,
-  example, and document exists and contains working content
+- every required file, package, service, SDK, command, visualization, schema, example, and document exists and contains working content
 - no required behavior is represented only by prose or a mock
 - all generated artifacts can be regenerated deterministically
-- all schemas validate their positive fixtures and reject their negative
-  fixtures
+- all schemas validate their positive fixtures and reject their negative fixtures
 - all four SDKs pass shared conformance tests
 - SQLite and PostgreSQL exhibit equivalent protocol behavior
 - the API implementation matches its OpenAPI contract
 - Docker Compose starts a usable system with seeded data
 - the Helm chart renders and passes static validation
-- ACT Explorer passes end-to-end, accessibility, responsive-layout, and visual
-  checks
+- ACT Explorer passes end-to-end, accessibility, responsive-layout, and visual checks
 - the threat model maps threats to implemented controls and tests
-- integrity, privacy, authorization, federation, backup, and recovery scenarios
-  pass
+- integrity, privacy, authorization, federation, backup, and recovery scenarios pass
 - `make verify` passes from a clean checkout
 - `make verify-integration` passes with documented prerequisites
-- production builds contain no development credentials or insecure fallback
-  modes
+- production builds contain no development credentials or insecure fallback modes
 - documentation links and commands are verified
 - the root README provides a working quick start and an architecture overview
 - the ACT dogfooding ledger verifies successfully
 
-Before finishing, run the complete verification suite and repair failures.
-Report the exact commands run and their outcomes. If an external prerequisite
-cannot be exercised in the current environment, still provide its complete
-implementation and deterministic local verification, then identify the
-unavailable prerequisite precisely without claiming that its live check passed.
+Before finishing, run the complete verification suite and repair failures. Report the exact commands run and their outcomes. If an external prerequisite cannot be exercised in the current environment, still provide its complete implementation and deterministic local verification, then identify the unavailable prerequisite precisely without claiming that its live check passed.
 
 ---
 
@@ -1261,7 +996,6 @@ Every decision has provenance.
 
 Every approval has explicit scope and authority.
 
-Every artifact version has verifiable lineage or an explicit provenance
-boundary.
+Every artifact version has verifiable lineage or an explicit provenance boundary.
 
 Every claim can be verified, challenged, or identified honestly as unresolved.

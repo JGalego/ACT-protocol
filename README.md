@@ -21,37 +21,17 @@
 
 ---
 
-> Trust is earned through accountability.
-> Accountability is enabled by transparency.
-> Transparency is achieved through verifiable transformations.
+> Trust is earned through accountability. Accountability is enabled by transparency. Transparency is achieved through verifiable transformations.
 
-ACT is a federated, content-addressed protocol — and a working reference
-implementation — for recording, evolving, and verifying the provenance of
-work produced by people, AI systems, and organizations collaborating
-together: intents and their revisions, the artifacts derived from them,
-the transformations that produced those artifacts, and the approvals,
-challenges, evidence, confidence, and uncertainty attached along the way.
+ACT is a federated, content-addressed protocol — and a working reference implementation — for recording, evolving, and verifying the provenance of work produced by people, AI systems, and organizations collaborating together: intents and their revisions, the artifacts derived from them, the transformations that produced those artifacts, and the approvals, challenges, evidence, confidence, and uncertainty attached along the way.
 
-ACT is **not** an agent framework or an orchestration engine. It is the
-protocol that agents, orchestrators, IDEs, code generators, CI/CD systems,
-and governance tools implement or consume.
+ACT is **not** an agent framework or an orchestration engine. It is the protocol that agents, orchestrators, IDEs, code generators, CI/CD systems, and governance tools implement or consume.
 
-For any artifact ACT manages, it makes it possible to determine
-mechanically: its immutable identity and version, the events that produced
-it, the actors and cryptographic identities behind each event, the
-applicable policies and approvals, the assumptions and uncertainties
-recorded, the evidence attached, and whether the whole chain — hashes,
-signatures, receipts, lineage — verifies.
+For any artifact ACT manages, it makes it possible to determine mechanically: its immutable identity and version, the events that produced it, the actors and cryptographic identities behind each event, the applicable policies and approvals, the assumptions and uncertainties recorded, the evidence attached, and whether the whole chain — hashes, signatures, receipts, lineage — verifies.
 
 ## Status
 
-This is a **1.0.0 release candidate**. It is a genuine, non-fabricated
-vertical slice through the full protocol: everything listed under
-"What's Built" below is implemented and tested end-to-end, not stubbed.
-Everything under "What's Deferred" is explicitly out of scope for this
-release — see `docs/roadmap.md` and
-[`docs/adr/0001-phase-1-scope-and-deferred-work.md`](docs/adr/0001-phase-1-scope-and-deferred-work.md)
-for why, and what implementing it next would require.
+This is a **1.0.0 release candidate**. It is a genuine, non-fabricated vertical slice through the full protocol: everything listed under "What's Built" below is implemented and tested end-to-end, not stubbed. Everything under "What's Deferred" is explicitly out of scope for this release — see `docs/roadmap.md` and [`docs/adr/0001-phase-1-scope-and-deferred-work.md`](docs/adr/0001-phase-1-scope-and-deferred-work.md) for why, and what implementing it next would require.
 
 ## Quick Start
 
@@ -120,36 +100,16 @@ apps/
 docs/             Guides, threat model, versioning, roadmap, ADRs
 ```
 
-Every package builds independently (`pnpm --filter <name> run build`) and
-ships its own test suite; `packages/core`, `packages/crypto`,
-`packages/ledger`, `packages/policy`, and `packages/verification` maintain
-≥90% branch coverage, the rest ≥80% (`docs/testing-strategy.md`).
+Every package builds independently (`pnpm --filter <name> run build`) and ships its own test suite; `packages/core`, `packages/crypto`, `packages/ledger`, `packages/policy`, and `packages/verification` maintain ≥90% branch coverage, the rest ≥80% (`docs/testing-strategy.md`).
 
 ## How a Transformation Actually Flows
 
-1. A client (the CLI or any `packages/sdk-typescript` consumer) builds an
-   unsigned event, signs it with an Ed25519 key it holds locally, and
-   submits the signed envelope — the server never signs on a caller's
-   behalf.
-2. `services/api` validates the envelope's schema, recomputes its digest,
-   verifies every attached signature, evaluates trust policy, checks
-   causal parents, rejects lineage cycles, and only then appends the
-   event and issues a hash-chained receipt (`packages/ledger`) — the
-   exact 9-step write path from `spec/ACT-1.0.md` section 6.1.
-3. `packages/verification` can independently re-check integrity
-   (digest/signature/receipt-chain), lineage completeness, and approval
-   validity at any time, producing explained, attributable findings —
-   never a single collapsed "valid" boolean.
-4. `packages/policy` decides whether a given transformation requires
-   approval, and under what quorum, purely as a function of the current
-   policy version and the request — never a mutable flag on the subject.
+1. A client (the CLI or any `packages/sdk-typescript` consumer) builds an unsigned event, signs it with an Ed25519 key it holds locally, and submits the signed envelope — the server never signs on a caller's behalf.
+2. `services/api` validates the envelope's schema, recomputes its digest, verifies every attached signature, evaluates trust policy, checks causal parents, rejects lineage cycles, and only then appends the event and issues a hash-chained receipt (`packages/ledger`) — the exact 9-step write path from `spec/ACT-1.0.md` section 6.1.
+3. `packages/verification` can independently re-check integrity (digest/signature/receipt-chain), lineage completeness, and approval validity at any time, producing explained, attributable findings — never a single collapsed "valid" boolean.
+4. `packages/policy` decides whether a given transformation requires approval, and under what quorum, purely as a function of the current policy version and the request — never a mutable flag on the subject.
 
-`services/api/src/__tests__/server.test.ts` is the canonical worked
-example: it registers a key and actor, submits an Intent, records a
-two-input Transformation, runs a full approval-request → decision →
-challenge → verification → policy cycle, and exports/imports a signed
-bundle into a second, independent ledger — against the real handlers, no
-mocks.
+`services/api/src/__tests__/server.test.ts` is the canonical worked example: it registers a key and actor, submits an Intent, records a two-input Transformation, runs a full approval-request → decision → challenge → verification → policy cycle, and exports/imports a signed bundle into a second, independent ledger — against the real handlers, no mocks.
 
 ## What's Built
 
@@ -157,44 +117,26 @@ mocks.
 - 46 JSON Schemas with positive/negative fixtures, all passing
 - Canonicalization, digests, ids, and validation (`packages/core`)
 - Ed25519 signing, DSSE envelopes, key lifecycle (`packages/crypto`)
-- A SQLite-backed hash-chained ledger with cycle detection and quarantine
-  (`packages/ledger`)
+- A SQLite-backed hash-chained ledger with cycle detection and quarantine (`packages/ledger`)
 - Deterministic policy/quorum/authority evaluation (`packages/policy`)
-- Integrity, lineage, and approval verification, plus all three required
-  semantic assessors — deterministic structural, provider-neutral
-  OpenAI-compatible (with a deterministic local emulator so it's testable
-  without a paid service), and human (`packages/verification`)
+- Integrity, lineage, and approval verification, plus all three required semantic assessors — deterministic structural, provider-neutral OpenAI-compatible (with a deterministic local emulator so it's testable without a paid service), and human (`packages/verification`)
 - A TypeScript SDK (`packages/sdk-typescript`)
-- A working `/v1` API slice with OpenAPI 3.1 and RFC 9457 errors
-  (`services/api`)
+- A working `/v1` API slice with OpenAPI 3.1 and RFC 9457 errors (`services/api`)
 - The `act` CLI against a local embedded workspace (`apps/cli`)
-- 215 tests, `make verify` green from a clean checkout, zero known
-  dependency vulnerabilities (`docs/dependency-audit.md`)
+- 215 tests, `make verify` green from a clean checkout, zero known dependency vulnerabilities (`docs/dependency-audit.md`)
 
 ## What's Deferred
 
-PostgreSQL adapter, multi-ledger federation transport, Python/Go/Rust
-SDKs, ACT Explorer, the machine-checked formal model, Docker/Helm
-deployment, production OIDC/JWT auth, and the six seeded example
-applications. Every item is listed with rationale and a concrete starting
-point in [`docs/roadmap.md`](docs/roadmap.md).
+PostgreSQL adapter, multi-ledger federation transport, Python/Go/Rust SDKs, ACT Explorer, the machine-checked formal model, Docker/Helm deployment, production OIDC/JWT auth, and the six seeded example applications. Every item is listed with rationale and a concrete starting point in [`docs/roadmap.md`](docs/roadmap.md).
 
 ## Documentation
 
 - [`spec/ACT-1.0.md`](spec/ACT-1.0.md) — the normative specification
-- [`spec/semantic-model.md`](spec/semantic-model.md),
-  [`spec/state-machines.md`](spec/state-machines.md),
-  [`spec/federation.md`](spec/federation.md),
-  [`spec/conformance.md`](spec/conformance.md)
-- [`docs/api-reference.md`](docs/api-reference.md) and
-  [`services/api/openapi/act-v1.yaml`](services/api/openapi/act-v1.yaml)
-- [`docs/security-and-privacy-guide.md`](docs/security-and-privacy-guide.md)
-  and [`docs/threat-model.md`](docs/threat-model.md)
-- [`docs/versioning.md`](docs/versioning.md),
-  [`docs/testing-strategy.md`](docs/testing-strategy.md),
-  [`docs/standards-adoption.md`](docs/standards-adoption.md)
-- [`docs/adr/`](docs/adr/) — every non-obvious design decision, with
-  rationale
+- [`spec/semantic-model.md`](spec/semantic-model.md), [`spec/state-machines.md`](spec/state-machines.md), [`spec/federation.md`](spec/federation.md), [`spec/conformance.md`](spec/conformance.md)
+- [`docs/api-reference.md`](docs/api-reference.md) and [`services/api/openapi/act-v1.yaml`](services/api/openapi/act-v1.yaml)
+- [`docs/security-and-privacy-guide.md`](docs/security-and-privacy-guide.md) and [`docs/threat-model.md`](docs/threat-model.md)
+- [`docs/versioning.md`](docs/versioning.md), [`docs/testing-strategy.md`](docs/testing-strategy.md), [`docs/standards-adoption.md`](docs/standards-adoption.md)
+- [`docs/adr/`](docs/adr/) — every non-obvious design decision, with rationale
 - [`CONTRIBUTING.md`](CONTRIBUTING.md) and [`GOVERNANCE.md`](GOVERNANCE.md)
 
 ## License
