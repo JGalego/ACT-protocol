@@ -17,6 +17,8 @@ Run `pnpm --filter <package> exec vitest run --coverage` in any package to check
 - **Integration tests** for `services/api` (`server.test.ts`) using Fastify's `.inject()` against a real in-memory SQLite ledger, driving full workflows end-to-end: key registration → actor registration → intent → transformation → approval request/decision → challenge → verification → policy publication → bundle export/import into a second, independent ledger.
 - **Subprocess smoke tests** for `apps/cli` (`cli-smoke.test.ts`) that spawn the actual built `act` binary via `child_process.execFileSync` against a temporary workspace directory, proving the CLI wiring itself (not just its underlying action functions) works.
 - **Schema fixture tests** (`scripts/validate-schemas.ts`) validate every schema's positive fixtures as accepted and negative fixtures as rejected, for all 46 schemas under `schemas/`.
+- **Explorer behavior tests** (`apps/explorer/src/*.test.tsx` and `src/data/*.test.ts`) cover keyboard/button navigation, timeline scrubbing, drift and evidence inspection, deterministic replay, source selection, and live `/v1/events` adaptation.
+- **Real-browser Explorer tests** (`apps/explorer/e2e/`) run against Chromium at 1440×900 desktop and Pixel 7 mobile viewports. They assert nonblank Cytoscape canvas pixels, absence of horizontal overflow, autoplay, semantic-drift evidence, and reviewed visual-regression baselines. Run them with `pnpm run test:e2e`; CI installs Chromium and runs the same suite.
 
 ## What "No Disabled Tests" Means Here
 
@@ -24,4 +26,4 @@ Run `pnpm --filter <package> exec vitest run --coverage` in any package to check
 
 ## Deferred Test Categories
 
-Cross-language SDK conformance, Playwright/Explorer/accessibility tests, formal-model-checker runs, load/resource-limit smoke tests, and PostgreSQL-adapter parity tests are not present, because the systems they would test (Python/Go/Rust SDKs, ACT Explorer, `formal/`, a load-test harness, a PostgreSQL adapter) are themselves deferred — see `docs/roadmap.md`. `make verify-integration` documents its Docker prerequisite and fails with an explicit message when Docker is unavailable, rather than silently reporting success.
+Cross-language SDK conformance, a full automated WCAG audit of every future operational Explorer workflow, formal-model-checker runs, load/resource-limit smoke tests, and PostgreSQL-adapter parity tests are not present, because the systems they would test (Python/Go/Rust SDKs, the remaining Explorer profile, `formal/`, a load-test harness, and a PostgreSQL adapter) are themselves deferred — see `docs/roadmap.md`. `make verify-integration` documents its Docker prerequisite and fails with an explicit message when Docker is unavailable, rather than silently reporting success.

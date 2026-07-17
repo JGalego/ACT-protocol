@@ -28,12 +28,12 @@ This release implements a complete, non-fabricated **vertical slice**:
 - `apps/cli` — the `act` CLI operating against a local embedded SQLite workspace (init, doctor, actor, key, intent, verify, lineage, history, export, import, projection rebuild, backup, restore)
 - A dogfooding pass: this repository's own build is exercised end-to-end by the test suites above (e.g. the CLI's own workspace ledger records and verifies real events)
 
-**Explicitly deferred, not fabricated:**
+**Explicitly deferred in the original phase decision, not fabricated:**
 
 - PostgreSQL storage adapter (SQLite only; the storage interface is adapter-shaped so a Postgres implementation can be added without an API change)
 - Federation transport between independently-hosted ledgers (bundle export/import against a single ledger's own SQLite store is implemented and tested; multi-ledger network transport, and cross-ledger fork/equivocation detection over a network, are not)
 - Python, Go, and Rust SDKs, and the cross-language conformance suite that depends on them
-- ACT Explorer (the React/Cytoscape web application)
+- ACT Explorer (the React/Cytoscape web application; an animated lineage demonstration was subsequently implemented, as recorded below)
 - The machine-checked formal model (TLA+ or equivalent) under `formal/`
 - Docker/Compose/Helm deployment manifests and the local OIDC development provider
 - The six seeded example applications
@@ -44,3 +44,9 @@ This release implements a complete, non-fabricated **vertical slice**:
 - `conformance/CONFORMANCE_REPORT.md` (once generated) MUST report Core and Cryptographic Integrity profile conformance as passing, and MUST report Federation, SDK, and Explorer profiles as not yet claimed rather than silently passing.
 - `make verify` covers everything built; `make verify-integration` documents its Docker/PostgreSQL prerequisite as unmet in this environment rather than claiming a false pass.
 - Any contributor picking up deferred work has an explicit, itemized starting list here and in `docs/roadmap.md`, instead of having to reverse-engineer what's missing from silence.
+
+## Amendment: Animated Explorer Demonstration
+
+On 2026-07-17, `apps/explorer` implemented the first operational Explorer slice: a responsive React/Cytoscape application that animates a seeded human-and-AI transformation through intent, proposal, scoped approval, implementation, semantic drift, challenge, revision, and runtime observation. It also adapts real ordered events from `/v1/events` and is covered by Vitest plus desktop/mobile Playwright visual checks.
+
+This amendment removes the animated lineage demonstration from deferred scope. It does not claim the full Explorer conformance profile: the remaining operational workflows and dedicated visualization modes stay listed in `docs/roadmap.md`.

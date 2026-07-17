@@ -9,6 +9,13 @@ Note: this repository distinguishes four version axes that change independently 
 - **API version** (`/v1`)
 - **Implementation version** (this file, the npm/PyPI/crates/Go module versions)
 
+## [Unreleased]
+
+### Added
+
+- `apps/explorer`: an animated React/Cytoscape demonstration of intent, AI proposal, transformation, approval, implementation, verification, challenge, revision, and runtime observation, with deterministic replay and optional live `/v1/events` loading.
+- Responsive Playwright browser coverage and visual baselines for the Explorer at desktop and mobile viewports.
+
 ## [1.0.0-rc.1] - 2026-07-16
 
 ### Added
@@ -27,4 +34,4 @@ Note: this repository distinguishes four version axes that change independently 
 
 ### Known limitations in this release candidate
 
-See [docs/roadmap.md](docs/roadmap.md) for the complete, explicit list of deferred scope (PostgreSQL adapter, federation import/export, Python/Go/Rust SDKs, ACT Explorer, formal-model checking, Helm/production deployment, and the six example applications). Nothing on that list is claimed as done in this release.
+See [docs/roadmap.md](docs/roadmap.md) for the complete, explicit list of deferred scope (PostgreSQL adapter, federation import/export, Python/Go/Rust SDKs, the remaining full ACT Explorer profile beyond the implemented animated demonstration, formal-model checking, Helm/production deployment, and five additional example applications). Nothing on that list is claimed as done in this release.

@@ -11,7 +11,6 @@ export default [
       '**/coverage/**',
       '**/node_modules/**',
       '**/*.d.ts',
-      'apps/explorer/**',
       'sdks/**',
       'deploy/**',
     ],

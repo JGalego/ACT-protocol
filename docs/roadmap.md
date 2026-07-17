@@ -17,7 +17,8 @@ This document is the single consolidated list of what `PROMPT.md` specifies that
 
 ## ACT Explorer
 
-- The full React/Vite/Cytoscape.js web application (`apps/explorer`) — browsing, lineage/DAG/approval/confidence/drift visualizations, Playwright and accessibility tests — is not built. `services/api`'s OpenAPI contract is the intended data source for it.
+- **Built foundation:** `apps/explorer` is a working React/Vite/Cytoscape.js application with an animated ten-stage support workflow, graph playback and scrubbing, record/evidence/envelope inspection, confidence and intent-drift telemetry, responsive desktop/mobile layouts, visual baselines, and a live adapter for the authenticated `/v1/events` endpoint. It is covered by Vitest and Playwright rather than being a static mockup.
+- **Remaining full Explorer profile:** repository-wide artifact search, version comparison, approval/challenge mutation workflows, bundle import/export, redaction/partial-history/large-graph operating states, and the remaining dedicated Approval Graph, Responsibility Timeline, Confidence Heatmap, Intent Drift Timeline, Decision Tree, and Evidence Graph views are not yet implemented. The current app demonstrates those concepts within one transformation DAG; it does not claim the `Explorer` conformance profile defined in `spec/conformance.md`.
 
 ## Formal Methods
 
@@ -34,7 +35,7 @@ This document is the single consolidated list of what `PROMPT.md` specifies that
 
 ## Example Applications
 
-- The six seeded example applications from `PROMPT.md` (human+AI pairing, product-team workflow, competing AI proposals, enterprise quorum workflow, open-source federation, safety-critical workflow with an unresolved challenge) are not built as standalone, seeded fixtures. `services/api`'s and `apps/cli`'s test suites exercise the same underlying mechanics (genesis → transformation → approval → challenge → verification, and bundle export/import) but not as narratively-framed, independently runnable examples.
+- The human+AI pairing scenario is implemented as the independently runnable animated support-triage walkthrough in `apps/explorer`: it covers intent → proposal → transformation → approval → implementation → verification → challenge → revision → runtime observation. Five additional examples from `PROMPT.md` (product-team workflow, competing AI proposals, enterprise quorum workflow, open-source federation, and safety-critical workflow with an unresolved challenge) are not yet built as standalone seeded fixtures.
 
 ## Conformance
 

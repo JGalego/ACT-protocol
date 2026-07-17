@@ -17,6 +17,8 @@
     "typecheck": "pnpm -r --if-present run typecheck",
     "test": "pnpm -r --if-present run test",
     "test:coverage": "pnpm -r --if-present run test:coverage",
+    "test:e2e": "pnpm --filter @act/explorer run test:e2e",
+    "dev:explorer": "pnpm --filter @act/explorer run dev",
     "schemas:validate": "tsx scripts/validate-schemas.ts",
     "generate:types": "node scripts/generate-schema-types.mjs",
     "generate:artifact-types": "node scripts/generate-artifact-types.mjs",

@@ -1,5 +1,5 @@
 .PHONY: install verify verify-integration lint format typecheck test test-coverage \
-	schemas-validate build clean dev doctor
+	test-e2e schemas-validate build clean dev explorer doctor
 
 SHELL := /bin/bash
 
@@ -28,6 +28,9 @@ test:
 test-coverage:
 	pnpm run test:coverage
 
+test-e2e:
+	pnpm run test:e2e
+
 ## make verify-integration: additional checks that require Docker
 ## (PostgreSQL adapter parity, container builds). Requires: Docker Engine
 ## with Compose v2. See docs/deployment.md#prerequisites.
@@ -51,6 +54,9 @@ clean:
 
 dev:
 	pnpm --filter @act/api dev
+
+explorer:
+	pnpm run dev:explorer
 
 ## make doctor: quick environment sanity check (mirrors `act doctor`).
 doctor:
