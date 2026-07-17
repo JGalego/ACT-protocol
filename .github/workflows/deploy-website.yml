@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - apps/website/**
+      - apps/explorer/**
       - .github/workflows/deploy-website.yml
   workflow_dispatch:
 
@@ -34,8 +35,16 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Build the ACT Explorer for embedding at /explorer/
+        run: pnpm --filter @act/explorer run build
+        env:
+          EXPLORER_BASE_PATH: /explorer/
+
       - name: Build the website
         run: pnpm --filter @act/website run build
+
+      - name: Embed the built Explorer into the website output
+        run: cp -r apps/explorer/dist apps/website/dist/explorer
 
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v6

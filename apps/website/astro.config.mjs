@@ -32,6 +32,12 @@ export default defineConfig({
           items: [
             { label: 'Getting Started', slug: 'getting-started' },
             { label: 'Architecture', slug: 'architecture' },
+            {
+              label: 'Live Explorer',
+              link: '/explorer/',
+              badge: { text: 'Live', variant: 'success' },
+              attrs: { target: '_blank', rel: 'noopener' },
+            },
           ],
         },
         {

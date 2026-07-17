@@ -3,6 +3,8 @@ title: Architecture
 description: How the ACT reference implementation is laid out, and how a transformation actually flows through it.
 ---
 
+Everything below is animated end-to-end in the [live ACT Explorer](/explorer/) — a good companion to read this page alongside.
+
 ## Repository layout
 
 ```text

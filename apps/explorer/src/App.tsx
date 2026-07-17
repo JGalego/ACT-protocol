@@ -457,7 +457,7 @@ export default function App() {
     <div className="app-shell">
       <header className="topbar">
         <div className="brand-lockup">
-          <img src="/logo.svg" alt="" width="38" height="38" />
+          <img src={`${import.meta.env.BASE_URL}logo.svg`} alt="" width="38" height="38" />
           <div>
             <strong>ACT Explorer</strong>
             <span>Accountability and Chain of Transformation</span>
