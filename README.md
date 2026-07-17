@@ -52,6 +52,15 @@ pnpm run generate:types
 make verify
 ```
 
+Run the animated protocol demonstration:
+
+```bash
+pnpm run dev:explorer
+# -> ACT Explorer at http://localhost:4173
+```
+
+The seeded walkthrough animates a complete accountable chain: human intent → AI proposal → requirements transformation → scoped approval → implementation → tests → semantic drift finding → human challenge → revision → runtime observation. Use play/pause, step controls, arrow keys, or the timeline scrubber; select records to inspect rationale, assumptions, uncertainty, evidence, lineage, confidence, and envelope content. The **Data source** control can also load ordered signed envelopes from a running ACT `/v1/events` endpoint. Seeded identities and digests are visibly marked as non-production demonstration data.
+
 Start the reference API service (SQLite-backed, local development mode):
 
 ```bash
@@ -97,6 +106,8 @@ services/
 apps/
   cli/            The `act` command-line tool, operating against a local
                   embedded SQLite workspace
+  explorer/       React/Cytoscape animated protocol demonstration and live
+                  ledger event viewer, with desktop/mobile browser tests
 docs/             Guides, threat model, versioning, roadmap, ADRs
 ```
 
@@ -111,6 +122,105 @@ Every package builds independently (`pnpm --filter <name> run build`) and ships 
 
 `services/api/src/__tests__/server.test.ts` is the canonical worked example: it registers a key and actor, submits an Intent, records a two-input Transformation, runs a full approval-request → decision → challenge → verification → policy cycle, and exports/imports a signed bundle into a second, independent ledger — against the real handlers, no mocks.
 
+### Submitting a signed event (the 9-step write path)
+
+Every write — Intent, Transformation, Approval, Challenge, Verification, Policy — goes through the same atomic path (`spec/ACT-1.0.md` §6.1). If any of steps 1-6 fails, no receipt is issued and no projection is updated.
+
+```mermaid
+sequenceDiagram
+    participant Client as Client (CLI / SDK)
+    participant API as services/api
+    participant Ledger as packages/ledger
+
+    Client->>Client: Build unsigned event
+    Client->>Client: Sign with local Ed25519 key
+    Client->>API: POST signed envelope (e.g. /v1/intents)
+
+    API->>API: 1. Validate schema + size/depth limits
+    API->>API: 2. Recompute event ID + content digests
+    API->>API: 3. Verify signatures + key binding
+    API->>API: 4. Evaluate trust + authorization policy
+    API->>Ledger: 5. Check causal_parents are accepted
+    Ledger-->>API: parents OK (or marked partial import)
+    API->>Ledger: 6. Reject on lineage cycle or duplicate event ID
+    Ledger-->>API: not a cycle / not a duplicate
+
+    rect rgba(120, 120, 120, 0.08)
+    API->>Ledger: 7. Append event
+    Ledger-->>API: hash-chained receipt
+    API->>API: 8. Update projections (versions, lineage, approvals)
+    API->>API: 9. Enqueue outbound notifications
+    end
+
+    API-->>Client: 201 Created + receipt
+```
+
+### Approval, challenge, and verification cycle
+
+Whether a Transformation needs approval — and under what quorum — is a policy **evaluation**, never a mutable flag on the record. Any accepted event can later be challenged, and any event can be independently re-verified at any time.
+
+```mermaid
+sequenceDiagram
+    participant Author as Author (human or AI actor)
+    participant API as services/api
+    participant Policy as packages/policy
+    participant Ledger as packages/ledger
+    participant Approver as Approver (human actor)
+    participant Verifier as packages/verification
+
+    Author->>API: POST /v1/intents or /v1/transformations
+    API->>Policy: Evaluate approval requirement
+    Policy-->>API: required=true, quorum=N
+    API->>Ledger: Append event
+    Ledger-->>API: receipt
+
+    Author->>API: POST /v1/approval-requests
+    API->>Ledger: Append ApprovalRequest event
+    Ledger-->>API: receipt
+
+    Approver->>API: POST /v1/approval-decisions (approve/reject)
+    API->>Ledger: Append ApprovalDecision event
+    Ledger-->>API: receipt
+    API-->>Approver: GET /v1/approvals/{eventId}
+
+    opt A party disputes the transformation
+        Author->>API: POST /v1/challenges
+        API->>Ledger: Append Challenge event
+        Ledger-->>API: receipt
+    end
+
+    Verifier->>API: POST /v1/verifications (integrity, lineage, approval checks)
+    API->>Ledger: Append VerificationReport event
+    Ledger-->>API: receipt
+    API-->>Verifier: GET /v1/verifications/{eventId} — explained, attributable findings
+```
+
+### Federated bundle export and import
+
+Ledgers are independent; sharing history is an explicit, signed bundle transfer, never a shared database. The importing ledger re-verifies everything against its own trust policy rather than trusting the exporter.
+
+```mermaid
+sequenceDiagram
+    participant Op as Operator
+    participant LedgerA as Ledger A (source)
+    participant LedgerB as Ledger B (independent)
+
+    Op->>LedgerA: GET /v1/bundles/export
+    LedgerA-->>Op: Signed bundle (events + receipts)
+
+    Op->>LedgerB: POST /v1/bundles/import
+    loop for each event in the bundle
+        LedgerB->>LedgerB: Validate schema, verify signatures
+        LedgerB->>LedgerB: Evaluate local trust policy for the source ledger
+        alt event passes all checks
+            LedgerB->>LedgerB: Append event, issue receipt
+        else event fails a check
+            LedgerB->>LedgerB: Quarantine event (kept, not silently dropped)
+        end
+    end
+    LedgerB-->>Op: { accepted: N, quarantined: M }
+```
+
 ## What's Built
 
 - The full normative ACT 1.0 specification and semantic model (`spec/`)
@@ -123,11 +233,12 @@ Every package builds independently (`pnpm --filter <name> run build`) and ships 
 - A TypeScript SDK (`packages/sdk-typescript`)
 - A working `/v1` API slice with OpenAPI 3.1 and RFC 9457 errors (`services/api`)
 - The `act` CLI against a local embedded workspace (`apps/cli`)
-- 215 tests, `make verify` green from a clean checkout, zero known dependency vulnerabilities (`docs/dependency-audit.md`)
+- An animated ACT Explorer demonstration with playback, timeline scrubbing, evidence inspection, intent-drift visualization, and an optional live `/v1/events` data source (`apps/explorer`)
+- 221 unit/integration tests plus 6 desktop/mobile browser tests, `make verify` green from a clean checkout, zero known dependency vulnerabilities (`docs/dependency-audit.md`)
 
 ## What's Deferred
 
-PostgreSQL adapter, multi-ledger federation transport, Python/Go/Rust SDKs, ACT Explorer, the machine-checked formal model, Docker/Helm deployment, production OIDC/JWT auth, and the six seeded example applications. Every item is listed with rationale and a concrete starting point in [`docs/roadmap.md`](docs/roadmap.md).
+PostgreSQL adapter, multi-ledger federation transport, Python/Go/Rust SDKs, the full operational ACT Explorer conformance profile beyond the implemented animated lineage demo, the machine-checked formal model, Docker/Helm deployment, production OIDC/JWT auth, and five additional seeded example applications. Every item is listed with rationale and a concrete starting point in [`docs/roadmap.md`](docs/roadmap.md).
 
 ## Documentation
 
