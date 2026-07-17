@@ -5,8 +5,7 @@ import mermaid from 'astro-mermaid';
 
 // https://astro.build/config
 export default defineConfig({
-  site: 'https://jgalego.github.io',
-  base: '/ACT-protocol',
+  site: 'https://act-protocol.org',
   integrations: [
     // Must run before the starlight integration so its markdown
     // transform sees ```mermaid fences before Starlight processes them.
