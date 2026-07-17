@@ -4,15 +4,7 @@ info:
   version: '1.0.0-rc.1'
   summary: Reference implementation of a subset of the ACT 1.0 /v1 HTTP contract.
   description: >
-    This document describes the endpoints actually implemented by
-    services/api in this release candidate. Request bodies for write
-    endpoints are DSSE-compatible signed event envelopes; their authoritative
-    shape is defined by the JSON Schemas under /schemas
-    (schemas/envelope/signed-envelope.schema.json and
-    schemas/event/unsigned-event.schema.json), which the server validates
-    every request against. This OpenAPI document is kept in sync by hand
-    with services/api/src/routes/*.ts; docs/api-reference.md links each
-    operation back to its handler and to conformance/fixtures.
+    This document describes the endpoints actually implemented by services/api in this release candidate. Request bodies for write endpoints are DSSE-compatible signed event envelopes; their authoritative shape is defined by the JSON Schemas under /schemas (schemas/envelope/signed-envelope.schema.json and schemas/event/unsigned-event.schema.json), which the server validates every request against. This OpenAPI document is kept in sync by hand with services/api/src/routes/*.ts; docs/api-reference.md links each operation back to its handler and to conformance/fixtures.
   license:
     name: Apache-2.0
     url: https://www.apache.org/licenses/LICENSE-2.0
@@ -322,12 +314,7 @@ components:
       type: http
       scheme: bearer
       description: >
-        Local development scheme only in this release candidate (ACT_DEV_MODE=true):
-        the bearer token is the caller's actor id, used for tenant scoping and
-        rate limiting. It does NOT authorize any ledger write on its own --
-        every write additionally requires the submitted event envelope to
-        carry a valid Ed25519 signature from a registered key. Production
-        OIDC/JWT validation is tracked in docs/roadmap.md.
+        Local development scheme only in this release candidate (ACT_DEV_MODE=true): the bearer token is the caller's actor id, used for tenant scoping and rate limiting. It does NOT authorize any ledger write on its own -- every write additionally requires the submitted event envelope to carry a valid Ed25519 signature from a registered key. Production OIDC/JWT validation is tracked in docs/roadmap.md.
   parameters:
     Id:
       name: id
