@@ -5,8 +5,12 @@ packages:
 allowBuilds:
   better-sqlite3: true
   esbuild: true
+minimumReleaseAgeExclude:
+  - astro@7.1.1
 overrides:
   # Forces the transitive vite dependency pulled in by vitest/@vitest/coverage-v8
   # past known moderate/high advisories (GHSA-v6wh-96g9-6wx3 and related);
-  # see docs/dependency-audit.md.
-  vite: '>=6.4.3'
+  # see docs/dependency-audit.md. Scoped to vitest's own vite dependency so it
+  # doesn't downgrade the vite ^8 that apps/website's astro depends on directly.
+  'vitest>vite': '6.4.3'
+  '@vitest/coverage-v8>vite': '6.4.3'

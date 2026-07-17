@@ -1,0 +1,66 @@
+---
+title: Accountability and Chain of Transformation
+description: An open protocol for preserving meaning, provenance, evidence, and accountable decisions across human and AI collaboration.
+template: splash
+hero:
+  title: Accountability and Chain of Transformation
+  tagline: An open, federated, content-addressed protocol for recording, evolving, and verifying the provenance of work produced by people, AI systems, and organizations collaborating together.
+  image:
+    file: ../../assets/logo.svg
+  actions:
+    - text: Get Started
+      link: /getting-started/
+      icon: right-arrow
+      variant: primary
+    - text: Read the Specification
+      link: https://github.com/JGalego/ACT-protocol/blob/main/spec/ACT-1.0.md
+      icon: external
+    - text: View on GitHub
+      link: https://github.com/JGalego/ACT-protocol
+      icon: github
+      variant: minimal
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+> Trust is earned through accountability. Accountability is enabled by transparency. Transparency is achieved through verifiable transformations.
+
+For any artifact ACT manages, it makes it possible to determine mechanically: its immutable identity and version, the events that produced it, the actors and cryptographic identities behind each event, the applicable policies and approvals, the assumptions and uncertainties recorded, the evidence attached, and whether the whole chain — hashes, signatures, receipts, lineage — verifies.
+
+## What ACT gives you
+
+<CardGrid stagger>
+  <Card title="Cryptographic Provenance" icon="padlock">
+    Every Intent, Transformation, Approval, Challenge, and Verification is a signed event,
+    Ed25519-signed by the actor who made it and chained into a hash-linked ledger receipt — not a
+    mutable database row.
+  </Card>
+  <Card title="Accountable Transformations" icon="pencil">
+    Every transformation carries its mode, semantic-change classification, assumptions,
+    alternatives, rationale, confidence, and evidence as an attributed claim — never a silent diff.
+  </Card>
+  <Card title="Policy-Driven Approval" icon="approve-check">
+    Whether a change needs approval, and under what quorum, is a deterministic policy evaluation
+    against the current policy version — never a mutable flag on the record.
+  </Card>
+  <Card title="Independent Verification" icon="magnifier">
+    Integrity, lineage, and approval validity can be independently re-checked at any time, producing
+    explained, attributable findings instead of a single collapsed "valid" boolean.
+  </Card>
+  <Card title="Federated by Design" icon="random">
+    Ledgers are independent. Sharing history is an explicit, signed bundle export/import,
+    re-verified against the importing ledger's own trust policy — never a shared database.
+  </Card>
+  <Card title="Not an Agent Framework" icon="information">
+    ACT is the protocol that agents, orchestrators, IDEs, code generators, CI/CD systems, and
+    governance tools implement or consume — not another one of them.
+  </Card>
+</CardGrid>
+
+## See it work
+
+The seeded [ACT Explorer](/architecture/) walkthrough animates a complete accountable chain: human intent → AI proposal → requirements transformation → scoped approval → implementation → tests → semantic drift finding → human challenge → revision → runtime observation.
+
+## Status
+
+This is a **1.0.0 release candidate** — a genuine, non-fabricated vertical slice through the full protocol. See the [Roadmap](/roadmap/) for what's deferred and why.

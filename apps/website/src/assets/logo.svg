@@ -1,0 +1,29 @@
+<svg width="160" height="160" viewBox="0 0 160 160" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="actNodeGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#6366F1"/>
+      <stop offset="100%" stop-color="#4338CA"/>
+    </linearGradient>
+    <linearGradient id="actAccentGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#34D399"/>
+      <stop offset="100%" stop-color="#059669"/>
+    </linearGradient>
+  </defs>
+
+  <!-- chain-of-transformation edges -->
+  <path d="M 42 100 L 78 56" stroke="#94A3B8" stroke-width="6" stroke-linecap="round" fill="none"/>
+  <path d="M 82 56 L 118 100" stroke="#94A3B8" stroke-width="6" stroke-linecap="round" fill="none"/>
+
+  <!-- root artifact node -->
+  <circle cx="38" cy="108" r="20" fill="url(#actNodeGradient)"/>
+
+  <!-- transformation node -->
+  <circle cx="80" cy="48" r="20" fill="url(#actNodeGradient)"/>
+
+  <!-- verified output node -->
+  <circle cx="122" cy="108" r="20" fill="url(#actNodeGradient)"/>
+
+  <!-- accountability / verification badge on the output node -->
+  <circle cx="122" cy="108" r="24" fill="none" stroke="url(#actAccentGradient)" stroke-width="4"/>
+  <path d="M 112 108 L 119 115 L 133 100" stroke="#ECFDF5" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+</svg>

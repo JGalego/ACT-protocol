@@ -1,0 +1,26 @@
+{
+  "name": "@act/website",
+  "version": "1.0.0-rc.1",
+  "description": "The ACT Protocol website: landing page and documentation, built with Astro Starlight.",
+  "license": "Apache-2.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "typecheck": "astro check",
+    "clean": "rm -rf dist .astro"
+  },
+  "dependencies": {
+    "@astrojs/starlight": "^0.41.3",
+    "astro": "^7.1.1",
+    "astro-mermaid": "^2.1.0",
+    "mermaid": "^11.16.0",
+    "sharp": "^0.35.3"
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.9",
+    "typescript": "^5.7.2"
+  }
+}
