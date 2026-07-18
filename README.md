@@ -117,6 +117,10 @@ conformance/      Frozen cross-SDK vectors and the profile-aware
                   conformance report generator (spec/conformance.md)
 deploy/           Dockerfiles, a full Docker Compose stack, and a Helm
                   chart with secure defaults (docs/deployment.md)
+examples/         Five seeded example applications (product team, competing
+                  AI proposals, enterprise OIDC/quorum, open-source
+                  federation, safety-critical challenge), each a real
+                  signed-envelope sequence against a real services/api
 docs/             Guides, threat model, versioning, roadmap, ADRs
 ```
 
@@ -248,11 +252,12 @@ sequenceDiagram
 - The `act` CLI against a local embedded workspace (`apps/cli`)
 - An animated ACT Explorer demonstration with playback, timeline scrubbing, evidence inspection, intent-drift visualization, a repository-wide Confidence Heatmap view, and an optional live `/v1/events` data source (`apps/explorer`)
 - Hardened non-root Dockerfiles, a full Docker Compose stack (API + PostgreSQL + Explorer + a real OpenTelemetry Collector + the local OIDC dev provider), and a Helm chart with secure defaults, `NetworkPolicy`, `PodDisruptionBudget`, and a pre-install migration Job (`deploy/`, `docs/deployment.md`)
-- 399 unit/integration tests (354 TypeScript, 45 Python) plus 7 desktop/mobile browser tests, `make verify` green from a clean checkout, zero known dependency vulnerabilities (`docs/dependency-audit.md`)
+- All six seeded example applications from `PROMPT.md`'s Example Applications section -- the animated human+AI walkthrough (`apps/explorer`) plus a product-team workflow, competing AI proposals, an enterprise OIDC/quorum workflow, open-source federation, and a safety-critical workflow with an unresolved challenge (`examples/`), each a real signed-envelope sequence against a real `services/api` instance with assertions proving the outcome
+- 404 unit/integration tests (359 TypeScript, 45 Python) plus 7 desktop/mobile browser tests, `make verify` green from a clean checkout, zero known dependency vulnerabilities (`docs/dependency-audit.md`)
 
 ## What's Deferred
 
-Go and Rust SDKs, the full operational ACT Explorer conformance profile beyond the implemented animated lineage demo and Confidence Heatmap view, a dedicated demo-data seed script, organizational admission control for key registration, and five additional seeded example applications. Every item is listed with rationale and a concrete starting point in [`docs/roadmap.md`](docs/roadmap.md).
+Go and Rust SDKs, the full operational ACT Explorer conformance profile beyond the implemented animated lineage demo and Confidence Heatmap view, a standalone demo-data seed command, and organizational admission control for key registration. Every item is listed with rationale and a concrete starting point in [`docs/roadmap.md`](docs/roadmap.md).
 
 ## Documentation
 

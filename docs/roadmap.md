@@ -17,15 +17,11 @@ This document is the single consolidated list of what `PROMPT.md` specifies that
 
 - **Built:** hardened, non-root, multi-stage Dockerfiles for `services/api` and `apps/explorer` (`deploy/docker/`); a full Docker Compose stack (API + PostgreSQL + Explorer + a real Prometheus-scraping OpenTelemetry Collector + the local OIDC dev provider, `deploy/compose/docker-compose.yml`); and a Helm chart with secure defaults -- non-root, read-only root filesystem, dropped capabilities, `NetworkPolicy`, `PodDisruptionBudget`, a pre-install migration Job, and an `existingSecret` pattern for the database connection string (`deploy/helm/act/`). `make verify-deploy` statically validates all of it (`helm lint`/`helm template` + `kubeconform` schema validation + `hadolint`) without needing a Docker daemon or live cluster; CI's `deploy-lint` job additionally validates the Compose files with a real `docker compose ... config`. See `docs/deployment.md`.
 - **Not yet run end-to-end:** this repository's own development sandbox has no usable Docker daemon, so the Dockerfiles/Compose stack have been statically validated but not actually built or run here (`make verify-integration`'s real dockerized-Postgres run, and `scripts/integration-smoke.ts`'s HTTP smoke sequence against it, are proven correct against a stand-in embedded-postgres server instead -- see `docs/deployment.md`'s Prerequisites section for the exact caveat).
-- **Not yet built:** a dedicated demo-data seed script/command (migrations run automatically; there is no equivalent for seed data yet -- the seeded example applications below are the natural home for it).
+- **Not yet built:** a dedicated demo-data seed script/command. Migrations run automatically on boot; there is no equivalent one-shot command to populate a fresh deployment with realistic data. `examples/`'s six seeded scenarios (below) are runnable against any `services/api` instance today, but only as a Vitest suite driving HTTP calls, not as a standalone `pnpm run seed`-style command.
 
 ## Authentication
 
 - **Organizational admission control for key registration.** `POST /v1/keys`'s proof-of-possession bootstrap (ADR 0006) grants trust to any caller who can sign for a key they generated; it performs no vetting. A production deployment needing gated admission would add an authorization policy in front of this endpoint.
-
-## Example Applications
-
-- The human+AI pairing scenario is implemented as the independently runnable animated support-triage walkthrough in `apps/explorer`: it covers intent → proposal → transformation → approval → implementation → verification → challenge → revision → runtime observation. Five additional examples from `PROMPT.md` (product-team workflow, competing AI proposals, enterprise quorum workflow, open-source federation, and safety-critical workflow with an unresolved challenge) are not yet built as standalone seeded fixtures.
 
 ## How to Pick This Up
 
