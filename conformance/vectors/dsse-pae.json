@@ -1,0 +1,22 @@
+{
+  "cases": [
+    {
+      "id": "known-vector",
+      "payloadType": "http://example.com/HelloWorld",
+      "payloadUtf8": "hello world",
+      "expectedPaeBase64": "RFNTRXYxIDI5IGh0dHA6Ly9leGFtcGxlLmNvbS9IZWxsb1dvcmxkIDExIGhlbGxvIHdvcmxk"
+    },
+    {
+      "id": "empty-payload",
+      "payloadType": "application/vnd.act+json",
+      "payloadUtf8": "",
+      "expectedPaeBase64": "RFNTRXYxIDI0IGFwcGxpY2F0aW9uL3ZuZC5hY3QranNvbiAwIA=="
+    },
+    {
+      "id": "json-payload",
+      "payloadType": "application/vnd.act+json",
+      "payloadUtf8": "{\"a\":1}",
+      "expectedPaeBase64": "RFNTRXYxIDI0IGFwcGxpY2F0aW9uL3ZuZC5hY3QranNvbiA3IHsiYSI6MX0="
+    }
+  ]
+}

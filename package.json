@@ -20,6 +20,8 @@
     "test:e2e": "pnpm --filter @act/explorer run test:e2e",
     "dev:explorer": "pnpm --filter @act/explorer run dev",
     "schemas:validate": "tsx scripts/validate-schemas.ts",
+    "conformance:generate-vectors": "tsx conformance/vectors/generate-vectors.ts",
+    "conformance:run": "tsx conformance/run-conformance.ts",
     "generate:types": "node scripts/generate-schema-types.mjs",
     "generate:artifact-types": "node scripts/generate-artifact-types.mjs",
     "clean": "pnpm -r --if-present run clean"

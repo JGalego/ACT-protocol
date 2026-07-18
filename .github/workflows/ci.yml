@@ -17,7 +17,7 @@ env:
 
 jobs:
   verify:
-    name: make verify (format, lint, typecheck, schemas, tests)
+    name: make verify (format, lint, typecheck, schemas, tests, conformance)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -46,6 +46,9 @@ jobs:
 
       - name: Run tests with coverage (enforces per-package coverage floors)
         run: pnpm run test:coverage
+
+      - name: Generate the conformance report (spec/conformance.md)
+        run: pnpm run conformance:run
 
   audit:
     name: Dependency audit

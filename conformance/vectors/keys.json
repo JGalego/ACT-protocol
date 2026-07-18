@@ -1,0 +1,19 @@
+{
+  "keyPairs": [
+    {
+      "id": "keypair-0",
+      "publicKeyBase64": "2kyJYFvkPEv/Z//JmJbYxlLEMBEvyjdX1SWZE0gw4IY=",
+      "expectedKeyId": "ed25519:5630cc822430ff47dc5d26402ec2bd460d824f0b1b83d2cd7f178af91dec655f"
+    },
+    {
+      "id": "keypair-1",
+      "publicKeyBase64": "YwDkdppHYoBmJwDwjtNzRdzMKmfzA8Qsl3qmzrbkjRU=",
+      "expectedKeyId": "ed25519:bd18ec74aabf526e2fbb2547928348674f43825db49041c1ac4319abd9f1de46"
+    },
+    {
+      "id": "keypair-2",
+      "publicKeyBase64": "oJTp0QXQCa20hB9tChXgZMHY7qXhv3Ev2831T3UcIAg=",
+      "expectedKeyId": "ed25519:72f4b11db4f92f192bd3b7b939b45020b2b61cd1a29eee5e350f7b5ec9d7ecb0"
+    }
+  ]
+}

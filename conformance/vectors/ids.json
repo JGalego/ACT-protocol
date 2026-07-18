@@ -1,0 +1,31 @@
+{
+  "validUuidV7": [
+    {
+      "id": "018f3b2a-1234-7abc-8def-0123456789ab",
+      "expectedValid": true,
+      "expectedFreshlyGenerated": true
+    },
+    {
+      "id": "00000000-0000-7000-8000-000000000000",
+      "expectedValid": true,
+      "expectedFreshlyGenerated": true
+    }
+  ],
+  "invalid": [
+    {
+      "id": "not-a-uuid",
+      "expectedValid": false,
+      "expectedFreshlyGenerated": false
+    },
+    {
+      "id": "018f3b2a-1234-4abc-8def-0123456789ab",
+      "expectedValid": true,
+      "expectedFreshlyGenerated": false
+    },
+    {
+      "id": "",
+      "expectedValid": false,
+      "expectedFreshlyGenerated": false
+    }
+  ]
+}

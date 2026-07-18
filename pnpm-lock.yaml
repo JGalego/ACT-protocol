@@ -160,6 +160,37 @@ importers:
         specifier: ^5.7.2
         version: 5.9.3
 
+  conformance:
+    dependencies:
+      '@act/core':
+        specifier: workspace:*
+        version: link:../packages/core
+      '@act/crypto':
+        specifier: workspace:*
+        version: link:../packages/crypto
+      '@act/ledger':
+        specifier: workspace:*
+        version: link:../packages/ledger
+      '@act/policy':
+        specifier: workspace:*
+        version: link:../packages/policy
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.2
+        version: 22.20.1
+      '@vitest/coverage-v8':
+        specifier: ^3.2.6
+        version: 3.2.7(vitest@3.2.7(@types/debug@4.1.13)(@types/node@22.20.1)(jsdom@25.0.1)(lightningcss@1.32.0)(tsx@4.23.1)(yaml@2.9.0))
+      tsx:
+        specifier: ^4.19.2
+        version: 4.23.1
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.3
+      vitest:
+        specifier: ^3.2.6
+        version: 3.2.7(@types/debug@4.1.13)(@types/node@22.20.1)(jsdom@25.0.1)(lightningcss@1.32.0)(tsx@4.23.1)(yaml@2.9.0)
+
   packages/core:
     dependencies:
       ajv:

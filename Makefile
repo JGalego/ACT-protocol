@@ -1,5 +1,5 @@
 .PHONY: install verify verify-integration verify-formal lint format typecheck test test-coverage \
-	test-e2e schemas-validate build clean dev explorer doctor
+	test-e2e schemas-validate conformance build clean dev explorer doctor
 
 SHELL := /bin/bash
 
@@ -7,7 +7,7 @@ install:
 	pnpm install --frozen-lockfile
 
 ## make verify: every offline quality gate. Must pass from a clean checkout.
-verify: install format lint typecheck schemas-validate test
+verify: install format lint typecheck schemas-validate test conformance
 	@echo "make verify: OK"
 
 format:
@@ -21,6 +21,13 @@ typecheck:
 
 schemas-validate:
 	pnpm run schemas:validate
+
+## make conformance: profile-aware conformance report (spec/conformance.md).
+## Writes conformance/CONFORMANCE_REPORT.{json,md}. Fails only if an
+## implemented check fails outright -- a profile with no checks yet is
+## reported as honestly not-claimed, not a build failure.
+conformance:
+	pnpm run conformance:run
 
 test:
 	pnpm run test

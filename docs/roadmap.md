@@ -4,7 +4,7 @@ This document is the single consolidated list of what `PROMPT.md` specifies that
 
 ## SDKs
 
-- **Python, Go, and Rust SDKs** and the cross-language conformance suite (`conformance/`) that proves all four SDKs compute identical canonical bytes and event ids and verify each other's signatures. Only `packages/sdk-typescript` exists. The vectors each SDK must reproduce are exactly `packages/core`'s canonicalization/digest tests plus `packages/crypto`'s DSSE/signature tests — porting those test fixtures is the natural starting point.
+- **Python, Go, and Rust SDKs**, and the cross-language conformance suite proving all four SDKs compute identical canonical bytes and event ids and verify each other's signatures. Only `packages/sdk-typescript` exists. The vectors every SDK must reproduce are frozen, generated artifacts under `conformance/vectors/` (`conformance/vectors/generate-vectors.ts`, ported from `packages/core`'s canonicalization/digest tests and `packages/crypto`'s DSSE/signature tests) — porting a new SDK against those vector files is the natural starting point, not re-deriving expected values by hand.
 
 ## ACT Explorer
 
@@ -23,10 +23,6 @@ This document is the single consolidated list of what `PROMPT.md` specifies that
 ## Example Applications
 
 - The human+AI pairing scenario is implemented as the independently runnable animated support-triage walkthrough in `apps/explorer`: it covers intent → proposal → transformation → approval → implementation → verification → challenge → revision → runtime observation. Five additional examples from `PROMPT.md` (product-team workflow, competing AI proposals, enterprise quorum workflow, open-source federation, and safety-critical workflow with an unresolved challenge) are not yet built as standalone seeded fixtures.
-
-## Conformance
-
-- `conformance/CONFORMANCE_REPORT.md` and the fixture-driven runner (`conformance/run-conformance.ts`) described in `spec/conformance.md` are not yet generated; the fixture categories that exist today live under `schemas/**/fixtures/` and are checked by `scripts/validate-schemas.ts` (`make verify`'s `schemas:validate` step), which is a subset of what the full conformance runner would cover (it does not yet check state-machine transition fixtures, graph/cycle fixtures, or federation fixtures as a separate certified report).
 
 ## How to Pick This Up
 

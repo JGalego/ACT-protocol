@@ -1,0 +1,108 @@
+{
+  "cases": [
+    {
+      "id": "no-history",
+      "history": [],
+      "queryTimeIso": "2026-01-01T00:00:00Z",
+      "expected": {
+        "statusAtTime": "issued",
+        "validForSigning": false,
+        "reason": "no key history recorded"
+      }
+    },
+    {
+      "id": "active-key-signing-now",
+      "history": [
+        {
+          "status": "issued",
+          "effectiveAt": "2026-01-01T00:00:00Z"
+        },
+        {
+          "status": "active",
+          "effectiveAt": "2026-01-01T00:00:01Z"
+        }
+      ],
+      "queryTimeIso": "2026-06-01T00:00:00Z",
+      "expected": {
+        "statusAtTime": "active",
+        "validForSigning": true,
+        "reason": "key was 'active' at 2026-06-01T00:00:00Z"
+      }
+    },
+    {
+      "id": "revoked-key-signing-after-revocation",
+      "history": [
+        {
+          "status": "issued",
+          "effectiveAt": "2026-01-01T00:00:00Z"
+        },
+        {
+          "status": "active",
+          "effectiveAt": "2026-01-01T00:00:01Z"
+        },
+        {
+          "status": "revoked",
+          "effectiveAt": "2026-02-01T00:00:00Z"
+        }
+      ],
+      "queryTimeIso": "2026-03-01T00:00:00Z",
+      "expected": {
+        "statusAtTime": "revoked",
+        "validForSigning": false,
+        "reason": "key was 'revoked' (not issued/active) at 2026-03-01T00:00:00Z"
+      }
+    },
+    {
+      "id": "compromised-retroactive-grace-window",
+      "history": [
+        {
+          "status": "issued",
+          "effectiveAt": "2026-01-01T00:00:00Z"
+        },
+        {
+          "status": "active",
+          "effectiveAt": "2026-01-01T00:00:01Z"
+        },
+        {
+          "status": "compromised",
+          "effectiveAt": "2026-02-01T12:00:00Z"
+        }
+      ],
+      "queryTimeIso": "2026-02-01T00:00:00Z",
+      "options": {
+        "compromiseGracePeriodMs": 86400000
+      },
+      "expected": {
+        "statusAtTime": "compromised",
+        "validForSigning": false,
+        "reason": "key flagged compromised at 2026-02-01T12:00:00Z; signature falls within the 86400000ms retroactive grace window"
+      }
+    },
+    {
+      "id": "compromised-before-grace-window",
+      "history": [
+        {
+          "status": "issued",
+          "effectiveAt": "2026-01-01T00:00:00Z"
+        },
+        {
+          "status": "active",
+          "effectiveAt": "2026-01-01T00:00:01Z"
+        },
+        {
+          "status": "compromised",
+          "effectiveAt": "2026-02-01T12:00:00Z"
+        }
+      ],
+      "queryTimeIso": "2026-01-25T00:00:00Z",
+      "options": {
+        "compromiseGracePeriodMs": 86400000
+      },
+      "expected": {
+        "statusAtTime": "active",
+        "validForSigning": true,
+        "reason": "key was 'active' at 2026-01-25T00:00:00Z"
+      }
+    }
+  ]
+}

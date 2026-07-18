@@ -1,0 +1,44 @@
+{
+  "bytes": [
+    {
+      "id": "ascii-hello",
+      "input": "hello",
+      "expectedDigest": "sha-256:2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824"
+    },
+    {
+      "id": "empty-string",
+      "input": "",
+      "expectedDigest": "sha-256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "canonicalValues": [
+    {
+      "id": "simple-object",
+      "input": {
+        "a": 1,
+        "b": 2
+      },
+      "expectedCanonical": "{\"a\":1,\"b\":2}",
+      "expectedDigest": "sha-256:43258cff783fe7036d8a43033f830adfc60ec037382473548ac742b888292777"
+    },
+    {
+      "id": "reordered-equal",
+      "input": {
+        "b": 2,
+        "a": 1
+      },
+      "expectedCanonical": "{\"a\":1,\"b\":2}",
+      "expectedDigest": "sha-256:43258cff783fe7036d8a43033f830adfc60ec037382473548ac742b888292777"
+    },
+    {
+      "id": "nested",
+      "input": {
+        "x": {
+          "y": [1, 2, 3]
+        }
+      },
+      "expectedCanonical": "{\"x\":{\"y\":[1,2,3]}}",
+      "expectedDigest": "sha-256:767ff8dea74900b7fa3707df6e2f2892d6ba29200eb43ab82a4c389620219aad"
+    }
+  ]
+}

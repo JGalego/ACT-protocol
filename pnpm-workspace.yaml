@@ -2,6 +2,7 @@ packages:
   - 'packages/*'
   - 'services/*'
   - 'apps/*'
+  - 'conformance'
 allowBuilds:
   '@embedded-postgres/linux-x64': true
   better-sqlite3: true

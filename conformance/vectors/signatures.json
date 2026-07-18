@@ -1,0 +1,28 @@
+{
+  "cases": [
+    {
+      "id": "sig-0",
+      "publicKeyBase64": "2kyJYFvkPEv/Z//JmJbYxlLEMBEvyjdX1SWZE0gw4IY=",
+      "privateKeyBase64": "84pFhnXjv/RDCpWw4LTZtvOiHRVN6aSmyNg9MVfmrU8=",
+      "messageUtf8": "ACT conformance signature vector",
+      "expectedSignatureBase64": "mHQol9S2BgiqJ0/Ytlv0/NUXJhwItXe70IAHTUHEUtN/ftf4LIXFga8BmqiidK1Tne0A3ZEKhW2Rnor6Q4IiCQ==",
+      "expectedVerifyResult": true
+    },
+    {
+      "id": "sig-1",
+      "publicKeyBase64": "YwDkdppHYoBmJwDwjtNzRdzMKmfzA8Qsl3qmzrbkjRU=",
+      "privateKeyBase64": "vZJtMPCl24yd5yL7PKHIyX4sMkVGHZXcLPL8g3mx8ow=",
+      "messageUtf8": "ACT conformance signature vector",
+      "expectedSignatureBase64": "z1k16FPEZ6IZffgsg6iXSiURYbg+2Ye1nLH66FtITjnzH8nCYL4Q1+beS+amGfC+82r3JiCMcS3G8nL0MiyxAg==",
+      "expectedVerifyResult": true
+    },
+    {
+      "id": "sig-2",
+      "publicKeyBase64": "oJTp0QXQCa20hB9tChXgZMHY7qXhv3Ev2831T3UcIAg=",
+      "privateKeyBase64": "mUDpK+Ma+ImMewN6Kp7Ji5T4GNye8QqkbN4I5PwG37Q=",
+      "messageUtf8": "ACT conformance signature vector",
+      "expectedSignatureBase64": "+Ha0yl3e1OFLnQb/f8OFcQEPDiL+FaQ2Nh74X4aoL3JkWqplVW0c1ZyopPccuDpIGMufAkPSwMjZattuFox3Ag==",
+      "expectedVerifyResult": true
+    }
+  ]
+}

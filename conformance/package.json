@@ -1,0 +1,27 @@
+{
+  "name": "@act/conformance",
+  "version": "1.0.0-rc.1",
+  "description": "Cross-language conformance vectors and the profile-aware conformance report generator (spec/conformance.md).",
+  "license": "Apache-2.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "clean": "rm -rf coverage"
+  },
+  "dependencies": {
+    "@act/core": "workspace:*",
+    "@act/crypto": "workspace:*",
+    "@act/ledger": "workspace:*",
+    "@act/policy": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "@vitest/coverage-v8": "^3.2.6",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2",
+    "vitest": "^3.2.6"
+  }
+}

@@ -1,0 +1,502 @@
+{
+  "generatedAt": "2026-07-18T02:28:02.101Z",
+  "specVersion": "act/1.0",
+  "totals": {
+    "checked": 57,
+    "passed": 57,
+    "failed": 0
+  },
+  "profiles": {
+    "core": {
+      "claimed": true,
+      "pass": true,
+      "fixtureCount": 43
+    },
+    "cryptographic-integrity": {
+      "claimed": true,
+      "pass": true,
+      "fixtureCount": 54
+    },
+    "secure-service": {
+      "claimed": false,
+      "pass": false,
+      "fixtureCount": 54,
+      "reason": "Tenant isolation and policy-based authorization tests are not yet part of this runner (OIDC auth exists in services/api, but no dedicated conformance fixtures reference it yet)."
+    },
+    "federation": {
+      "claimed": true,
+      "pass": true,
+      "fixtureCount": 57
+    },
+    "sdk": {
+      "claimed": false,
+      "pass": false,
+      "fixtureCount": 54,
+      "reason": "Only the TypeScript implementation is checked here; cross-language conformance requires a non-TypeScript SDK (none exist yet, see docs/roadmap.md) to also pass these same vectors."
+    },
+    "explorer": {
+      "claimed": false,
+      "pass": false,
+      "fixtureCount": 54,
+      "reason": "Requires the secure-service profile plus every ACT Explorer workflow from PROMPT.md; apps/explorer implements an animated demonstration, not yet the full operational profile (docs/roadmap.md)."
+    }
+  },
+  "results": [
+    {
+      "id": "canonicalization/key-sort-simple",
+      "category": "canonicalization",
+      "profile": "core",
+      "expected": "{\"a\":2,\"b\":1}",
+      "actual": "{\"a\":2,\"b\":1}",
+      "pass": true
+    },
+    {
+      "id": "canonicalization/key-sort-nested",
+      "category": "canonicalization",
+      "profile": "core",
+      "expected": "{\"x\":[3,2,1],\"y\":{\"a\":3,\"b\":2},\"z\":1}",
+      "actual": "{\"x\":[3,2,1],\"y\":{\"a\":3,\"b\":2},\"z\":1}",
+      "pass": true
+    },
+    {
+      "id": "canonicalization/array-order-preserved",
+      "category": "canonicalization",
+      "profile": "core",
+      "expected": "[3,1,2]",
+      "actual": "[3,1,2]",
+      "pass": true
+    },
+    {
+      "id": "canonicalization/nested-structures",
+      "category": "canonicalization",
+      "profile": "core",
+      "expected": "{\"arr\":[{\"a\":1,\"b\":1},{\"c\":2,\"d\":2}],\"nested\":{\"deep\":{\"a\":1,\"z\":1}}}",
+      "actual": "{\"arr\":[{\"a\":1,\"b\":1},{\"c\":2,\"d\":2}],\"nested\":{\"deep\":{\"a\":1,\"z\":1}}}",
+      "pass": true
+    },
+    {
+      "id": "canonicalization/unicode-jcs-vector",
+      "category": "canonicalization",
+      "profile": "core",
+      "expected": "{\"txt\":\"€$\\nA'B\\\"\\\\\\\\\\\"\"}",
+      "actual": "{\"txt\":\"€$\\nA'B\\\"\\\\\\\\\\\"\"}",
+      "pass": true
+    },
+    {
+      "id": "canonicalization/undefined-object-value-dropped",
+      "category": "canonicalization",
+      "profile": "core",
+      "expected": "{\"a\":1}",
+      "actual": "{\"a\":1}",
+      "pass": true
+    },
+    {
+      "id": "canonicalization/booleans-and-null",
+      "category": "canonicalization",
+      "profile": "core",
+      "expected": "{\"f\":false,\"n\":null,\"t\":true}",
+      "actual": "{\"f\":false,\"n\":null,\"t\":true}",
+      "pass": true
+    },
+    {
+      "id": "canonicalization/empty-object",
+      "category": "canonicalization",
+      "profile": "core",
+      "expected": "{}",
+      "actual": "{}",
+      "pass": true
+    },
+    {
+      "id": "canonicalization/empty-array",
+      "category": "canonicalization",
+      "profile": "core",
+      "expected": "[]",
+      "actual": "[]",
+      "pass": true
+    },
+    {
+      "id": "canonicalization/supplementary-plane-key-sort",
+      "category": "canonicalization",
+      "profile": "core",
+      "expected": "{\"a\":2,\"😀\":1}",
+      "actual": "{\"a\":2,\"😀\":1}",
+      "pass": true
+    },
+    {
+      "id": "canonicalization/number-zero",
+      "category": "canonicalization",
+      "profile": "core",
+      "expected": "{\"n\":0}",
+      "actual": "{\"n\":0}",
+      "pass": true
+    },
+    {
+      "id": "canonicalization/number-negative-zero",
+      "category": "canonicalization",
+      "profile": "core",
+      "expected": "{\"n\":0}",
+      "actual": "{\"n\":0}",
+      "pass": true
+    },
+    {
+      "id": "canonicalization/number-one",
+      "category": "canonicalization",
+      "profile": "core",
+      "expected": "{\"n\":1}",
+      "actual": "{\"n\":1}",
+      "pass": true
+    },
+    {
+      "id": "canonicalization/number-negative-one",
+      "category": "canonicalization",
+      "profile": "core",
+      "expected": "{\"n\":-1}",
+      "actual": "{\"n\":-1}",
+      "pass": true
+    },
+    {
+      "id": "canonicalization/number-point-one",
+      "category": "canonicalization",
+      "profile": "core",
+      "expected": "{\"n\":0.1}",
+      "actual": "{\"n\":0.1}",
+      "pass": true
+    },
+    {
+      "id": "canonicalization/number-float-rounding",
+      "category": "canonicalization",
+      "profile": "core",
+      "expected": "{\"n\":0.30000000000000004}",
+      "actual": "{\"n\":0.30000000000000004}",
+      "pass": true
+    },
+    {
+      "id": "canonicalization/number-hundred",
+      "category": "canonicalization",
+      "profile": "core",
+      "expected": "{\"n\":100}",
+      "actual": "{\"n\":100}",
+      "pass": true
+    },
+    {
+      "id": "canonicalization/number-hundred-point-zero",
+      "category": "canonicalization",
+      "profile": "core",
+      "expected": "{\"n\":100}",
+      "actual": "{\"n\":100}",
+      "pass": true
+    },
+    {
+      "id": "canonicalization/number-exp-large",
+      "category": "canonicalization",
+      "profile": "core",
+      "expected": "{\"n\":1e+21}",
+      "actual": "{\"n\":1e+21}",
+      "pass": true
+    },
+    {
+      "id": "canonicalization/number-exp-small",
+      "category": "canonicalization",
+      "profile": "core",
+      "expected": "{\"n\":0.000001}",
+      "actual": "{\"n\":0.000001}",
+      "pass": true
+    },
+    {
+      "id": "canonicalization/number-exp-smaller",
+      "category": "canonicalization",
+      "profile": "core",
+      "expected": "{\"n\":1e-7}",
+      "actual": "{\"n\":1e-7}",
+      "pass": true
+    },
+    {
+      "id": "canonicalization/number-large-integer",
+      "category": "canonicalization",
+      "profile": "core",
+      "expected": "{\"n\":123456789012345680}",
+      "actual": "{\"n\":123456789012345680}",
+      "pass": true
+    },
+    {
+      "id": "canonicalization/number-max-safe-integer",
+      "category": "canonicalization",
+      "profile": "core",
+      "expected": "{\"n\":9007199254740991}",
+      "actual": "{\"n\":9007199254740991}",
+      "pass": true
+    },
+    {
+      "id": "canonicalization/number-above-max-safe-integer",
+      "category": "canonicalization",
+      "profile": "core",
+      "expected": "{\"n\":9007199254740992}",
+      "actual": "{\"n\":9007199254740992}",
+      "pass": true
+    },
+    {
+      "id": "canonicalization/number-negative-above-max-safe-integer",
+      "category": "canonicalization",
+      "profile": "core",
+      "expected": "{\"n\":-9007199254740992}",
+      "actual": "{\"n\":-9007199254740992}",
+      "pass": true
+    },
+    {
+      "id": "canonicalization/number-smallest-denormal",
+      "category": "canonicalization",
+      "profile": "core",
+      "expected": "{\"n\":5e-324}",
+      "actual": "{\"n\":5e-324}",
+      "pass": true
+    },
+    {
+      "id": "canonicalization/number-max-double",
+      "category": "canonicalization",
+      "profile": "core",
+      "expected": "{\"n\":1.7976931348623157e+308}",
+      "actual": "{\"n\":1.7976931348623157e+308}",
+      "pass": true
+    },
+    {
+      "id": "canonicalization/number-two-point-five",
+      "category": "canonicalization",
+      "profile": "core",
+      "expected": "{\"n\":2.5}",
+      "actual": "{\"n\":2.5}",
+      "pass": true
+    },
+    {
+      "id": "canonicalization/number-trailing-digits",
+      "category": "canonicalization",
+      "profile": "core",
+      "expected": "{\"n\":1000000000000000100}",
+      "actual": "{\"n\":1000000000000000100}",
+      "pass": true
+    },
+    {
+      "id": "digest/ascii-hello",
+      "category": "identifier-derivation",
+      "profile": "core",
+      "expected": "sha-256:2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824",
+      "actual": "sha-256:2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824",
+      "pass": true
+    },
+    {
+      "id": "digest/empty-string",
+      "category": "identifier-derivation",
+      "profile": "core",
+      "expected": "sha-256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "actual": "sha-256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "pass": true
+    },
+    {
+      "id": "digest/simple-object",
+      "category": "identifier-derivation",
+      "profile": "core",
+      "expected": "sha-256:43258cff783fe7036d8a43033f830adfc60ec037382473548ac742b888292777",
+      "actual": "sha-256:43258cff783fe7036d8a43033f830adfc60ec037382473548ac742b888292777",
+      "pass": true
+    },
+    {
+      "id": "digest/reordered-equal",
+      "category": "identifier-derivation",
+      "profile": "core",
+      "expected": "sha-256:43258cff783fe7036d8a43033f830adfc60ec037382473548ac742b888292777",
+      "actual": "sha-256:43258cff783fe7036d8a43033f830adfc60ec037382473548ac742b888292777",
+      "pass": true
+    },
+    {
+      "id": "digest/nested",
+      "category": "identifier-derivation",
+      "profile": "core",
+      "expected": "sha-256:767ff8dea74900b7fa3707df6e2f2892d6ba29200eb43ab82a4c389620219aad",
+      "actual": "sha-256:767ff8dea74900b7fa3707df6e2f2892d6ba29200eb43ab82a4c389620219aad",
+      "pass": true
+    },
+    {
+      "id": "ids/018f3b2a-1234-7abc-8def-0123456789ab",
+      "category": "identifier-derivation",
+      "profile": "core",
+      "expected": "{\"valid\":true,\"fresh\":true}",
+      "actual": "{\"valid\":true,\"fresh\":true}",
+      "pass": true
+    },
+    {
+      "id": "ids/00000000-0000-7000-8000-000000000000",
+      "category": "identifier-derivation",
+      "profile": "core",
+      "expected": "{\"valid\":true,\"fresh\":true}",
+      "actual": "{\"valid\":true,\"fresh\":true}",
+      "pass": true
+    },
+    {
+      "id": "ids/not-a-uuid",
+      "category": "identifier-derivation",
+      "profile": "core",
+      "expected": "{\"valid\":false,\"fresh\":false}",
+      "actual": "{\"valid\":false,\"fresh\":false}",
+      "pass": true
+    },
+    {
+      "id": "ids/018f3b2a-1234-4abc-8def-0123456789ab",
+      "category": "identifier-derivation",
+      "profile": "core",
+      "expected": "{\"valid\":true,\"fresh\":false}",
+      "actual": "{\"valid\":true,\"fresh\":false}",
+      "pass": true
+    },
+    {
+      "id": "ids/(empty)",
+      "category": "identifier-derivation",
+      "profile": "core",
+      "expected": "{\"valid\":false,\"fresh\":false}",
+      "actual": "{\"valid\":false,\"fresh\":false}",
+      "pass": true
+    },
+    {
+      "id": "dsse-pae/known-vector",
+      "category": "dsse",
+      "profile": "cryptographic-integrity",
+      "expected": "RFNTRXYxIDI5IGh0dHA6Ly9leGFtcGxlLmNvbS9IZWxsb1dvcmxkIDExIGhlbGxvIHdvcmxk",
+      "actual": "RFNTRXYxIDI5IGh0dHA6Ly9leGFtcGxlLmNvbS9IZWxsb1dvcmxkIDExIGhlbGxvIHdvcmxk",
+      "pass": true
+    },
+    {
+      "id": "dsse-pae/empty-payload",
+      "category": "dsse",
+      "profile": "cryptographic-integrity",
+      "expected": "RFNTRXYxIDI0IGFwcGxpY2F0aW9uL3ZuZC5hY3QranNvbiAwIA==",
+      "actual": "RFNTRXYxIDI0IGFwcGxpY2F0aW9uL3ZuZC5hY3QranNvbiAwIA==",
+      "pass": true
+    },
+    {
+      "id": "dsse-pae/json-payload",
+      "category": "dsse",
+      "profile": "cryptographic-integrity",
+      "expected": "RFNTRXYxIDI0IGFwcGxpY2F0aW9uL3ZuZC5hY3QranNvbiA3IHsiYSI6MX0=",
+      "actual": "RFNTRXYxIDI0IGFwcGxpY2F0aW9uL3ZuZC5hY3QranNvbiA3IHsiYSI6MX0=",
+      "pass": true
+    },
+    {
+      "id": "keys/keypair-0",
+      "category": "key-derivation",
+      "profile": "cryptographic-integrity",
+      "expected": "ed25519:5630cc822430ff47dc5d26402ec2bd460d824f0b1b83d2cd7f178af91dec655f",
+      "actual": "ed25519:5630cc822430ff47dc5d26402ec2bd460d824f0b1b83d2cd7f178af91dec655f",
+      "pass": true
+    },
+    {
+      "id": "keys/keypair-1",
+      "category": "key-derivation",
+      "profile": "cryptographic-integrity",
+      "expected": "ed25519:bd18ec74aabf526e2fbb2547928348674f43825db49041c1ac4319abd9f1de46",
+      "actual": "ed25519:bd18ec74aabf526e2fbb2547928348674f43825db49041c1ac4319abd9f1de46",
+      "pass": true
+    },
+    {
+      "id": "keys/keypair-2",
+      "category": "key-derivation",
+      "profile": "cryptographic-integrity",
+      "expected": "ed25519:72f4b11db4f92f192bd3b7b939b45020b2b61cd1a29eee5e350f7b5ec9d7ecb0",
+      "actual": "ed25519:72f4b11db4f92f192bd3b7b939b45020b2b61cd1a29eee5e350f7b5ec9d7ecb0",
+      "pass": true
+    },
+    {
+      "id": "signatures/sig-0",
+      "category": "signatures",
+      "profile": "cryptographic-integrity",
+      "expected": "true",
+      "actual": "true",
+      "pass": true
+    },
+    {
+      "id": "signatures/sig-1",
+      "category": "signatures",
+      "profile": "cryptographic-integrity",
+      "expected": "true",
+      "actual": "true",
+      "pass": true
+    },
+    {
+      "id": "signatures/sig-2",
+      "category": "signatures",
+      "profile": "cryptographic-integrity",
+      "expected": "true",
+      "actual": "true",
+      "pass": true
+    },
+    {
+      "id": "envelopes/simple",
+      "category": "dsse",
+      "profile": "cryptographic-integrity",
+      "expected": "sha-256:a5714f1a224b83fe77171dd6aef68e2c0f80223c5874d19eef383c0948654c4e",
+      "actual": "sha-256:a5714f1a224b83fe77171dd6aef68e2c0f80223c5874d19eef383c0948654c4e",
+      "pass": true
+    },
+    {
+      "id": "envelopes/nested",
+      "category": "dsse",
+      "profile": "cryptographic-integrity",
+      "expected": "sha-256:f6728abe582ac9fa058ef809c521f22a464220f4d4ac089462b996eb1a5360d1",
+      "actual": "sha-256:f6728abe582ac9fa058ef809c521f22a464220f4d4ac089462b996eb1a5360d1",
+      "pass": true
+    },
+    {
+      "id": "schema-fixtures/all",
+      "category": "schema-fixtures",
+      "profile": "core",
+      "expected": "0 failures",
+      "actual": "0 failure(s) across 69 fixtures",
+      "pass": true
+    },
+    {
+      "id": "graph/two-input-transformation-no-cycle",
+      "category": "graph",
+      "profile": "core",
+      "expected": "null",
+      "actual": "null",
+      "pass": true
+    },
+    {
+      "id": "graph/merge-two-branches-no-cycle",
+      "category": "graph",
+      "profile": "core",
+      "expected": "null",
+      "actual": "null",
+      "pass": true
+    },
+    {
+      "id": "graph/batch-cycle-rejected",
+      "category": "graph",
+      "profile": "core",
+      "expected": "non-null (cycle detected)",
+      "actual": "[\"y\",\"x\",\"x\"]",
+      "pass": true
+    },
+    {
+      "id": "federation/fork-detected",
+      "category": "federation",
+      "profile": "federation",
+      "expected": "1 fork with 2 children",
+      "actual": "[{\"parentEventId\":\"p1\",\"relation\":\"input\",\"childEventIds\":[\"c1\",\"c2\"]}]",
+      "pass": true
+    },
+    {
+      "id": "federation/equivocation-detected",
+      "category": "federation",
+      "profile": "federation",
+      "expected": "1 equivocation with 2 conflicting events",
+      "actual": "[{\"actorId\":\"reviewer-1\",\"keyId\":\"ed25519:aaaa\",\"subjectArtifactId\":\"A\",\"subjectVersionId\":\"V\",\"policyId\":\"P\",\"policyVersion\":\"PV\",\"conflictingEventIds\":[\"e1\",\"e2\"],\"decisions\":[\"approved\",\"rejected\"]}]",
+      "pass": true
+    },
+    {
+      "id": "federation/no-equivocation-on-repeated-identical-decision",
+      "category": "federation",
+      "profile": "federation",
+      "expected": "0 equivocations",
+      "actual": "[]",
+      "pass": true
+    }
+  ]
+}

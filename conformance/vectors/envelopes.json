@@ -1,0 +1,45 @@
+{
+  "cases": [
+    {
+      "id": "simple",
+      "payload": {
+        "protocol_version": "act/1.0",
+        "event_type": "genesis",
+        "payload": {
+          "a": 1
+        }
+      },
+      "signerPublicKeyBase64": "2kyJYFvkPEv/Z//JmJbYxlLEMBEvyjdX1SWZE0gw4IY=",
+      "signerPrivateKeyBase64": "84pFhnXjv/RDCpWw4LTZtvOiHRVN6aSmyNg9MVfmrU8=",
+      "expectedPayloadDigest": "sha-256:a5714f1a224b83fe77171dd6aef68e2c0f80223c5874d19eef383c0948654c4e",
+      "expectedSignatures": [
+        {
+          "key_id": "ed25519:5630cc822430ff47dc5d26402ec2bd460d824f0b1b83d2cd7f178af91dec655f",
+          "algorithm": "ed25519",
+          "signature": "naIPjml1uQNjfx7mU2hrdVrnUpFt+IjCthnUYiHiPcFsBn7WQ+dO/wtn/bgbNKStacv/jxFIeCts+uN//lyfCA=="
+        }
+      ]
+    },
+    {
+      "id": "nested",
+      "payload": {
+        "protocol_version": "act/1.0",
+        "event_type": "transformation_recorded",
+        "payload": {
+          "inputs": ["a", "b"],
+          "outputs": ["c"]
+        }
+      },
+      "signerPublicKeyBase64": "YwDkdppHYoBmJwDwjtNzRdzMKmfzA8Qsl3qmzrbkjRU=",
+      "signerPrivateKeyBase64": "vZJtMPCl24yd5yL7PKHIyX4sMkVGHZXcLPL8g3mx8ow=",
+      "expectedPayloadDigest": "sha-256:f6728abe582ac9fa058ef809c521f22a464220f4d4ac089462b996eb1a5360d1",
+      "expectedSignatures": [
+        {
+          "key_id": "ed25519:bd18ec74aabf526e2fbb2547928348674f43825db49041c1ac4319abd9f1de46",
+          "algorithm": "ed25519",
+          "signature": "VWw8OCSbVo9a6weTNBmTA27n7axF3MssQinX62exot6N0IfXFvUGkWF6Qwfb6lRzh6SRhrJgkyBtRsbv4OAXAQ=="
+        }
+      ]
+    }
+  ]
+}
