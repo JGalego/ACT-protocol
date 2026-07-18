@@ -1,0 +1,28 @@
+{
+  "generatedBy": "sdks/python (act_sdk.crypto)",
+  "rawSignature": {
+    "publicKeyBase64": "7/gqHx2L4JksegLhizhNQ44otsWaBug0W7mVZKyea+Q=",
+    "messageUtf8": "ACT cross-language interop: sdks/python signs, packages/crypto verifies",
+    "signatureBase64": "5BWQof1fKE8v0CDAOGs4BTcMfx9EPs1P3QyD7mXNt9Eji1WM98yi+R9CRzoF/3UekE4wpV7RvedbdVrUI+ZACA=="
+  },
+  "envelope": {
+    "payloadType": "application/vnd.act.event+json",
+    "payload": {
+      "protocol_version": "act/1.0",
+      "event_type": "genesis",
+      "payload": {
+        "origin": "sdks/python",
+        "note": "signed by act_sdk.crypto, verified by @act/crypto"
+      }
+    },
+    "payloadDigest": "sha-256:7ddeb163b7829bb0da60c2290d7c360c3ec4d7f6ad0335c268b6792915904def",
+    "signatures": [
+      {
+        "key_id": "ed25519:1dfe4744076cb6b68e8d17669cfa77636f4c9aef0af3f8008d4356de90199488",
+        "algorithm": "ed25519",
+        "signature": "cq34pBuRrO+TzWskyudzA6vLtcUOGYdFH7lEgJwXeJBCieKbXIWLmpjgSJlgP1P4HhkwoXs1U/BVzrg+pA4RAw=="
+      }
+    ],
+    "signerPublicKeyBase64": "7/gqHx2L4JksegLhizhNQ44otsWaBug0W7mVZKyea+Q="
+  }
+}

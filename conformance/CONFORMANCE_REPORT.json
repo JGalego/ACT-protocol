@@ -1,9 +1,9 @@
 {
-  "generatedAt": "2026-07-18T02:44:59.402Z",
+  "generatedAt": "2026-07-18T03:21:43.725Z",
   "specVersion": "act/1.0",
   "totals": {
-    "checked": 57,
-    "passed": 57,
+    "checked": 60,
+    "passed": 60,
     "failed": 0
   },
   "profiles": {
@@ -29,10 +29,9 @@
       "fixtureCount": 57
     },
     "sdk": {
-      "claimed": false,
-      "pass": false,
-      "fixtureCount": 54,
-      "reason": "Only the TypeScript implementation is checked here; cross-language conformance requires a non-TypeScript SDK (none exist yet, see docs/roadmap.md) to also pass these same vectors."
+      "claimed": true,
+      "pass": true,
+      "fixtureCount": 57
     },
     "explorer": {
       "claimed": false,
@@ -496,6 +495,30 @@
       "profile": "federation",
       "expected": "0 equivocations",
       "actual": "[]",
+      "pass": true
+    },
+    {
+      "id": "sdk-interop/typescript-verifies-python-raw-signature",
+      "category": "sdk-interop",
+      "profile": "sdk",
+      "expected": "true",
+      "actual": "true",
+      "pass": true
+    },
+    {
+      "id": "sdk-interop/typescript-verifies-python-envelope",
+      "category": "sdk-interop",
+      "profile": "sdk",
+      "expected": "digestValid=true, all signatures valid",
+      "actual": "digestValid=true, signatures=[{\"key_id\":\"ed25519:1dfe4744076cb6b68e8d17669cfa77636f4c9aef0af3f8008d4356de90199488\",\"valid\":true}]",
+      "pass": true
+    },
+    {
+      "id": "sdk-interop/python-verifies-typescript",
+      "category": "sdk-interop",
+      "profile": "sdk",
+      "expected": "OK",
+      "actual": "OK",
       "pass": true
     }
   ]

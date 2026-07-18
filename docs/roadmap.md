@@ -4,7 +4,7 @@ This document is the single consolidated list of what `PROMPT.md` specifies that
 
 ## SDKs
 
-- **Python, Go, and Rust SDKs**, and the cross-language conformance suite proving all four SDKs compute identical canonical bytes and event ids and verify each other's signatures. Only `packages/sdk-typescript` exists. The vectors every SDK must reproduce are frozen, generated artifacts under `conformance/vectors/` (`conformance/vectors/generate-vectors.ts`, ported from `packages/core`'s canonicalization/digest tests and `packages/crypto`'s DSSE/signature tests) — porting a new SDK against those vector files is the natural starting point, not re-deriving expected values by hand.
+- **Go and Rust SDKs**, and a cross-language conformance suite that proves every SDK verifies every other SDK's signatures over real network traffic (not just shared vectors). `packages/sdk-typescript` and `sdks/python` both exist and are checked against the same frozen, generated vectors under `conformance/vectors/` (`conformance/vectors/generate-vectors.ts`, ported from `packages/core`'s canonicalization/digest tests and `packages/crypto`'s DSSE/signature tests) — porting a new SDK against those vector files is the natural starting point, not re-deriving expected values by hand.
 
 ## ACT Explorer
 

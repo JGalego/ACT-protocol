@@ -19,6 +19,7 @@ import * as signaturesCheck from './checks/signatures.js';
 import * as schemaFixturesCheck from './checks/schema-fixtures.js';
 import * as graphCheck from './checks/graph.js';
 import * as federationCheck from './checks/federation.js';
+import * as sdkInteropCheck from './checks/sdk-interop.js';
 import type { CheckResult, Profile } from './checks/types.js';
 
 const CONFORMANCE_DIR = join(dirname(fileURLToPath(import.meta.url)));
@@ -38,7 +39,6 @@ const PROFILE_PREREQUISITES: Record<Profile, Profile[]> = {
 const NOT_YET_COVERED: Partial<Record<Profile, string>> = {
   'secure-service':
     'Tenant isolation and policy-based authorization tests are not yet part of this runner (OIDC auth exists in services/api, but no dedicated conformance fixtures reference it yet).',
-  sdk: 'Only the TypeScript implementation is checked here; cross-language conformance requires a non-TypeScript SDK (none exist yet, see docs/roadmap.md) to also pass these same vectors.',
   explorer:
     'Requires the secure-service profile plus every ACT Explorer workflow from PROMPT.md; apps/explorer implements an animated demonstration, not yet the full operational profile (docs/roadmap.md).',
 };
@@ -50,6 +50,7 @@ function main(): void {
     ...schemaFixturesCheck.run(),
     ...graphCheck.run(),
     ...federationCheck.run(),
+    ...sdkInteropCheck.run(),
   ];
 
   const allProfiles = Object.keys(PROFILE_PREREQUISITES) as Profile[];

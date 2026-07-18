@@ -108,6 +108,13 @@ apps/
                   embedded SQLite workspace
   explorer/       React/Cytoscape animated protocol demonstration and live
                   ledger event viewer, with desktop/mobile browser tests
+sdks/
+  python/         act-sdk: canonicalization, digests, ids, Ed25519/DSSE,
+                  key lifecycle, an event builder, and a retrying HTTP
+                  client -- ported byte-for-byte from packages/core and
+                  packages/crypto, verified against conformance/vectors/
+conformance/      Frozen cross-SDK vectors and the profile-aware
+                  conformance report generator (spec/conformance.md)
 docs/             Guides, threat model, versioning, roadmap, ADRs
 ```
 
@@ -227,18 +234,22 @@ sequenceDiagram
 - 46 JSON Schemas with positive/negative fixtures, all passing
 - Canonicalization, digests, ids, and validation (`packages/core`)
 - Ed25519 signing, DSSE envelopes, key lifecycle (`packages/crypto`)
-- A SQLite-backed hash-chained ledger with cycle detection and quarantine (`packages/ledger`)
+- A hash-chained ledger with cycle detection and quarantine, over either SQLite or PostgreSQL behind one `StorageAdapter` contract (`packages/ledger`, ADR 0008)
 - Deterministic policy/quorum/authority evaluation (`packages/policy`)
 - Integrity, lineage, and approval verification, plus all three required semantic assessors — deterministic structural, provider-neutral OpenAI-compatible (with a deterministic local emulator so it's testable without a paid service), and human (`packages/verification`)
-- A TypeScript SDK (`packages/sdk-typescript`)
+- Real peer-to-peer federation transport between independently-hosted ledgers, with informational fork detection and adversarial equivocation detection (`services/api/src/routes/federation.ts`, `spec/federation.md`)
+- A machine-checked formal model: seven TLA+ modules matching every state machine in `spec/state-machines.md`, verified with a real TLC run (`formal/`, `make verify-formal`)
+- Production OIDC/JWT bearer-token validation (JWKS signature/issuer/audience/expiry checks via `jose`), backed by a deterministic local OIDC provider for offline testing (`services/api/src/oidc/`, ADR 0006)
+- A profile-aware conformance report generator over frozen, generated vectors -- Core, Cryptographic Integrity, and Federation profiles CLAIMED (`conformance/`, `spec/conformance.md`)
+- TypeScript and Python SDKs (`packages/sdk-typescript`, `sdks/python`), both checked against the same `conformance/vectors/` so they can never silently drift from each other
 - A working `/v1` API slice with OpenAPI 3.1 and RFC 9457 errors (`services/api`)
 - The `act` CLI against a local embedded workspace (`apps/cli`)
 - An animated ACT Explorer demonstration with playback, timeline scrubbing, evidence inspection, intent-drift visualization, and an optional live `/v1/events` data source (`apps/explorer`)
-- 221 unit/integration tests plus 6 desktop/mobile browser tests, `make verify` green from a clean checkout, zero known dependency vulnerabilities (`docs/dependency-audit.md`)
+- 374 unit/integration tests (331 TypeScript, 43 Python) plus 6 desktop/mobile browser tests, `make verify` green from a clean checkout, zero known dependency vulnerabilities (`docs/dependency-audit.md`)
 
 ## What's Deferred
 
-PostgreSQL adapter, multi-ledger federation transport, Python/Go/Rust SDKs, the full operational ACT Explorer conformance profile beyond the implemented animated lineage demo, the machine-checked formal model, Docker/Helm deployment, production OIDC/JWT auth, and five additional seeded example applications. Every item is listed with rationale and a concrete starting point in [`docs/roadmap.md`](docs/roadmap.md).
+Go and Rust SDKs, the full operational ACT Explorer conformance profile beyond the implemented animated lineage demo, Docker/Helm deployment manifests, organizational admission control for key registration, and five additional seeded example applications. Every item is listed with rationale and a concrete starting point in [`docs/roadmap.md`](docs/roadmap.md).
 
 ## Documentation
 

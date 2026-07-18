@@ -28,7 +28,7 @@ A repository or implementation claims a profile only when it passes every fixtur
 
 ## 3. Conformance Report
 
-`conformance/run-conformance.ts` executes every fixture category against the packages present in this repository (TypeScript today; Python/Go/Rust runners are stubs pending those SDKs, see `docs/roadmap.md`) and emits `conformance/CONFORMANCE_REPORT.json`, a machine-readable pass/fail list keyed by fixture ID, plus a human-readable Markdown summary. `make verify` runs this report and fails if any fixture in a profile this repository claims does not pass.
+`conformance/run-conformance.ts` executes every fixture category against the SDKs present in this repository (TypeScript and Python today; Go and Rust runners do not exist yet, see `docs/roadmap.md`) and emits `conformance/CONFORMANCE_REPORT.json`, a machine-readable pass/fail list keyed by fixture ID, plus a human-readable Markdown summary. The SDK profile's cross-verification requirement is checked bidirectionally: `conformance/checks/sdk-interop.ts` calls `@act/crypto` in-process against a signature `sdks/python` produced, and shells out to a real Python process (`conformance/interop/verify-typescript-signed.py`) to check the reverse direction. `make verify` runs this report and fails if any fixture in a profile this repository claims does not pass.
 
 ## 4. Compatibility Rules Under Conformance
 

@@ -1,5 +1,6 @@
-.PHONY: install verify verify-integration verify-formal lint format typecheck test test-coverage \
-	test-e2e schemas-validate conformance build clean dev explorer doctor
+.PHONY: install verify verify-integration verify-formal verify-python-sdk lint format typecheck \
+	test test-coverage test-e2e schemas-validate conformance build clean dev explorer doctor \
+	python-sdk-install python-sdk-lint python-sdk-typecheck python-sdk-test
 
 SHELL := /bin/bash
 
@@ -65,6 +66,34 @@ verify-formal:
 	}
 	bash scripts/formal/run-tlc.sh
 	@echo "make verify-formal: OK"
+
+## make verify-python-sdk: lint (ruff), typecheck (mypy), and test (pytest,
+## against the same conformance/vectors/ the TypeScript SDK's tests load)
+## the Python SDK under sdks/python. Not part of `make verify`: like
+## verify-formal, this needs its own toolchain (Python), so it runs as its
+## own CI job (see ci.yml) rather than the pnpm-only verify job.
+## Requires: Python 3.10+ on PATH.
+verify-python-sdk: python-sdk-install python-sdk-lint python-sdk-typecheck python-sdk-test
+	@echo "make verify-python-sdk: OK"
+
+python-sdk-install:
+	@command -v python3 >/dev/null 2>&1 || { \
+		echo "verify-python-sdk: python3 (3.10+) is required and was not found on PATH."; \
+		exit 1; \
+	}
+	python3 -m venv sdks/python/.venv
+	sdks/python/.venv/bin/pip install -q --upgrade pip
+	sdks/python/.venv/bin/pip install -q -e "sdks/python[dev]"
+
+python-sdk-lint:
+	sdks/python/.venv/bin/ruff check sdks/python
+	sdks/python/.venv/bin/ruff format --check sdks/python
+
+python-sdk-typecheck:
+	sdks/python/.venv/bin/mypy sdks/python/src/act_sdk
+
+python-sdk-test:
+	cd sdks/python && .venv/bin/pytest -q --cov=act_sdk --cov-report=term-missing
 
 build:
 	pnpm run build

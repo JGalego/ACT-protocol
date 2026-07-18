@@ -21,6 +21,7 @@
     "dev:explorer": "pnpm --filter @act/explorer run dev",
     "schemas:validate": "tsx scripts/validate-schemas.ts",
     "conformance:generate-vectors": "tsx conformance/vectors/generate-vectors.ts",
+    "conformance:generate-interop": "python3 conformance/interop/generate-python-signed.py && tsx conformance/interop/generate-typescript-signed.ts",
     "conformance:run": "tsx conformance/run-conformance.ts",
     "generate:types": "node scripts/generate-schema-types.mjs",
     "generate:artifact-types": "node scripts/generate-artifact-types.mjs",

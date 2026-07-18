@@ -1,0 +1,28 @@
+{
+  "generatedBy": "packages/crypto (@act/crypto)",
+  "rawSignature": {
+    "publicKeyBase64": "OM/7sdOAvu2o6ucgxiNw8qT7COHIMTipkz0nk0h99oU=",
+    "messageUtf8": "ACT cross-language interop: packages/crypto signs, sdks/python verifies",
+    "signatureBase64": "lqI6Qy/bOxbvEAFeUESl0XPJVRslimdyn47XovCsMYCEj4YTLIBzwYjkKRyGf61hekphOXOSkGd5Lj26nAlABA=="
+  },
+  "envelope": {
+    "payloadType": "application/vnd.act.event+json",
+    "payload": {
+      "protocol_version": "act/1.0",
+      "event_type": "genesis",
+      "payload": {
+        "origin": "packages/crypto",
+        "note": "signed by @act/crypto, verified by act_sdk.crypto"
+      }
+    },
+    "payloadDigest": "sha-256:a45429c2a2850a1f4ff98efc72fef0cc1ffeb83a09480c53ff6862dd4fb31476",
+    "signatures": [
+      {
+        "key_id": "ed25519:1bba66f279757974a945684895b074ad17a3acb605ce436bdc09471cca184445",
+        "algorithm": "ed25519",
+        "signature": "qezlPvjlyntY2Ygly9xbAytiuN+V9QvdIdvnhVSkIGG7NcJRyS/6ZeT3FhH6BOcs9M9W3zPG/FM9rIZUoOTDAQ=="
+      }
+    ],
+    "signerPublicKeyBase64": "OM/7sdOAvu2o6ucgxiNw8qT7COHIMTipkz0nk0h99oU="
+  }
+}
