@@ -33,7 +33,9 @@ body,
 
 body {
   min-height: 100vh;
-  overflow: hidden;
+  min-height: 100dvh;
+  overflow-x: hidden;
+  overflow-y: auto;
   background-color: var(--paper);
   background-image:
     linear-gradient(rgba(23, 36, 43, 0.025) 1px, transparent 1px),
@@ -59,7 +61,8 @@ input:focus-visible {
 .app-shell {
   display: grid;
   grid-template-rows: 64px minmax(0, 1fr) 116px;
-  min-height: 100vh;
+  height: 100vh;
+  height: 100dvh;
   animation: app-enter 420ms ease-out both;
 }
 
@@ -164,7 +167,7 @@ input:focus-visible {
 .stage-canvas {
   position: relative;
   display: grid;
-  grid-template-rows: auto minmax(260px, 1fr) 56px;
+  grid-template-rows: auto minmax(160px, 1fr) 56px;
   min-width: 0;
   min-height: 0;
   overflow: hidden;
@@ -1028,6 +1031,47 @@ input:focus-visible {
   to {
     opacity: 1;
     transform: translateY(0) scale(1);
+  }
+}
+
+/* Short-but-wide windows (a laptop screen, browser chrome eating into
+   viewport height, etc.): the width-based breakpoints above don't kick
+   in, but the fixed 64px/116px header/footer plus the stage copy's
+   natural height can still leave less than the graph's minimum comfortable
+   size. Shrink the chrome first so the graph -- the actual point of this
+   page -- keeps as much room as possible instead of overflowing. */
+@media (max-height: 760px) {
+  .app-shell {
+    grid-template-rows: 56px minmax(0, 1fr) 88px;
+  }
+
+  .stage-canvas {
+    grid-template-rows: auto minmax(160px, 1fr) 44px;
+  }
+
+  .topbar {
+    padding: 0 16px;
+  }
+
+  .stage-copy {
+    padding: 14px 24px 6px;
+    gap: 16px;
+  }
+
+  .stage-copy h1 {
+    font-size: 22px;
+  }
+
+  .stage-copy > div:first-child > p:last-child {
+    display: none;
+  }
+
+  .metric {
+    padding: 4px 14px;
+  }
+
+  .playback-panel {
+    padding: 8px 22px;
   }
 }
 
