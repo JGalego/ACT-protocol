@@ -64,6 +64,23 @@ describe('ACT Explorer demonstration', () => {
     ).toBeInTheDocument();
   });
 
+  it('switches to the confidence heatmap and selects a record from it', () => {
+    render(<App />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Confidence' }));
+    expect(screen.getByRole('heading', { name: 'Confidence heatmap' })).toBeInTheDocument();
+    expect(screen.queryByTestId('protocol-graph')).not.toBeInTheDocument();
+
+    const proposalRow = screen.getByRole('button', { name: 'Select record: AI-assisted triage' });
+    fireEvent.click(proposalRow);
+    expect(screen.getByRole('heading', { name: 'AI-assisted triage' })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Timeline' }));
+    expect(
+      screen.getByRole('heading', { name: 'An AI proposes a path, not a decision' }),
+    ).toBeInTheDocument();
+  });
+
   it('opens the source dialog and returns to the deterministic demonstration', () => {
     render(<App />);
 

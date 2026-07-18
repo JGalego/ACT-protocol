@@ -27,12 +27,14 @@ import {
   X,
   type LucideIcon,
 } from 'lucide-react';
+import { ConfidenceHeatmap } from './components/ConfidenceHeatmap';
 import { ProtocolGraph } from './components/ProtocolGraph';
 import { demoScenario } from './data/demo-scenario';
 import { loadLiveScenario } from './data/live-ledger';
 import type { EventKind, ExplorerEvent, ExplorerScenario } from './types';
 
 type InspectorTab = 'summary' | 'evidence' | 'envelope';
+type ViewMode = 'timeline' | 'confidence-heatmap';
 
 const kindIcons: Record<EventKind, LucideIcon> = {
   intent: UserRound,
@@ -385,6 +387,7 @@ export default function App() {
   const [speedIndex, setSpeedIndex] = useState(1);
   const [inspectorTab, setInspectorTab] = useState<InspectorTab>('summary');
   const [connectOpen, setConnectOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<ViewMode>('timeline');
   const reducedMotion = useReducedMotion();
   const stage = scenario.stages[stageIndex]!;
   const selectedEvent =
@@ -471,6 +474,22 @@ export default function App() {
           </div>
         </div>
         <div className="topbar-actions">
+          <div className="view-switch" role="group" aria-label="View">
+            <button
+              type="button"
+              aria-pressed={viewMode === 'timeline'}
+              onClick={() => setViewMode('timeline')}
+            >
+              Timeline
+            </button>
+            <button
+              type="button"
+              aria-pressed={viewMode === 'confidence-heatmap'}
+              onClick={() => setViewMode('confidence-heatmap')}
+            >
+              Confidence
+            </button>
+          </div>
           <span className="ledger-health">
             <Check size={14} />
             {scenario.events.length} records
@@ -488,83 +507,108 @@ export default function App() {
       </header>
 
       <main className="workspace">
-        <section className="stage-canvas" aria-labelledby="stage-title">
-          <div className="stage-copy">
-            <div>
-              <p className="eyebrow">
-                <span>{String(stageIndex + 1).padStart(2, '0')}</span>
-                {stage.eyebrow}
-              </p>
-              <h1 id="stage-title">{stage.title}</h1>
-              <p>{stage.description}</p>
-            </div>
-            <div className={`stage-callout ${stage.callout.tone}`}>
-              {stage.callout.tone === 'critical' || stage.callout.tone === 'warning' ? (
-                <AlertTriangle size={18} />
-              ) : (
-                <ShieldCheck size={18} />
-              )}
+        {viewMode === 'timeline' ? (
+          <section className="stage-canvas" aria-labelledby="stage-title">
+            <div className="stage-copy">
               <div>
-                <strong>{stage.callout.label}</strong>
-                <span>{stage.callout.text}</span>
+                <p className="eyebrow">
+                  <span>{String(stageIndex + 1).padStart(2, '0')}</span>
+                  {stage.eyebrow}
+                </p>
+                <h1 id="stage-title">{stage.title}</h1>
+                <p>{stage.description}</p>
+              </div>
+              <div className={`stage-callout ${stage.callout.tone}`}>
+                {stage.callout.tone === 'critical' || stage.callout.tone === 'warning' ? (
+                  <AlertTriangle size={18} />
+                ) : (
+                  <ShieldCheck size={18} />
+                )}
+                <div>
+                  <strong>{stage.callout.label}</strong>
+                  <span>{stage.callout.text}</span>
+                </div>
               </div>
             </div>
-          </div>
 
-          <ProtocolGraph
-            events={scenario.events}
-            visibleThrough={stage.visibleThrough}
-            focusEventId={stage.focusEventId}
-            selectedEventId={selectedEventId}
-            reducedMotion={reducedMotion}
-            onSelect={selectEvent}
-          />
+            <ProtocolGraph
+              events={scenario.events}
+              visibleThrough={stage.visibleThrough}
+              focusEventId={stage.focusEventId}
+              selectedEventId={selectedEventId}
+              reducedMotion={reducedMotion}
+              onSelect={selectEvent}
+            />
 
-          <div className="metric-strip" aria-label="ACT ledger metrics at this stage">
-            <div className="metric">
-              <ListTree size={16} />
-              <span>
-                Records<strong>{stage.metrics.records}</strong>
-              </span>
+            <div className="metric-strip" aria-label="ACT ledger metrics at this stage">
+              <div className="metric">
+                <ListTree size={16} />
+                <span>
+                  Records<strong>{stage.metrics.records}</strong>
+                </span>
+              </div>
+              <div className="metric">
+                <Fingerprint size={16} />
+                <span>
+                  Signatures<strong>{stage.metrics.signatures}</strong>
+                </span>
+              </div>
+              <div className="metric">
+                <KeyRound size={16} />
+                <span>
+                  Approvals<strong>{stage.metrics.approvals}</strong>
+                </span>
+              </div>
+              <div className="metric wide">
+                <span>
+                  Semantic confidence
+                  <strong>
+                    {stage.metrics.semanticConfidence
+                      ? `${stage.metrics.semanticConfidence}%`
+                      : 'n/a'}
+                  </strong>
+                </span>
+                <i>
+                  <b style={{ width: `${stage.metrics.semanticConfidence}%` }} />
+                </i>
+              </div>
+              <div className={`metric drift ${stage.metrics.drift > 0 ? 'active' : ''}`}>
+                <Activity size={16} />
+                <span>
+                  Intent drift<strong>{stage.metrics.drift}%</strong>
+                </span>
+              </div>
             </div>
-            <div className="metric">
-              <Fingerprint size={16} />
-              <span>
-                Signatures<strong>{stage.metrics.signatures}</strong>
-              </span>
+          </section>
+        ) : (
+          <section className="heatmap-canvas" aria-labelledby="heatmap-title">
+            <div className="stage-copy">
+              <div>
+                <p className="eyebrow">
+                  <span>
+                    <Activity size={14} />
+                  </span>
+                  Repository-wide
+                </p>
+                <h1 id="heatmap-title">Confidence heatmap</h1>
+                <p>
+                  Semantic, implementation, and verification confidence for every record in this
+                  ledger, independent of timeline position.
+                </p>
+              </div>
             </div>
-            <div className="metric">
-              <KeyRound size={16} />
-              <span>
-                Approvals<strong>{stage.metrics.approvals}</strong>
-              </span>
-            </div>
-            <div className="metric wide">
-              <span>
-                Semantic confidence
-                <strong>
-                  {stage.metrics.semanticConfidence
-                    ? `${stage.metrics.semanticConfidence}%`
-                    : 'n/a'}
-                </strong>
-              </span>
-              <i>
-                <b style={{ width: `${stage.metrics.semanticConfidence}%` }} />
-              </i>
-            </div>
-            <div className={`metric drift ${stage.metrics.drift > 0 ? 'active' : ''}`}>
-              <Activity size={16} />
-              <span>
-                Intent drift<strong>{stage.metrics.drift}%</strong>
-              </span>
-            </div>
-          </div>
-        </section>
+            <ConfidenceHeatmap
+              events={scenario.events}
+              selectedEventId={selectedEventId}
+              onSelect={selectEvent}
+            />
+          </section>
+        )}
 
         <EventInspector event={selectedEvent} tab={inspectorTab} onTabChange={setInspectorTab} />
       </main>
 
-      <footer className="playback-panel">
+      <footer className="playback-panel" hidden={viewMode !== 'timeline'}>
         <div className="transport-controls">
           <button
             type="button"

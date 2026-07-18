@@ -46,6 +46,24 @@ test('animates into the next accountable transformation stage', async ({ page })
   await expect(page.getByRole('button', { name: 'Pause demonstration' })).toBeVisible();
 });
 
+test('switches to the confidence heatmap and selects a record by clicking a cell', async ({
+  page,
+}) => {
+  await page.getByRole('button', { name: 'Confidence' }).click();
+  await expect(page.getByRole('heading', { name: 'Confidence heatmap' })).toBeVisible();
+  await expect(page.locator('.protocol-graph canvas')).toHaveCount(0);
+
+  const cell = page.getByRole('button', { name: /AI-assisted triage: Semantic confidence/ });
+  await cell.click();
+  await expect(cell).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByRole('heading', { name: 'AI-assisted triage' })).toBeVisible();
+
+  await page.getByRole('button', { name: 'Timeline' }).click();
+  await expect(
+    page.getByRole('heading', { name: 'An AI proposes a path, not a decision' }),
+  ).toBeVisible();
+});
+
 test('surfaces semantic drift and its attached evidence', async ({ page }) => {
   await page.getByRole('slider', { name: 'Transformation timeline' }).fill('6');
   await expect(
