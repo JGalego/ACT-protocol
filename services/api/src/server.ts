@@ -4,6 +4,7 @@ import rateLimit from '@fastify/rate-limit';
 import sensible from '@fastify/sensible';
 import { createLedgerContext, type LedgerContext } from './ledger-context.js';
 import authPlugin from './plugins/auth.js';
+import type { OidcConfig } from './oidc/jwt-verifier.js';
 import errorHandlerPlugin from './plugins/error-handler.js';
 import healthRoutes from './routes/health.js';
 import keyRoutes from './routes/keys.js';
@@ -29,6 +30,16 @@ export interface BuildServerOptions {
   ledgerContext?: LedgerContext;
   /** Overrides process.env.NODE_ENV for the production fail-closed check; exposed for tests. */
   nodeEnv?: string;
+  /** Production OIDC/JWT validation config; falls back to ACT_OIDC_ISSUER/ACT_OIDC_AUDIENCE/ACT_OIDC_JWKS_URI. */
+  oidc?: OidcConfig | undefined;
+}
+
+function resolveOidcConfig(options: BuildServerOptions): OidcConfig | undefined {
+  if (options.oidc) return options.oidc;
+  const issuer = process.env.ACT_OIDC_ISSUER;
+  const audience = process.env.ACT_OIDC_AUDIENCE;
+  if (!issuer || !audience) return undefined;
+  return { issuer, audience, jwksUri: process.env.ACT_OIDC_JWKS_URI };
 }
 
 /**
@@ -39,15 +50,26 @@ export interface BuildServerOptions {
 export async function buildServer(options: BuildServerOptions = {}): Promise<FastifyInstance> {
   const nodeEnv = options.nodeEnv ?? process.env.NODE_ENV ?? 'development';
   const devMode = options.devMode ?? process.env.ACT_DEV_MODE === 'true';
+  const oidc = resolveOidcConfig(options);
 
-  if (nodeEnv === 'production' && !devMode) {
-    // Fail closed: this release candidate has not yet implemented OIDC/JWT
-    // validation (see docs/roadmap.md). Rather than silently accept
-    // unauthenticated callers, refuse to start.
-    throw new Error(
-      'Production mode requires OIDC-validated authentication, which is not yet implemented in this release candidate. ' +
-        'Set ACT_DEV_MODE=true only for local/embedded, non-production deployments.',
-    );
+  if (nodeEnv === 'production') {
+    if (devMode) {
+      // The local development bearer scheme grants identity with no
+      // cryptographic proof; ADR 0006 and docs/security-and-privacy-guide.md
+      // require it to be unavailable in production regardless of how it was
+      // enabled.
+      throw new Error(
+        'ACT_DEV_MODE must not be enabled in production. Configure OIDC (ACT_OIDC_ISSUER, ACT_OIDC_AUDIENCE) instead.',
+      );
+    }
+    if (!oidc) {
+      // Fail closed: rather than silently accept unauthenticated callers,
+      // refuse to start until real OIDC validation is configured.
+      throw new Error(
+        'Production mode requires OIDC configuration: set ACT_OIDC_ISSUER and ACT_OIDC_AUDIENCE ' +
+          '(optionally ACT_OIDC_JWKS_URI to skip discovery).',
+      );
+    }
   }
 
   const fastify = Fastify({
@@ -59,7 +81,7 @@ export async function buildServer(options: BuildServerOptions = {}): Promise<Fas
   await fastify.register(cors, { origin: devMode });
   await fastify.register(rateLimit, { max: options.rateLimitMax ?? 200, timeWindow: '1 minute' });
   await fastify.register(errorHandlerPlugin);
-  await fastify.register(authPlugin, { devMode });
+  await fastify.register(authPlugin, { devMode, oidc });
 
   const ctx =
     options.ledgerContext ??

@@ -17,7 +17,6 @@ This document is the single consolidated list of what `PROMPT.md` specifies that
 
 ## Authentication
 
-- **Production OIDC/JWT validation.** `services/api`'s auth plugin implements only the documented local development bearer scheme (ADR 0006); it fails closed (refuses to start) in `NODE_ENV=production` without it. A real OIDC integration needs a JWKS-fetching JWT verifier and a local dev IdP emulator (e.g. a minimal OIDC provider container) so the flow is testable without a paid identity provider.
 - **Organizational admission control for key registration.** `POST /v1/keys`'s proof-of-possession bootstrap (ADR 0006) grants trust to any caller who can sign for a key they generated; it performs no vetting. A production deployment needing gated admission would add an authorization policy in front of this endpoint.
 
 ## Example Applications

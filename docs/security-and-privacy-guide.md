@@ -13,7 +13,7 @@
 ## Secrets Handling
 
 - `apps/cli`'s local workspace stores a plaintext private key under `.act/identity.key.json` (mode `0600`). This is explicitly a local development convenience (ADR 0007), never described as production-appropriate storage. A production deployment MUST use an external key-management service or HSM-backed signing; this repository does not yet ship that integration (see `docs/roadmap.md`).
-- `services/api`'s local development bearer scheme (ADR 0006) is disabled by default; the server refuses to start in `NODE_ENV=production` without `ACT_DEV_MODE=true`, failing closed rather than silently accepting unauthenticated callers.
+- `services/api`'s local development bearer scheme (ADR 0006) is disabled by default and forbidden outright in `NODE_ENV=production`; the server refuses to start in production unless real OIDC/JWT validation is configured (`ACT_OIDC_ISSUER` + `ACT_OIDC_AUDIENCE`), failing closed rather than silently accepting unauthenticated callers. `services/api/src/oidc/jwt-verifier.ts` verifies token signature, issuer, audience, and expiry against the issuer's JWKS before trusting any claim.
 - No test fixture, example, or committed configuration in this repository contains a real secret. Fixture signatures use placeholder base64 strings (e.g. `ZmFrZQ==`) explicitly for schema-shape testing, never for cryptographic verification of anything meaningful.
 
 ## Privacy and Redaction

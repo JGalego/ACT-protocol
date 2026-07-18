@@ -1,6 +1,7 @@
 import fp from 'fastify-plugin';
 import type { FastifyPluginAsync } from 'fastify';
 import { unauthorized } from '../problem.js';
+import { verifyOidcBearerToken, type OidcConfig } from '../oidc/jwt-verifier.js';
 
 declare module 'fastify' {
   interface FastifyRequest {
@@ -20,6 +21,15 @@ export interface AuthPluginOptions {
    * for tenant scoping, rate limiting, and audit correlation.
    */
   devMode: boolean;
+  /**
+   * Production OIDC/JWT validation (ADR 0006 amendment). When set, bearer
+   * tokens are verified as real OIDC-issued JWTs -- signature, issuer,
+   * audience, and expiry -- via `oidc/jwt-verifier.ts`. Mutually exclusive
+   * with `devMode` in practice (`server.ts` refuses to combine them in
+   * production), but the plugin itself just prefers devMode when both are
+   * somehow set, so tests can build a devMode server without stripping this.
+   */
+  oidc?: OidcConfig | undefined;
 }
 
 /**
@@ -45,14 +55,29 @@ const authPlugin: FastifyPluginAsync<AuthPluginOptions> = async (fastify, option
       throw unauthorized('Empty bearer token');
     }
 
-    if (!options.devMode) {
-      throw unauthorized(
-        'Production mode requires OIDC-validated bearer tokens, which are not yet implemented in this release candidate (see docs/roadmap.md). Set ACT_DEV_MODE=true only for local/embedded, non-production use.',
-      );
+    if (options.devMode) {
+      request.callerActorId = token;
+      request.tenantId = (request.headers['x-act-tenant'] as string | undefined) ?? 'default';
+      return;
     }
 
-    request.callerActorId = token;
-    request.tenantId = (request.headers['x-act-tenant'] as string | undefined) ?? 'default';
+    if (options.oidc) {
+      let verified;
+      try {
+        verified = await verifyOidcBearerToken(token, options.oidc);
+      } catch (err) {
+        throw unauthorized(
+          `OIDC bearer token validation failed: ${err instanceof Error ? err.message : 'unknown error'}`,
+        );
+      }
+      request.callerActorId = verified.actorId;
+      request.tenantId = verified.tenantId;
+      return;
+    }
+
+    throw unauthorized(
+      'Production mode requires either OIDC configuration (ACT_OIDC_ISSUER and ACT_OIDC_AUDIENCE) or the local development bearer scheme (ACT_DEV_MODE=true, non-production only).',
+    );
   });
 };
 

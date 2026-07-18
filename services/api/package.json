@@ -11,6 +11,7 @@
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
     "dev": "tsx watch src/server.ts",
+    "dev:oidc": "tsx src/oidc/dev-provider.ts",
     "start": "node dist/server.js",
     "clean": "rm -rf dist *.tsbuildinfo"
   },
@@ -24,7 +25,8 @@
     "@fastify/rate-limit": "^10.2.1",
     "@fastify/sensible": "^6.0.2",
     "fastify": "^5.2.0",
-    "fastify-plugin": "^5.0.1"
+    "fastify-plugin": "^5.0.1",
+    "jose": "^6.2.3"
   },
   "devDependencies": {
     "@act/sdk": "workspace:*",

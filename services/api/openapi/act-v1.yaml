@@ -382,7 +382,7 @@ components:
       type: http
       scheme: bearer
       description: >
-        Local development scheme only in this release candidate (ACT_DEV_MODE=true): the bearer token is the caller's actor id, used for tenant scoping and rate limiting. It does NOT authorize any ledger write on its own -- every write additionally requires the submitted event envelope to carry a valid Ed25519 signature from a registered key. Production OIDC/JWT validation is tracked in docs/roadmap.md.
+        Two schemes, mutually exclusive by environment. Local development (ACT_DEV_MODE=true, refused in production): the bearer token is taken directly as the caller's actor id, used for tenant scoping and rate limiting. Production (ACT_OIDC_ISSUER + ACT_OIDC_AUDIENCE configured): the bearer token MUST be a JWT issued by that OIDC provider, verified against its JWKS for signature, issuer, audience, and expiry; its `sub` claim becomes the caller's actor id and its `act_tenant` claim (default `"default"`) becomes the tenant id. Neither scheme authorizes any ledger write on its own -- every write additionally requires the submitted event envelope to carry a valid Ed25519 signature from a registered key.
   parameters:
     Id:
       name: id
