@@ -7,6 +7,7 @@ import {
   type TrustPolicy,
 } from '@act/ledger';
 import { generateId } from '@act/core';
+import { PeerRegistry } from './peer-registry.js';
 
 export interface RegisteredKey {
   keyId: string;
@@ -53,6 +54,7 @@ export class KeyRegistry implements TrustPolicy {
 export interface LedgerContext {
   ledger: Ledger;
   keyRegistry: KeyRegistry;
+  peerRegistry: PeerRegistry;
   ledgerId: string;
   ledgerSigner: { keyId: string; publicKey: string; privateKey: string };
 }
@@ -77,6 +79,7 @@ export async function createLedgerContext(
   const ledgerId = generateId();
   const signerKeyPair = generateKeyPair();
   const keyRegistry = new KeyRegistry();
+  const peerRegistry = new PeerRegistry();
   const ledgerSigner = {
     keyId: signerKeyPair.keyId,
     publicKey: signerKeyPair.publicKey,
@@ -88,7 +91,7 @@ export async function createLedgerContext(
     signer: ledgerSigner,
     trustPolicy: keyRegistry,
   });
-  return { ledger, keyRegistry, ledgerId, ledgerSigner };
+  return { ledger, keyRegistry, peerRegistry, ledgerId, ledgerSigner };
 }
 
 async function openConfiguredAdapter(

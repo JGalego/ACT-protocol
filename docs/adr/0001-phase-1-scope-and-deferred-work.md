@@ -50,3 +50,9 @@ This release implements a complete, non-fabricated **vertical slice**:
 On 2026-07-17, `apps/explorer` implemented the first operational Explorer slice: a responsive React/Cytoscape application that animates a seeded human-and-AI transformation through intent, proposal, scoped approval, implementation, semantic drift, challenge, revision, and runtime observation. It also adapts real ordered events from `/v1/events` and is covered by Vitest plus desktop/mobile Playwright visual checks.
 
 This amendment removes the animated lineage demonstration from deferred scope. It does not claim the full Explorer conformance profile: the remaining operational workflows and dedicated visualization modes stay listed in `docs/roadmap.md`.
+
+## Amendment: PostgreSQL Adapter and Real Federation Transport
+
+On 2026-07-18, `packages/ledger` gained a `PostgresAdapter` behaviorally equivalent to the SQLite adapter (ADR 0008), proven by running the same assertion suite against both, including a real embedded PostgreSQL server. `services/api` gained real peer-to-peer federation transport (`routes/federation.ts`): registering a peer ledger, pulling its exported bundle through the same import path as direct bundle import, and pushing this ledger's export to a peer, plus fork (informational) and equivocation (adversarial) detection over the pulled result (`@act/ledger`'s `findForks`/`findEquivocations`). A real two-independently-listening-server integration test (`services/api/src/__tests__/federation.test.ts`) proves the transport, trust-bootstrap-from-Key-event, and both finding classes end-to-end.
+
+This amendment removes "PostgreSQL storage adapter" and "Federation transport between independently-hosted ledgers" from deferred scope.

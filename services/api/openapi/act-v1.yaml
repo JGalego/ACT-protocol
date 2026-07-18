@@ -308,6 +308,74 @@ paths:
       summary: Lists quarantined (rejected) import events with their rejection reason
       responses:
         '200': { description: OK }
+  /federation/peers:
+    post:
+      operationId: registerFederationPeer
+      summary: Registers another independently-hosted ACT ledger as a federation peer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [url]
+              properties:
+                url: { type: string, description: 'Peer base URL, e.g. http://peer:4000' }
+                label: { type: string }
+                bearerToken: { type: string }
+      responses:
+        '201': { description: Created }
+        '400': { $ref: '#/components/responses/Problem' }
+    get:
+      operationId: listFederationPeers
+      summary: Lists registered federation peers
+      responses:
+        '200': { description: OK }
+  /federation/peers/{peerId}:
+    delete:
+      operationId: removeFederationPeer
+      summary: Removes a registered federation peer
+      parameters:
+        - { $ref: '#/components/parameters/Id' }
+      responses:
+        '200': { description: OK }
+        '404': { $ref: '#/components/responses/Problem' }
+  /federation/pull:
+    post:
+      operationId: pullFromPeer
+      summary: >
+        Fetches a bundle from a registered peer's /v1/bundles/export and imports it into this ledger, surfacing any forks (informational) or equivocation (adversarial) findings (spec/federation.md section 6) rather than silently accepting or rejecting them.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [peerId]
+              properties:
+                peerId: { type: string }
+                artifactIds: { type: array, items: { type: string } }
+      responses:
+        '200': { description: OK }
+        '404': { $ref: '#/components/responses/Problem' }
+        '502': { $ref: '#/components/responses/Problem' }
+  /federation/push:
+    post:
+      operationId: pushToPeer
+      summary: Exports a bundle from this ledger and imports it into a registered peer's /v1/bundles/import
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [peerId]
+              properties:
+                peerId: { type: string }
+                artifactIds: { type: array, items: { type: string } }
+      responses:
+        '200': { description: OK }
+        '404': { $ref: '#/components/responses/Problem' }
+        '502': { $ref: '#/components/responses/Problem' }
 components:
   securitySchemes:
     bearerAuth:

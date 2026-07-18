@@ -2,11 +2,6 @@
 
 This document is the single consolidated list of what `PROMPT.md` specifies that this release does **not** implement, why, and what implementing it next would require. See `docs/adr/0001-phase-1-scope-and-deferred-work.md` for the reasoning behind scoping this release as a vertical slice rather than a shallow pass over everything. Nothing on this list is claimed as done anywhere else in this repository; if you find a doc or comment that implies otherwise, it is a defect — please file an issue.
 
-## Federation
-
-- **Multi-ledger network transport.** `POST /v1/bundles/export` and `/import` work against a single ledger's own store (proven by `services/api`'s and `apps/cli`'s test suites). Actually moving a bundle between two independently-hosted ledger deployments over a network, and the associated peer-discovery/authentication story, is not built.
-- **Cross-ledger fork/equivocation detection over a network** (as opposed to `packages/ledger/src/cycle.ts`'s in-process cycle detection, which is implemented and tested) requires the network transport above first.
-
 ## SDKs
 
 - **Python, Go, and Rust SDKs** and the cross-language conformance suite (`conformance/`) that proves all four SDKs compute identical canonical bytes and event ids and verify each other's signatures. Only `packages/sdk-typescript` exists. The vectors each SDK must reproduce are exactly `packages/core`'s canonicalization/digest tests plus `packages/crypto`'s DSSE/signature tests — porting those test fixtures is the natural starting point.

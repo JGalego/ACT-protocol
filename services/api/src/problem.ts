@@ -46,3 +46,6 @@ export function notFound(detail?: string): ApiProblemError {
 export function conflict(code: string, title: string, detail?: string): ApiProblemError {
   return new ApiProblemError(409, code, title, detail);
 }
+export function badGateway(code: string, title: string, detail?: string): ApiProblemError {
+  return new ApiProblemError(502, code, title, detail);
+}

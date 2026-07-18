@@ -2,6 +2,12 @@ import { SCHEMA_IDS, validateAgainst } from '@act/core';
 import { verifyEnvelope, type SignedEnvelope } from '@act/crypto';
 import type { StorageAdapter, EventRow, ReceiptRow, CausalParentRow } from './storage-adapter.js';
 import { LINEAGE_RELATIONS, detectCycle } from './cycle.js';
+import {
+  detectForks,
+  detectEquivocation,
+  type ForkFinding,
+  type EquivocationFinding,
+} from './equivocation.js';
 import { GENESIS_RECEIPT_DIGEST, issueReceipt, type LedgerReceipt } from './receipts.js';
 import {
   CycleDetectedError,
@@ -359,6 +365,25 @@ export class Ledger {
       envelope: JSON.parse(r.envelope_json),
       quarantinedAt: r.quarantined_at,
     }));
+  }
+
+  /** Legitimate branches: two+ accepted events naming the same lineage-typed parent (spec/federation.md section 6). Informational, not rejected. */
+  async findForks(): Promise<ForkFinding[]> {
+    const rows = await this.adapter.getAllCausalParents();
+    return detectForks(
+      rows.map((r) => ({
+        parentEventId: r.parent_event_id,
+        relation: r.relation,
+        childEventId: r.event_id,
+        isMissing: Boolean(r.is_missing),
+      })),
+    );
+  }
+
+  /** Adversarial: the same actor/key signing conflicting decisions over the identical subject+policy (spec/federation.md section 6). */
+  async findEquivocations(): Promise<EquivocationFinding[]> {
+    const events = await this.listEvents(Number.MAX_SAFE_INTEGER, -1);
+    return detectEquivocation(events);
   }
 
   private async buildForwardEdgeMap(): Promise<Map<string, string[]>> {

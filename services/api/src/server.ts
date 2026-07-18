@@ -18,6 +18,7 @@ import policyRoutes from './routes/policies.js';
 import lineageRoutes from './routes/lineage.js';
 import eventRoutes from './routes/events.js';
 import bundleRoutes from './routes/bundles.js';
+import federationRoutes from './routes/federation.js';
 import schemaRoutes from './routes/schemas.js';
 
 export interface BuildServerOptions {
@@ -78,6 +79,7 @@ export async function buildServer(options: BuildServerOptions = {}): Promise<Fas
   await fastify.register(lineageRoutes, { ctx });
   await fastify.register(eventRoutes, { ctx });
   await fastify.register(bundleRoutes, { ctx });
+  await fastify.register(federationRoutes, { ctx });
 
   return fastify;
 }
