@@ -1,6 +1,7 @@
 import type { FastifyPluginAsync } from 'fastify';
 import type { LedgerContext } from '../ledger-context.js';
-import { notFound } from '../problem.js';
+import { badRequest, notFound } from '../problem.js';
+import { diffValues } from '../diff.js';
 import {
   artifactTypeNameToSlug,
   parseSignedEnvelope,
@@ -50,6 +51,32 @@ const artifactRoutes: FastifyPluginAsync<{ ctx: LedgerContext }> = async (fastif
     const { id } = request.params as { id: string };
     const events = await ctx.ledger.listEventsForArtifact(id);
     return { items: events };
+  });
+
+  fastify.get('/v1/artifacts/:id/diff', async (request) => {
+    const { id } = request.params as { id: string };
+    const { from, to } = request.query as { from?: string; to?: string };
+    if (!from || !to) {
+      throw badRequest(
+        'missing_query_param',
+        'Both "from" and "to" version ids are required',
+        'Example: /v1/artifacts/<id>/diff?from=<versionId>&to=<versionId>',
+      );
+    }
+
+    const versions = await ctx.ledger.listEventsForArtifact(id);
+    const fromEvent = versions.find((e) => e.subjectVersionId === from);
+    const toEvent = versions.find((e) => e.subjectVersionId === to);
+    if (!fromEvent) throw notFound(`No version "${from}" found for artifact ${id}`);
+    if (!toEvent) throw notFound(`No version "${to}" found for artifact ${id}`);
+
+    const diff = diffValues(fromEvent.envelope.payload.payload, toEvent.envelope.payload.payload);
+    return {
+      artifactId: id,
+      from: { versionId: from, eventId: fromEvent.eventId },
+      to: { versionId: to, eventId: toEvent.eventId },
+      diff,
+    };
   });
 };
 

@@ -1,6 +1,12 @@
 import { SCHEMA_IDS, validateAgainst } from '@act/core';
 import { verifyEnvelope, type SignedEnvelope } from '@act/crypto';
-import type { StorageAdapter, EventRow, ReceiptRow, CausalParentRow } from './storage-adapter.js';
+import type {
+  StorageAdapter,
+  EventRow,
+  ReceiptRow,
+  CausalParentRow,
+  EventQueryFilter,
+} from './storage-adapter.js';
 import { LINEAGE_RELATIONS, detectCycle } from './cycle.js';
 import {
   detectForks,
@@ -265,6 +271,16 @@ export class Ledger {
   /** Every accepted event whose subject is the given logical artifact, oldest first -- its full version history. */
   async listEventsForArtifact(artifactId: string): Promise<StoredEvent[]> {
     const rows = await this.adapter.listEventsForArtifact(this.ledgerId, artifactId);
+    return rows.map(rowToStoredEvent);
+  }
+
+  /** Like listEvents, narrowed by event_type and/or subject_kind (see EventQueryFilter). */
+  async queryEvents(
+    filter: EventQueryFilter,
+    limit = 100,
+    afterSequence = -1,
+  ): Promise<StoredEvent[]> {
+    const rows = await this.adapter.queryEvents(this.ledgerId, filter, limit, afterSequence);
     return rows.map(rowToStoredEvent);
   }
 

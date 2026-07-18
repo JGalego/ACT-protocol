@@ -147,6 +147,26 @@ paths:
       parameters: [{ $ref: '#/components/parameters/Id' }]
       responses:
         '200': { description: OK }
+  /artifacts/{id}/diff:
+    get:
+      operationId: diffArtifactVersions
+      summary: Structural diff between two versions of a logical artifact
+      parameters:
+        - { $ref: '#/components/parameters/Id' }
+        - name: from
+          in: query
+          required: true
+          description: The version_id to diff from.
+          schema: { type: string }
+        - name: to
+          in: query
+          required: true
+          description: The version_id to diff to.
+          schema: { type: string }
+      responses:
+        '200': { description: OK }
+        '400': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
   /approval-requests:
     post:
       operationId: submitApprovalRequest
@@ -205,6 +225,18 @@ paths:
             content:
               { application/json: { schema: { $ref: '#/components/schemas/AppendResult' } } },
           }
+    get:
+      operationId: listChallenges
+      summary: Cursor-paginated list of every challenge_raised/challenge_resolved event
+      parameters:
+        - name: cursor
+          in: query
+          schema: { type: string }
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 500 }
+      responses:
+        '200': { description: OK }
   /verifications:
     post:
       operationId: submitVerification
@@ -268,7 +300,7 @@ paths:
   /events:
     get:
       operationId: listEvents
-      summary: Cursor-paginated list of every accepted event, in acceptance order
+      summary: Cursor-paginated list of every accepted event, in acceptance order, optionally filtered
       parameters:
         - name: cursor
           in: query
@@ -276,6 +308,14 @@ paths:
         - name: limit
           in: query
           schema: { type: integer, minimum: 1, maximum: 500 }
+        - name: eventType
+          in: query
+          description: Only return events with this exact event_type.
+          schema: { type: string }
+        - name: subjectKind
+          in: query
+          description: Only return events whose subject.kind matches.
+          schema: { type: string, enum: [artifact, transformation, attestation, policy, evidence] }
       responses:
         '200': { description: OK }
   /bundles/export:

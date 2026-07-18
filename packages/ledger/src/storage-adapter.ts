@@ -55,6 +55,12 @@ export interface QuarantineRow {
   quarantined_at: string;
 }
 
+export interface EventQueryFilter {
+  /** Matches if event_type is any of these values (OR); omit to match every event_type. */
+  eventTypes?: string[];
+  subjectKind?: string;
+}
+
 /** Everything a write transaction needs; every call happens against the same open transaction. */
 export interface StorageTransaction {
   nextSequence(ledgerId: string): Promise<number>;
@@ -90,6 +96,20 @@ export interface StorageAdapter {
   getHead(artifactId: string): Promise<HeadRow | null>;
   listEvents(ledgerId: string, limit: number, afterSequence: number): Promise<EventRow[]>;
   listEventsForArtifact(ledgerId: string, artifactId: string): Promise<EventRow[]>;
+  /**
+   * Like listEvents, but narrowed by event_type and/or subject_kind --
+   * both plain indexed columns, so this is a real filtered query, not an
+   * in-memory scan. Filtering by actor is not supported here: actor
+   * identity lives inside envelope_json, not a queryable column, and a
+   * correct implementation would need a schema change (see
+   * docs/roadmap.md) rather than a pagination-breaking in-memory filter.
+   */
+  queryEvents(
+    ledgerId: string,
+    filter: EventQueryFilter,
+    limit: number,
+    afterSequence: number,
+  ): Promise<EventRow[]>;
   getCausalParentsFor(eventId: string): Promise<CausalParentRow[]>;
   getChildrenOf(parentEventId: string): Promise<CausalParentRow[]>;
   /** Every lineage-relation causal-parent edge accepted by this ledger; drives cycle/fork/equivocation detection. */

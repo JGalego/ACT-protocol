@@ -13,12 +13,13 @@ Request bodies for every write endpoint are DSSE-compatible signed event envelop
 | `POST /v1/intents` | `services/api/src/routes/intents.ts` | Requires a registered, trusted signing key |
 | `POST /v1/transformations` | `services/api/src/routes/transformations.ts` | ditto |
 | `POST /v1/artifacts`, `GET /v1/artifacts/{id}`, `GET /v1/artifacts/{id}/versions` | `services/api/src/routes/artifacts.ts` | ditto |
+| `GET /v1/artifacts/{id}/diff?from=&to=` | `services/api/src/routes/artifacts.ts` | Read-only; structural diff (added/removed/changed paths, `services/api/src/diff.ts`) between two versions' artifact-type payloads |
 | `POST /v1/approval-requests`, `POST /v1/approval-decisions`, `GET /v1/approvals/{id}` | `services/api/src/routes/approvals.ts` | ditto |
-| `POST /v1/challenges` | `services/api/src/routes/challenges.ts` | ditto |
+| `POST /v1/challenges`, `GET /v1/challenges` | `services/api/src/routes/challenges.ts` | ditto; `GET` is cursor-paginated like `/v1/events`, pre-filtered to `challenge_raised`/`challenge_resolved` |
 | `POST /v1/verifications`, `GET /v1/verifications/{id}` | `services/api/src/routes/verifications.ts` | ditto |
 | `POST /v1/policies` | `services/api/src/routes/policies.ts` | ditto |
 | `GET /v1/lineage/{id}`, `GET /v1/history/{id}` | `services/api/src/routes/lineage.ts` | Read-only; returns explained findings (missing-parent boundaries, truncation) alongside the raw traversal, via `packages/verification`'s `checkLineageCompleteness` |
-| `GET /v1/events` | `services/api/src/routes/events.ts` | Cursor-paginated (`cursor` = last sequence number) |
+| `GET /v1/events` | `services/api/src/routes/events.ts` | Cursor-paginated (`cursor` = last sequence number); optional `eventType`/`subjectKind` query params filter at the storage layer (`StorageAdapter.queryEvents`), not in memory. Filtering by actor is not supported -- actor identity lives inside `envelope_json`, not an indexed column (`docs/roadmap.md`) |
 | `POST /v1/bundles/export`, `POST /v1/bundles/import`, `GET /v1/quarantine` | `services/api/src/routes/bundles.ts` | Import re-runs the same proof-of-possession bootstrap per `Key` artifact event encountered (ADR 0006); invalid events are quarantined, not silently dropped |
 | `POST /v1/federation/peers`, `GET /v1/federation/peers`, `DELETE /v1/federation/peers/{peerId}` | `services/api/src/routes/federation.ts` | Registers/lists/removes a peer ledger's URL; registering a peer grants it no trust by itself |
 | `POST /v1/federation/pull`, `POST /v1/federation/push` | `services/api/src/routes/federation.ts` | Real peer-to-peer transport over HTTP: pulls a peer's `/v1/bundles/export` output through the same import path as `/v1/bundles/import` (`services/api/src/bundle-ops.ts`), or pushes this ledger's export to a peer's import endpoint. `pull` also returns `findings.forks` (informational branches) and `findings.equivocations` (adversarial: same reviewer key issuing conflicting decisions over the identical subject+policy) via `@act/ledger`'s `Ledger.findForks`/`findEquivocations` — neither is a hard reject |

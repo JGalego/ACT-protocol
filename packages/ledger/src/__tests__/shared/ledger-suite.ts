@@ -434,6 +434,57 @@ export function registerLedgerSuite(
       expect(history.map((e) => e.eventId)).toEqual([v1.event.eventId, v2.event.eventId]);
     });
 
+    it('queryEvents filters by event_type and by subject_kind independently', async () => {
+      const { ledger } = await setup([actor]);
+      const genesisResult = await ledger.appendEvent(
+        signedEnvelope(
+          buildEvent({
+            actor,
+            eventType: 'genesis',
+            subject: { kind: 'artifact', artifact_id: generateId() },
+          }),
+          actor,
+        ),
+        { publicKeys: publicKeysFor(actor) },
+      );
+      const challengeResult = await ledger.appendEvent(
+        signedEnvelope(
+          buildEvent({
+            actor,
+            eventType: 'challenge_raised',
+            subject: { kind: 'attestation', artifact_id: generateId() },
+            causalParents: [{ event_id: genesisResult.event.eventId, relation: 'response-to' }],
+          }),
+          actor,
+        ),
+        { publicKeys: publicKeysFor(actor) },
+      );
+
+      const byType = await ledger.queryEvents({ eventTypes: ['challenge_raised'] });
+      expect(byType.map((e) => e.eventId)).toEqual([challengeResult.event.eventId]);
+
+      const byMultipleTypes = await ledger.queryEvents({
+        eventTypes: ['genesis', 'challenge_raised'],
+      });
+      expect(new Set(byMultipleTypes.map((e) => e.eventId))).toEqual(
+        new Set([genesisResult.event.eventId, challengeResult.event.eventId]),
+      );
+
+      const bySubjectKind = await ledger.queryEvents({ subjectKind: 'artifact' });
+      expect(bySubjectKind.map((e) => e.eventId)).toEqual([genesisResult.event.eventId]);
+
+      const byBoth = await ledger.queryEvents({
+        eventTypes: ['challenge_raised'],
+        subjectKind: 'artifact',
+      });
+      expect(byBoth).toEqual([]);
+
+      const unfiltered = await ledger.queryEvents({});
+      expect(unfiltered.map((e) => e.eventId).sort()).toEqual(
+        [genesisResult.event.eventId, challengeResult.event.eventId].sort(),
+      );
+    });
+
     it('getEvent returns null for an unknown event id', async () => {
       const { ledger } = await setup([actor]);
       expect(await ledger.getEvent(`sha-256:${'0'.repeat(64)}`)).toBeNull();

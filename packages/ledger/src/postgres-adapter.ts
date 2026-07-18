@@ -1,6 +1,7 @@
 import pg from 'pg';
 import type {
   CausalParentRow,
+  EventQueryFilter,
   EventRow,
   HeadRow,
   QuarantineRow,
@@ -217,6 +218,30 @@ export class PostgresAdapter implements StorageAdapter {
     const result = await this.pool.query(
       'SELECT * FROM events WHERE ledger_id = $1 AND subject_artifact_id = $2 ORDER BY sequence ASC',
       [ledgerId, artifactId],
+    );
+    return result.rows as EventRow[];
+  }
+
+  async queryEvents(
+    ledgerId: string,
+    filter: EventQueryFilter,
+    limit: number,
+    afterSequence: number,
+  ): Promise<EventRow[]> {
+    const conditions = ['ledger_id = $1', 'sequence > $2'];
+    const params: (string | number | string[])[] = [ledgerId, afterSequence];
+    if (filter.eventTypes && filter.eventTypes.length > 0) {
+      params.push(filter.eventTypes);
+      conditions.push(`event_type = ANY($${params.length})`);
+    }
+    if (filter.subjectKind) {
+      params.push(filter.subjectKind);
+      conditions.push(`subject_kind = $${params.length}`);
+    }
+    params.push(limit);
+    const result = await this.pool.query(
+      `SELECT * FROM events WHERE ${conditions.join(' AND ')} ORDER BY sequence ASC LIMIT $${params.length}`,
+      params,
     );
     return result.rows as EventRow[];
   }

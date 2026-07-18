@@ -1,6 +1,7 @@
 import Database from 'better-sqlite3';
 import type {
   CausalParentRow,
+  EventQueryFilter,
   EventRow,
   HeadRow,
   QuarantineRow,
@@ -165,6 +166,30 @@ export class SqliteAdapter implements StorageAdapter {
         'SELECT * FROM events WHERE ledger_id = ? AND subject_artifact_id = ? ORDER BY sequence ASC',
       )
       .all(ledgerId, artifactId) as EventRow[];
+  }
+
+  async queryEvents(
+    ledgerId: string,
+    filter: EventQueryFilter,
+    limit: number,
+    afterSequence: number,
+  ): Promise<EventRow[]> {
+    const conditions = ['ledger_id = ?', 'sequence > ?'];
+    const params: (string | number)[] = [ledgerId, afterSequence];
+    if (filter.eventTypes && filter.eventTypes.length > 0) {
+      conditions.push(`event_type IN (${filter.eventTypes.map(() => '?').join(',')})`);
+      params.push(...filter.eventTypes);
+    }
+    if (filter.subjectKind) {
+      conditions.push('subject_kind = ?');
+      params.push(filter.subjectKind);
+    }
+    params.push(limit);
+    return this.db
+      .prepare(
+        `SELECT * FROM events WHERE ${conditions.join(' AND ')} ORDER BY sequence ASC LIMIT ?`,
+      )
+      .all(...params) as EventRow[];
   }
 
   async getCausalParentsFor(eventId: string): Promise<CausalParentRow[]> {
