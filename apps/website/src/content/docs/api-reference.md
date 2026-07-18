@@ -21,8 +21,13 @@ Request bodies for every write endpoint are DSSE-compatible signed event envelop
 | `POST /v1/verifications`, `GET /v1/verifications/{id}` | `services/api/src/routes/verifications.ts` | ditto |
 | `POST /v1/policies` | `services/api/src/routes/policies.ts` | ditto |
 | `GET /v1/lineage/{id}`, `GET /v1/history/{id}` | `services/api/src/routes/lineage.ts` | Read-only; returns explained findings (missing-parent boundaries, truncation) alongside the raw traversal, via `packages/verification`'s `checkLineageCompleteness` |
-| `GET /v1/events` | `services/api/src/routes/events.ts` | Cursor-paginated (`cursor` = last sequence number) |
+| `GET /v1/artifacts/{id}/diff?from=&to=` | `services/api/src/routes/artifacts.ts` | Read-only; structural diff between two artifact versions |
+| `GET /v1/events?eventType=&subjectKind=&cursor=&limit=` | `services/api/src/routes/events.ts` | Cursor-paginated (`cursor` = last sequence number); filters run against real storage-layer queries, not an in-memory scan |
+| `GET /v1/challenges?cursor=&limit=` | `services/api/src/routes/challenges.ts` | Cursor-paginated, pre-filtered to challenge event types |
+| `GET /v1/metrics` | `services/api/src/routes/health.ts` | Prometheus text format; scraped by the OpenTelemetry Collector in `deploy/compose/` |
 | `POST /v1/bundles/export`, `POST /v1/bundles/import`, `GET /v1/quarantine` | `services/api/src/routes/bundles.ts` | Import re-runs the same proof-of-possession bootstrap per `Key` artifact event encountered (ADR 0006); invalid events are quarantined, not silently dropped |
+| `POST /v1/federation/peers`, `GET /v1/federation/peers`, `DELETE /v1/federation/peers/{id}` | `services/api/src/routes/federation.ts` | Registers/lists/removes peer ledgers this instance can pull from or push to |
+| `POST /v1/federation/pull`, `POST /v1/federation/push` | `services/api/src/routes/federation.ts` | Real network transport: fetches or sends a signed bundle to a registered peer over HTTP and re-verifies it against local trust policy on receipt — see [Deployment](/deployment/) |
 
 All error responses are RFC 9457 Problem Details (`services/api/src/problem.ts`, `services/api/src/plugins/error-handler.ts`) with a stable `code` field — see the `LEDGER_ERROR_STATUS` map for ledger-originated codes (`schema_invalid`, `digest_mismatch`, `invalid_signature`, `untrusted_actor`, `missing_parent`, `cycle_detected`) and `services/api/src/problem.ts` for API-originated ones.
 

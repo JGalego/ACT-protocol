@@ -60,10 +60,25 @@ For any artifact ACT manages, it makes it possible to determine mechanically: it
   </Card>
 </CardGrid>
 
+## How the pieces fit together
+
+```mermaid
+flowchart LR
+    CLI["act CLI"] --> API
+    SDK["SDKs\n(TypeScript, Python)"] -->|signed envelope| API["services/api"]
+    API --> Ledger[("Ledger\nSQLite / PostgreSQL")]
+    API --> Explorer["ACT Explorer"]
+    Ledger <-->|signed bundle export/import| Peer[("Independent peer ledger")]
+```
+
+Clients sign locally and submit signed envelopes; the API verifies, evaluates policy, and appends to a hash-chained ledger — it never signs on a caller's behalf. Ledgers stay independent; sharing history between them is always an explicit, re-verified bundle transfer. See [Architecture](/architecture/) for the full write path.
+
 ## See it work
 
 The seeded [ACT Explorer](/explorer/) walkthrough animates a complete accountable chain: human intent → AI proposal → requirements transformation → scoped approval → implementation → tests → semantic drift finding → human challenge → revision → runtime observation. Use play/pause, step controls, or the timeline scrubber; select records to inspect rationale, assumptions, evidence, lineage, and confidence.
 
+:::tip[Six more scenarios] The Explorer's walkthrough is one of six seeded, assertion-backed examples — see [Examples](/examples/) for enterprise quorum approval, competing AI proposals, cross-ledger federation, and more. :::
+
 ## Status
 
-This is a **1.0.0 release candidate** — a genuine, non-fabricated vertical slice through the full protocol. See the [Roadmap](/roadmap/) for what's deferred and why.
+This is a **1.0.0 release candidate** — a genuine, non-fabricated vertical slice through the full protocol. See the [Roadmap](/roadmap/) for what's built and deferred and why, or [Design Decisions](/design-decisions/) for the history behind the non-obvious choices.

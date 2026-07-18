@@ -25,6 +25,8 @@ pnpm run generate:types
 make verify
 ```
 
+:::tip[Working on just one package] Every package under `packages/`, `services/`, and `apps/` builds and tests independently — `pnpm --filter @act/ledger run test` (for example) is much faster than `make verify` while you're iterating on one piece. :::
+
 ## Run the animated protocol demonstration
 
 ```bash
@@ -33,6 +35,8 @@ pnpm run dev:explorer
 ```
 
 The seeded walkthrough animates a complete accountable chain: human intent → AI proposal → requirements transformation → scoped approval → implementation → tests → semantic drift finding → human challenge → revision → runtime observation. Use play/pause, step controls, arrow keys, or the timeline scrubber; select records to inspect rationale, assumptions, uncertainty, evidence, lineage, confidence, and envelope content. The **Data source** control can also load ordered signed envelopes from a running ACT `/v1/events` endpoint. Seeded identities and digests are visibly marked as non-production demonstration data.
+
+:::tip[Five more scenarios beyond the Explorer] `pnpm --filter @act/examples run test` runs five additional seeded, assertion-backed walkthroughs — enterprise quorum approval, competing AI proposals, cross-ledger federation, and more. See [Examples](/examples/). :::
 
 ## Start the reference API service
 
@@ -56,8 +60,14 @@ node <path-to-repo>/apps/cli/dist/bin/act.js verify --json
 
 (Once published, this will just be `npm install -g @act/cli && act init`.)
 
+## Building against ACT from your own code
+
+Use [`@act/sdk`](/sdks/) (TypeScript) or [`act-sdk`](/sdks/) (Python) rather than hand-building signed envelopes — both handle canonicalization, digesting, and Ed25519 signing for you, and are checked against the same conformance vectors so events built with either are indistinguishable to the API.
+
 ## Next steps
 
 - Read the [Architecture](/architecture/) page to see how a transformation actually flows through the protocol.
 - Read the [Specification](/specification/) page for the normative node classes, semantic-change taxonomy, and intent authority model.
 - See the [API Reference](/api-reference/) for every `/v1` operation the reference service implements.
+- Browse [Examples](/examples/) for six more seeded end-to-end scenarios, or [Deployment](/deployment/) to run the full stack via Docker Compose or Helm.
+- Read [Design Decisions](/design-decisions/) for the history behind ACT's less-obvious implementation choices.

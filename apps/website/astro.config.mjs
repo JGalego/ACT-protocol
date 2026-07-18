@@ -41,10 +41,19 @@ export default defineConfig({
           ],
         },
         {
+          label: 'Guides',
+          items: [
+            { label: 'Examples', slug: 'examples' },
+            { label: 'SDKs', slug: 'sdks' },
+            { label: 'Deployment', slug: 'deployment' },
+          ],
+        },
+        {
           label: 'Reference',
           items: [
             { label: 'Specification', slug: 'specification' },
             { label: 'API Reference', slug: 'api-reference' },
+            { label: 'Design Decisions', slug: 'design-decisions' },
             { label: 'Roadmap', slug: 'roadmap' },
           ],
         },

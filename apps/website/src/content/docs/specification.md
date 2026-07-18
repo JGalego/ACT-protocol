@@ -22,6 +22,23 @@ The normative specification lives in [`spec/ACT-1.0.md`](https://github.com/JGal
 
 The semantic graph has five signed node classes — **Artifact**, **Transformation**, **Attestation**, **Policy**, **Evidence** — plus **Events**, the append-only record of changes to the other four. Lineage between nodes is represented as typed, many-to-many edges pointing from a new node to the existing node(s) it depends on; signed records never contain mutable `children` or "current state" arrays — descendants and current heads are always computed projections, never signed facts.
 
+```mermaid
+flowchart LR
+    E1["Event: Intent recorded"] -->|produces| A1["Artifact v1\n(root intent)"]
+    E2["Event: Transformation"] -->|input| A1
+    E2 -->|produces| A2["Artifact v2\n(requirements)"]
+    E2 -.->|attaches| Att1["Attestation\n(confidence, assumptions)"]
+    E3["Event: ApprovalDecision"] -->|governs| A2
+    E3 -.->|evaluated against| Pol["Policy"]
+    E4["Event: VerificationReport"] -->|checks| A2
+    E4 -.->|cites| Ev1["Evidence"]
+
+    classDef event fill:#3b6,stroke:#333,color:#fff;
+    class E1,E2,E3,E4 event;
+```
+
+Every solid arrow is lineage (`inputs`/`outputs`); every dashed arrow is an attached, attributed claim about the node it touches. Nothing here is ever rewritten in place — a correction is a new Event producing a new Artifact version or a new Attestation, never a mutation of an existing one.
+
 ## The transformation contract
 
 Every Transformation record must include `transformation_id`, `mode`, `actor`, `inputs`, `outputs`, `semantic_change_claim`, `assumptions`, `ambiguities`, `alternatives`, `rationale`, `confidence_assessments`, `uncertainties`, `evidence`, `verification_results`, `applicable_policy`, and `approval_requirement`.
