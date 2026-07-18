@@ -13,6 +13,7 @@
     "dev": "tsx watch src/server.ts",
     "dev:oidc": "tsx src/oidc/dev-provider.ts",
     "start": "node dist/server.js",
+    "migrate": "node dist/bin/migrate.js",
     "clean": "rm -rf dist *.tsbuildinfo"
   },
   "dependencies": {

@@ -27,7 +27,7 @@ paths:
   /health/ready:
     get:
       operationId: healthReady
-      summary: Readiness probe
+      summary: Readiness probe (performs a real read against the configured storage backend)
       security: []
       responses:
         '200':
@@ -35,6 +35,14 @@ paths:
             description: OK,
             content: { application/json: { schema: { $ref: '#/components/schemas/Status' } } },
           }
+        '503': { description: Storage backend unreachable }
+  /metrics:
+    get:
+      operationId: metrics
+      summary: Prometheus text-format process metrics (uptime, memory)
+      security: []
+      responses:
+        '200': { description: OK, content: { text/plain: { schema: { type: string } } } }
   /schemas:
     get:
       operationId: listSchemas

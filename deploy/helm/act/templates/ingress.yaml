@@ -1,0 +1,45 @@
+{{- if .Values.ingress.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "act.fullname" . }}
+  labels:
+    {{- include "act.labels" . | nindent 4 }}
+  {{- with .Values.ingress.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- if .Values.ingress.className }}
+  ingressClassName: {{ .Values.ingress.className }}
+  {{- end }}
+  {{- with .Values.ingress.tls }}
+  tls:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  rules:
+    {{- if .Values.ingress.api.host }}
+    - host: {{ .Values.ingress.api.host }}
+      http:
+        paths:
+          - path: {{ .Values.ingress.api.path }}
+            pathType: {{ .Values.ingress.api.pathType }}
+            backend:
+              service:
+                name: {{ include "act.fullname" . }}-api
+                port:
+                  number: {{ .Values.api.port }}
+    {{- end }}
+    {{- if and .Values.explorer.enabled .Values.ingress.explorer.host }}
+    - host: {{ .Values.ingress.explorer.host }}
+      http:
+        paths:
+          - path: {{ .Values.ingress.explorer.path }}
+            pathType: {{ .Values.ingress.explorer.pathType }}
+            backend:
+              service:
+                name: {{ include "act.fullname" . }}-explorer
+                port:
+                  number: {{ .Values.explorer.port }}
+    {{- end }}
+{{- end }}

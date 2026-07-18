@@ -12,6 +12,12 @@ importers:
 
   .:
     devDependencies:
+      '@act/crypto':
+        specifier: workspace:*
+        version: link:packages/crypto
+      '@act/sdk':
+        specifier: workspace:*
+        version: link:packages/sdk-typescript
       '@apidevtools/json-schema-ref-parser':
         specifier: ^11.7.3
         version: 11.9.3

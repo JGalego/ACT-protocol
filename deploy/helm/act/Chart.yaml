@@ -1,0 +1,11 @@
+apiVersion: v2
+name: act
+description: ACT protocol reference deployment (API + Explorer) with secure defaults
+type: application
+version: 0.1.0
+appVersion: '1.0.0-rc.1'
+home: https://act-protocol.org
+sources:
+  - https://github.com/JGalego/ACT-protocol
+maintainers:
+  - name: ACT protocol maintainers

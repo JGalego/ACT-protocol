@@ -1,0 +1,22 @@
+# Minimal stack for `make verify-integration`: just a real, dockerized
+# PostgreSQL, so `pnpm run test:integration` can run services/api's suite
+# against ACT_STORAGE=postgres over the real network/container boundary --
+# a different code path than packages/ledger's embedded-postgres tests
+# (see docs/adr/0008-storage-adapter-and-postgres.md), which run an
+# in-process server with no Docker involved at all.
+name: act-protocol-test
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: act
+      POSTGRES_PASSWORD: act-test-only
+      POSTGRES_DB: act_ledger_test
+    ports:
+      - '55432:5432'
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U act -d act_ledger_test']
+      interval: 2s
+      timeout: 3s
+      retries: 15

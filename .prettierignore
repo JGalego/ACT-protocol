@@ -1,1 +1,5 @@
 pnpm-lock.yaml
+# Go-template syntax ({{ ... }}) inside YAML isn't valid YAML on its own;
+# Prettier's YAML parser can't handle it (unlike, say, `helm lint`, which
+# understands the templating).
+deploy/helm/act/templates/

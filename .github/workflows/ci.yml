@@ -149,3 +149,28 @@ jobs:
 
       - name: Lint, typecheck, and test sdks/python
         run: make verify-python-sdk
+
+  deploy-lint:
+    name: Deployment static validation (Dockerfiles, Compose, Helm chart)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: azure/setup-helm@v4
+
+      - name: Install hadolint
+        run: |
+          curl -sL https://github.com/hadolint/hadolint/releases/latest/download/hadolint-Linux-x86_64 -o /usr/local/bin/hadolint
+          chmod +x /usr/local/bin/hadolint
+
+      - name: Install kubeconform
+        run: |
+          curl -sL https://github.com/yannh/kubeconform/releases/latest/download/kubeconform-linux-amd64.tar.gz | tar -xz -C /usr/local/bin kubeconform
+
+      - name: Validate Docker Compose files are well-formed
+        run: |
+          docker compose -f deploy/compose/docker-compose.yml config --quiet
+          docker compose -f deploy/compose/docker-compose.test.yml config --quiet
+
+      - name: Lint Dockerfiles, lint/render/schema-validate the Helm chart
+        run: make verify-deploy

@@ -1,0 +1,46 @@
+{{- if .Values.api.migrationJob.enabled }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "act.fullname" . }}-migrate-{{ .Release.Revision }}
+  labels:
+    {{- include "act.labels" . | nindent 4 }}
+    app.kubernetes.io/component: migrate
+  annotations:
+    # Runs before the API Deployment's own rollout (see NOTES.txt for the
+    # `helm install --wait` invocation this depends on), so no replica
+    # depends on being the one that happens to run migrations first --
+    # see services/api/src/bin/migrate.ts.
+    helm.sh/hook: pre-install,pre-upgrade
+    helm.sh/hook-weight: '0'
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+spec:
+  backoffLimit: 3
+  template:
+    metadata:
+      labels:
+        {{- include "act.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: migrate
+    spec:
+      restartPolicy: Never
+      serviceAccountName: {{ include "act.serviceAccountName" . }}
+      automountServiceAccountToken: false
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: migrate
+          image: '{{ .Values.api.image.repository }}:{{ .Values.api.image.tag }}'
+          imagePullPolicy: {{ .Values.api.image.pullPolicy }}
+          command: ['node', 'dist/bin/migrate.js']
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          envFrom:
+            - configMapRef:
+                name: {{ include "act.fullname" . }}-api-config
+          env:
+            - name: ACT_DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ if .Values.api.database.existingSecret }}{{ .Values.api.database.existingSecret }}{{ else }}{{ include "act.fullname" . }}-database{{ end }}
+                  key: {{ .Values.api.database.existingSecretKey }}
+{{- end }}

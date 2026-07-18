@@ -1,0 +1,96 @@
+# Full local stack: API + PostgreSQL + Explorer + a local OIDC dev provider
+# + an OpenTelemetry Collector, per PROMPT.md's Deployment section. See
+# docs/deployment.md for prerequisites, environment variables, and what
+# each service actually does. Run from the repository root:
+#
+#   docker compose -f deploy/compose/docker-compose.yml up --build
+#
+# Everything here is for local/demo use: the OIDC provider mints tokens on
+# request with no real login flow (see services/api/src/oidc/dev-provider.ts),
+# and the Postgres password below is a fixed development-only value, not a
+# secret to protect. See deploy/helm/act/ for a production-shaped deployment.
+name: act-protocol
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: act
+      POSTGRES_PASSWORD: act-dev-only
+      POSTGRES_DB: act_ledger
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U act -d act_ledger']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    ports:
+      - '5432:5432'
+
+  oidc-provider:
+    build:
+      context: ../..
+      dockerfile: deploy/docker/api.Dockerfile
+    restart: unless-stopped
+    command: ['node', 'dist/oidc/dev-provider.js']
+    environment:
+      PORT: '8081'
+    ports:
+      - '8081:8081'
+
+  api:
+    build:
+      context: ../..
+      dockerfile: deploy/docker/api.Dockerfile
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      oidc-provider:
+        condition: service_started
+    environment:
+      NODE_ENV: production
+      PORT: '4000'
+      ACT_STORAGE: postgres
+      ACT_DATABASE_URL: postgres://act:act-dev-only@postgres:5432/act_ledger
+      ACT_OIDC_ISSUER: http://oidc-provider:8081
+      ACT_OIDC_AUDIENCE: act-api
+    ports:
+      - '4000:4000'
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://127.0.0.1:4000/v1/health/live').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  explorer:
+    build:
+      context: ../..
+      dockerfile: deploy/docker/explorer.Dockerfile
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      - '8080:8080'
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.116.1
+    restart: unless-stopped
+    command: ['--config=/etc/otel-collector-config.yaml']
+    volumes:
+      - ./otel-collector-config.yaml:/etc/otel-collector-config.yaml:ro
+    ports:
+      - '4317:4317' # OTLP gRPC
+      - '4318:4318' # OTLP HTTP
+
+volumes:
+  postgres-data:

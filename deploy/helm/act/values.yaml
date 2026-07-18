@@ -1,0 +1,118 @@
+# Default values for the act chart. Secure by default: containers run as
+# non-root with a read-only root filesystem, all capabilities dropped,
+# seccomp set to RuntimeDefault, and no production auth bypass (devMode is
+# always false here -- see api.oidc below). Override per environment with
+# `helm install -f my-values.yaml` or `--set`.
+
+nameOverride: ''
+fullnameOverride: ''
+
+api:
+  image:
+    repository: ghcr.io/jgalego/act-protocol-api
+    tag: '1.0.0-rc.1'
+    pullPolicy: IfNotPresent
+  replicaCount: 2
+  port: 4000
+
+  # Production OIDC/JWT validation (ADR 0006 amendment). Both are
+  # required; the API fails closed at startup without them (see
+  # services/api/src/server.ts).
+  oidc:
+    issuer: ''
+    audience: 'act-api'
+
+  # PostgreSQL connection. Reference an existing Secret rather than a
+  # literal connection string wherever possible -- see
+  # docs/deployment.md#secrets.
+  database:
+    existingSecret: ''
+    existingSecretKey: 'ACT_DATABASE_URL'
+    # Only used if existingSecret is empty; intended for local/demo use,
+    # never for a real deployment.
+    connectionString: ''
+
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+  probes:
+    liveness:
+      path: /v1/health/live
+      initialDelaySeconds: 5
+      periodSeconds: 10
+    readiness:
+      path: /v1/health/ready
+      initialDelaySeconds: 5
+      periodSeconds: 10
+
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 1
+
+  migrationJob:
+    enabled: true
+
+explorer:
+  enabled: true
+  image:
+    repository: ghcr.io/jgalego/act-protocol-explorer
+    tag: '1.0.0-rc.1'
+    pullPolicy: IfNotPresent
+  replicaCount: 2
+  port: 8080
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 128Mi
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 1
+
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ''
+
+podSecurityContext:
+  runAsNonRoot: true
+  seccompProfile:
+    type: RuntimeDefault
+  fsGroup: 1000
+
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  runAsNonRoot: true
+  runAsUser: 1000
+  capabilities:
+    drop: ['ALL']
+
+networkPolicy:
+  enabled: true
+  # Additional ingress selectors beyond the explorer/ingress-controller,
+  # e.g. a monitoring namespace scraping /v1/metrics.
+  extraIngress: []
+
+ingress:
+  enabled: false
+  className: ''
+  annotations: {}
+  api:
+    host: ''
+    path: /v1
+    pathType: Prefix
+  explorer:
+    host: ''
+    path: /
+    pathType: Prefix
+  tls: []
+
+resources: {}

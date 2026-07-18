@@ -18,6 +18,7 @@
     "test": "pnpm -r --if-present run test",
     "test:coverage": "pnpm -r --if-present run test:coverage",
     "test:e2e": "pnpm --filter @act/explorer run test:e2e",
+    "test:integration": "tsx scripts/integration-smoke.ts",
     "dev:explorer": "pnpm --filter @act/explorer run dev",
     "schemas:validate": "tsx scripts/validate-schemas.ts",
     "conformance:generate-vectors": "tsx conformance/vectors/generate-vectors.ts",
@@ -28,6 +29,8 @@
     "clean": "pnpm -r --if-present run clean"
   },
   "devDependencies": {
+    "@act/crypto": "workspace:*",
+    "@act/sdk": "workspace:*",
     "@apidevtools/json-schema-ref-parser": "^11.7.3",
     "@typescript-eslint/eslint-plugin": "^8.18.0",
     "@typescript-eslint/parser": "^8.18.0",

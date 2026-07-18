@@ -1,0 +1,32 @@
+ACT protocol deployed as release {{ .Release.Name }} in namespace {{ .Release.Namespace }}.
+
+API:      {{ include "act.fullname" . }}-api:{{ .Values.api.port }} (ClusterIP)
+{{- if .Values.explorer.enabled }}
+Explorer: {{ include "act.fullname" . }}-explorer:{{ .Values.explorer.port }} (ClusterIP)
+{{- end }}
+{{- if .Values.ingress.enabled }}
+
+Ingress hosts:
+{{- if .Values.ingress.api.host }}
+  API:      https://{{ .Values.ingress.api.host }}{{ .Values.ingress.api.path }}
+{{- end }}
+{{- if and .Values.explorer.enabled .Values.ingress.explorer.host }}
+  Explorer: https://{{ .Values.ingress.explorer.host }}{{ .Values.ingress.explorer.path }}
+{{- end }}
+{{- end }}
+
+{{- if .Values.api.migrationJob.enabled }}
+
+A pre-install/pre-upgrade Job (services/api/src/bin/migrate.ts) applies schema
+migrations before the API Deployment rolls out. If it fails, the release
+fails before any API pod is replaced -- check its logs with:
+
+  kubectl logs -n {{ .Release.Namespace }} job/{{ include "act.fullname" . }}-migrate-{{ .Release.Revision }}
+{{- end }}
+
+Check readiness (verifies real connectivity to the configured storage backend):
+
+  kubectl exec -n {{ .Release.Namespace }} deploy/{{ include "act.fullname" . }}-api -- \
+    node -e "fetch('http://127.0.0.1:{{ .Values.api.port }}/v1/health/ready').then(r=>r.text()).then(console.log)"
+
+See docs/deployment.md for the full environment/configuration reference.

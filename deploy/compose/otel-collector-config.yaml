@@ -1,0 +1,26 @@
+# Scrapes services/api's real GET /v1/metrics endpoint (Prometheus text
+# exposition format; see services/api/src/routes/health.ts) and writes
+# what it collected to the collector's own stdout via the `debug`
+# exporter. This is a genuinely functioning, if minimal, pipeline -- not a
+# placeholder container with nothing feeding it. A production deployment
+# would swap the `debug` exporter for `otlphttp`/`prometheusremotewrite`
+# pointed at a real backend (see docs/deployment.md).
+receivers:
+  prometheus:
+    config:
+      scrape_configs:
+        - job_name: act-api
+          scrape_interval: 15s
+          static_configs:
+            - targets: ['api:4000']
+          metrics_path: /v1/metrics
+
+exporters:
+  debug:
+    verbosity: basic
+
+service:
+  pipelines:
+    metrics:
+      receivers: [prometheus]
+      exporters: [debug]

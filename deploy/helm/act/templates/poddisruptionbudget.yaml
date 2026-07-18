@@ -1,0 +1,31 @@
+{{- if .Values.api.podDisruptionBudget.enabled }}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "act.fullname" . }}-api
+  labels:
+    {{- include "act.labels" . | nindent 4 }}
+    app.kubernetes.io/component: api
+spec:
+  minAvailable: {{ .Values.api.podDisruptionBudget.minAvailable }}
+  selector:
+    matchLabels:
+      {{- include "act.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: api
+{{- end }}
+{{- if and .Values.explorer.enabled .Values.explorer.podDisruptionBudget.enabled }}
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "act.fullname" . }}-explorer
+  labels:
+    {{- include "act.labels" . | nindent 4 }}
+    app.kubernetes.io/component: explorer
+spec:
+  minAvailable: {{ .Values.explorer.podDisruptionBudget.minAvailable }}
+  selector:
+    matchLabels:
+      {{- include "act.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: explorer
+{{- end }}

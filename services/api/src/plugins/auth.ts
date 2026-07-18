@@ -44,7 +44,12 @@ const authPlugin: FastifyPluginAsync<AuthPluginOptions> = async (fastify, option
   fastify.decorateRequest('callerActorId', '');
 
   fastify.addHook('onRequest', async (request) => {
-    if (request.url.startsWith('/v1/health') || request.url === '/v1/schemas') return;
+    if (
+      request.url.startsWith('/v1/health') ||
+      request.url === '/v1/schemas' ||
+      request.url === '/v1/metrics'
+    )
+      return;
 
     const header = request.headers.authorization;
     if (!header?.startsWith('Bearer ')) {

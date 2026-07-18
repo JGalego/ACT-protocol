@@ -1,0 +1,54 @@
+{{- if .Values.explorer.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "act.fullname" . }}-explorer
+  labels:
+    {{- include "act.labels" . | nindent 4 }}
+    app.kubernetes.io/component: explorer
+spec:
+  replicas: {{ .Values.explorer.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "act.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: explorer
+  template:
+    metadata:
+      labels:
+        {{- include "act.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: explorer
+    spec:
+      serviceAccountName: {{ include "act.serviceAccountName" . }}
+      automountServiceAccountToken: false
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: explorer
+          image: '{{ .Values.explorer.image.repository }}:{{ .Values.explorer.image.tag }}'
+          imagePullPolicy: {{ .Values.explorer.image.pullPolicy }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.explorer.port }}
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+          resources:
+            {{- toYaml .Values.explorer.resources | nindent 12 }}
+          volumeMounts:
+            - name: nginx-cache
+              mountPath: /var/cache/nginx
+            - name: nginx-run
+              mountPath: /var/run
+      volumes:
+        - name: nginx-cache
+          emptyDir: {}
+        - name: nginx-run
+          emptyDir: {}
+{{- end }}

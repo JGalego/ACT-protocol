@@ -1,6 +1,6 @@
-.PHONY: install verify verify-integration verify-formal verify-python-sdk lint format typecheck \
-	test test-coverage test-e2e schemas-validate conformance build clean dev explorer doctor \
-	python-sdk-install python-sdk-lint python-sdk-typecheck python-sdk-test
+.PHONY: install verify verify-integration verify-formal verify-python-sdk verify-deploy lint format \
+	typecheck test test-coverage test-e2e schemas-validate conformance build clean dev explorer \
+	doctor python-sdk-install python-sdk-lint python-sdk-typecheck python-sdk-test
 
 SHELL := /bin/bash
 
@@ -42,14 +42,15 @@ test-e2e:
 ## make verify-integration: additional checks that require Docker
 ## (PostgreSQL adapter parity, container builds). Requires: Docker Engine
 ## with Compose v2. See docs/deployment.md#prerequisites.
-verify-integration:
+verify-integration: build
 	@command -v docker >/dev/null 2>&1 || { \
 		echo "verify-integration: docker is required and was not found on PATH."; \
 		echo "Install Docker Engine + Compose v2, then re-run: make verify-integration"; \
 		exit 1; \
 	}
 	docker compose -f deploy/compose/docker-compose.test.yml up -d --wait
-	pnpm run test:integration || (docker compose -f deploy/compose/docker-compose.test.yml down -v && exit 1)
+	ACT_DATABASE_URL=postgres://act:act-test-only@127.0.0.1:55432/act_ledger_test pnpm run test:integration \
+		|| (docker compose -f deploy/compose/docker-compose.test.yml down -v && exit 1)
 	docker compose -f deploy/compose/docker-compose.test.yml down -v
 	@echo "make verify-integration: OK"
 
@@ -94,6 +95,40 @@ python-sdk-typecheck:
 
 python-sdk-test:
 	cd sdks/python && .venv/bin/pytest -q --cov=act_sdk --cov-report=term-missing
+
+## make verify-deploy: static validation of deploy/ -- no Docker daemon or
+## live Kubernetes cluster required. `helm lint`/`helm template` prove the
+## chart renders to schema-valid manifests for several representative
+## values combinations; hadolint and kubeconform run too if present on
+## PATH (both do in CI; see ci.yml), giving Dockerfile best-practice
+## linting and full Kubernetes OpenAPI schema validation, not just "did it
+## render". Never builds an image or talks to a cluster.
+verify-deploy:
+	@command -v helm >/dev/null 2>&1 || { \
+		echo "verify-deploy: helm is required and was not found on PATH."; \
+		exit 1; \
+	}
+	helm lint deploy/helm/act \
+		--set api.oidc.issuer=https://idp.example.test \
+		--set api.database.connectionString=postgres://user:pass@host:5432/db
+	@tmp=$$(mktemp --suffix=.yaml); \
+	helm template act deploy/helm/act \
+		--set api.oidc.issuer=https://idp.example.test \
+		--set api.database.connectionString=postgres://user:pass@host:5432/db \
+		--set ingress.enabled=true --set ingress.api.host=api.example.test --set ingress.explorer.host=explorer.example.test \
+		> "$$tmp" && \
+	if command -v kubeconform >/dev/null 2>&1; then \
+		kubeconform -strict -summary "$$tmp"; \
+	else \
+		echo "verify-deploy: kubeconform not found on PATH, skipping schema validation (chart still rendered)"; \
+	fi; \
+	rm -f "$$tmp"
+	@if command -v hadolint >/dev/null 2>&1; then \
+		hadolint --failure-threshold warning deploy/docker/api.Dockerfile deploy/docker/explorer.Dockerfile; \
+	else \
+		echo "verify-deploy: hadolint not found on PATH, skipping Dockerfile lint"; \
+	fi
+	@echo "make verify-deploy: OK"
 
 build:
 	pnpm run build

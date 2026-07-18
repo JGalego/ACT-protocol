@@ -1,0 +1,18 @@
+{{- if .Values.explorer.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "act.fullname" . }}-explorer
+  labels:
+    {{- include "act.labels" . | nindent 4 }}
+    app.kubernetes.io/component: explorer
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: {{ .Values.explorer.port }}
+      targetPort: http
+  selector:
+    {{- include "act.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: explorer
+{{- end }}

@@ -115,6 +115,8 @@ sdks/
                   packages/crypto, verified against conformance/vectors/
 conformance/      Frozen cross-SDK vectors and the profile-aware
                   conformance report generator (spec/conformance.md)
+deploy/           Dockerfiles, a full Docker Compose stack, and a Helm
+                  chart with secure defaults (docs/deployment.md)
 docs/             Guides, threat model, versioning, roadmap, ADRs
 ```
 
@@ -240,16 +242,17 @@ sequenceDiagram
 - Real peer-to-peer federation transport between independently-hosted ledgers, with informational fork detection and adversarial equivocation detection (`services/api/src/routes/federation.ts`, `spec/federation.md`)
 - A machine-checked formal model: seven TLA+ modules matching every state machine in `spec/state-machines.md`, verified with a real TLC run (`formal/`, `make verify-formal`)
 - Production OIDC/JWT bearer-token validation (JWKS signature/issuer/audience/expiry checks via `jose`), backed by a deterministic local OIDC provider for offline testing (`services/api/src/oidc/`, ADR 0006)
-- A profile-aware conformance report generator over frozen, generated vectors -- Core, Cryptographic Integrity, and Federation profiles CLAIMED (`conformance/`, `spec/conformance.md`)
+- A profile-aware conformance report generator over frozen, generated vectors, verified bidirectionally between SDKs -- Core, Cryptographic Integrity, Federation, and SDK profiles CLAIMED (`conformance/`, `spec/conformance.md`)
 - TypeScript and Python SDKs (`packages/sdk-typescript`, `sdks/python`), both checked against the same `conformance/vectors/` so they can never silently drift from each other
-- A working `/v1` API slice with OpenAPI 3.1 and RFC 9457 errors (`services/api`)
+- A working `/v1` API slice with OpenAPI 3.1 and RFC 9457 errors, including event search/filter, a challenges list, and artifact version-diff (`services/api`)
 - The `act` CLI against a local embedded workspace (`apps/cli`)
-- An animated ACT Explorer demonstration with playback, timeline scrubbing, evidence inspection, intent-drift visualization, and an optional live `/v1/events` data source (`apps/explorer`)
-- 374 unit/integration tests (331 TypeScript, 43 Python) plus 6 desktop/mobile browser tests, `make verify` green from a clean checkout, zero known dependency vulnerabilities (`docs/dependency-audit.md`)
+- An animated ACT Explorer demonstration with playback, timeline scrubbing, evidence inspection, intent-drift visualization, a repository-wide Confidence Heatmap view, and an optional live `/v1/events` data source (`apps/explorer`)
+- Hardened non-root Dockerfiles, a full Docker Compose stack (API + PostgreSQL + Explorer + a real OpenTelemetry Collector + the local OIDC dev provider), and a Helm chart with secure defaults, `NetworkPolicy`, `PodDisruptionBudget`, and a pre-install migration Job (`deploy/`, `docs/deployment.md`)
+- 399 unit/integration tests (354 TypeScript, 45 Python) plus 7 desktop/mobile browser tests, `make verify` green from a clean checkout, zero known dependency vulnerabilities (`docs/dependency-audit.md`)
 
 ## What's Deferred
 
-Go and Rust SDKs, the full operational ACT Explorer conformance profile beyond the implemented animated lineage demo, Docker/Helm deployment manifests, organizational admission control for key registration, and five additional seeded example applications. Every item is listed with rationale and a concrete starting point in [`docs/roadmap.md`](docs/roadmap.md).
+Go and Rust SDKs, the full operational ACT Explorer conformance profile beyond the implemented animated lineage demo and Confidence Heatmap view, a dedicated demo-data seed script, organizational admission control for key registration, and five additional seeded example applications. Every item is listed with rationale and a concrete starting point in [`docs/roadmap.md`](docs/roadmap.md).
 
 ## Documentation
 

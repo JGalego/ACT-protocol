@@ -1,0 +1,61 @@
+{{- if .Values.networkPolicy.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "act.fullname" . }}-api
+  labels:
+    {{- include "act.labels" . | nindent 4 }}
+    app.kubernetes.io/component: api
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "act.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: api
+  policyTypes: ['Ingress', 'Egress']
+  ingress:
+    - from:
+        - podSelector: {} # any pod in this namespace (explorer, an ingress controller's proxy, etc.)
+      ports:
+        - port: {{ .Values.api.port }}
+    {{- with .Values.networkPolicy.extraIngress }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  egress:
+    - to:
+        - namespaceSelector: {} # DNS resolution; kube-dns/coredns runs in kube-system
+      ports:
+        - port: 53
+          protocol: UDP
+        - port: 53
+          protocol: TCP
+    - {} # Postgres and the OIDC issuer are frequently outside the cluster (managed DB, external IdP); tighten this `to` selector for your environment once those endpoints are known.
+---
+{{- if .Values.explorer.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "act.fullname" . }}-explorer
+  labels:
+    {{- include "act.labels" . | nindent 4 }}
+    app.kubernetes.io/component: explorer
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "act.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: explorer
+  policyTypes: ['Ingress', 'Egress']
+  ingress:
+    - from:
+        - podSelector: {}
+      ports:
+        - port: {{ .Values.explorer.port }}
+  egress:
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - port: 53
+          protocol: UDP
+        - port: 53
+          protocol: TCP
+{{- end }}
+{{- end }}
