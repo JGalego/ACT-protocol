@@ -36,6 +36,8 @@ export interface AppendOptions {
   allowPartialImport?: boolean;
   /** Idempotency key for duplicate-submission detection independent of event content. */
   idempotencyKey?: string;
+  /** Federation import only: the exporting ledger's own receipt, preserved verbatim per spec/federation.md section 3. */
+  sourceReceipt?: LedgerReceipt;
 }
 
 export interface AppendResult {

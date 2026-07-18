@@ -6,7 +6,7 @@ const challengeRoutes: FastifyPluginAsync<{ ctx: LedgerContext }> = async (fasti
   fastify.post('/v1/challenges', async (request, reply) => {
     const envelope = parseSignedEnvelope(request.body);
     validateArtifactTypePayload(envelope.payload.payload, 'challenge');
-    const result = submitEnvelope(ctx.ledger, ctx.keyRegistry, envelope, {
+    const result = await submitEnvelope(ctx.ledger, ctx.keyRegistry, envelope, {
       allowedEventTypes: ['challenge_raised', 'challenge_resolved'],
       allowedSubjectKinds: ['attestation'],
     });

@@ -53,13 +53,18 @@ const bundleRoutes: FastifyPluginAsync<{ ctx: LedgerContext }> = async (fastify,
     const { artifactIds } = (request.body as { artifactIds?: string[] }) ?? {};
     const events =
       artifactIds && artifactIds.length > 0
-        ? artifactIds.flatMap((id) => ctx.ledger.listEventsForArtifact(id))
-        : ctx.ledger.listEvents(10_000);
+        ? (await Promise.all(artifactIds.map((id) => ctx.ledger.listEventsForArtifact(id)))).flat()
+        : await ctx.ledger.listEvents(10_000);
 
-    const bundleEvents: BundleEvent[] = events.map((e) => ({
-      signed_envelope: e.envelope as unknown as Record<string, unknown>,
-      source_receipt: ctx.ledger.getReceipt(e.sequence) as unknown as Record<string, unknown>,
-    }));
+    const bundleEvents: BundleEvent[] = await Promise.all(
+      events.map(async (e) => ({
+        signed_envelope: e.envelope as unknown as Record<string, unknown>,
+        source_receipt: (await ctx.ledger.getReceipt(e.sequence)) as unknown as Record<
+          string,
+          unknown
+        >,
+      })),
+    );
 
     const bundleBody = {
       source_ledger_id: ctx.ledgerId,
@@ -100,14 +105,14 @@ const bundleRoutes: FastifyPluginAsync<{ ctx: LedgerContext }> = async (fastify,
       try {
         const envelope = item.signed_envelope as any;
         tryBootstrapKeyFromEvent(ctx, envelope);
-        const result = ctx.ledger.appendEvent(envelope, {
+        const result = await ctx.ledger.appendEvent(envelope, {
           publicKeys: ctx.keyRegistry.publicKeysByKeyId(),
           allowPartialImport: true,
         });
         if (result.duplicate) duplicate++;
         else accepted++;
       } catch (err) {
-        ctx.ledger.quarantine(
+        await ctx.ledger.quarantine(
           err instanceof Error ? err.message : 'unknown import failure',
           item.signed_envelope as any,
         );
@@ -120,7 +125,7 @@ const bundleRoutes: FastifyPluginAsync<{ ctx: LedgerContext }> = async (fastify,
     return { accepted, duplicate, quarantined };
   });
 
-  fastify.get('/v1/quarantine', async () => ({ items: ctx.ledger.listQuarantine() }));
+  fastify.get('/v1/quarantine', async () => ({ items: await ctx.ledger.listQuarantine() }));
 };
 
 export default bundleRoutes;

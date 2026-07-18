@@ -20,7 +20,7 @@ const actorRoutes: FastifyPluginAsync<{ ctx: LedgerContext }> = async (fastify, 
       );
     }
 
-    const result = submitEnvelope(ctx.ledger, ctx.keyRegistry, envelope, {
+    const result = await submitEnvelope(ctx.ledger, ctx.keyRegistry, envelope, {
       allowedEventTypes: ['genesis', 'actor_registered'],
       allowedSubjectKinds: ['artifact'],
     });

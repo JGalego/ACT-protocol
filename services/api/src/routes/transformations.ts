@@ -10,7 +10,7 @@ const transformationRoutes: FastifyPluginAsync<{ ctx: LedgerContext }> = async (
   fastify.post('/v1/transformations', async (request, reply) => {
     const envelope = parseSignedEnvelope(request.body);
     validateAgainstSchemaId(envelope.payload.payload, SCHEMA_IDS.transformation, 'transformation');
-    const result = submitEnvelope(ctx.ledger, ctx.keyRegistry, envelope, {
+    const result = await submitEnvelope(ctx.ledger, ctx.keyRegistry, envelope, {
       allowedEventTypes: ['transformation_recorded'],
       allowedSubjectKinds: ['transformation'],
     });

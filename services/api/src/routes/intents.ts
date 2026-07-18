@@ -6,7 +6,7 @@ const intentRoutes: FastifyPluginAsync<{ ctx: LedgerContext }> = async (fastify,
   fastify.post('/v1/intents', async (request, reply) => {
     const envelope = parseSignedEnvelope(request.body);
     validateArtifactTypePayload(envelope.payload.payload, 'intent');
-    const result = submitEnvelope(ctx.ledger, ctx.keyRegistry, envelope, {
+    const result = await submitEnvelope(ctx.ledger, ctx.keyRegistry, envelope, {
       allowedEventTypes: [
         'genesis',
         'artifact_revised',

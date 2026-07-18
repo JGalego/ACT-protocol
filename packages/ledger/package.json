@@ -25,11 +25,14 @@
   "dependencies": {
     "@act/core": "workspace:*",
     "@act/crypto": "workspace:*",
-    "better-sqlite3": "^11.7.0"
+    "better-sqlite3": "^11.7.0",
+    "pg": "^8.22.0"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.12",
+    "@types/pg": "^8.20.0",
     "@vitest/coverage-v8": "^3.2.6",
+    "embedded-postgres": "18.4.0-beta.17",
     "typescript": "^5.7.2",
     "vitest": "^3.2.6"
   }

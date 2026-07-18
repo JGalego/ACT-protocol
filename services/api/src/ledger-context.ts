@@ -1,5 +1,11 @@
 import { generateKeyPair } from '@act/crypto';
-import { Ledger, openSqliteStore, type TrustPolicy } from '@act/ledger';
+import {
+  Ledger,
+  SqliteAdapter,
+  PostgresAdapter,
+  type StorageAdapter,
+  type TrustPolicy,
+} from '@act/ledger';
 import { generateId } from '@act/core';
 
 export interface RegisteredKey {
@@ -51,9 +57,23 @@ export interface LedgerContext {
   ledgerSigner: { keyId: string; publicKey: string; privateKey: string };
 }
 
-/** Builds a fully wired ledger context: a fresh signing key, an empty key registry, and a SQLite-backed ledger. */
-export function createLedgerContext(dbPath: string): LedgerContext {
-  const db = openSqliteStore(dbPath);
+export interface CreateLedgerContextOptions {
+  /** Explicit storage adapter (tests may pass one already open/migrated). Overrides dbPath/connectionString. */
+  adapter?: StorageAdapter;
+  /** Set via ACT_STORAGE=postgres to select PostgresAdapter instead of SQLite. */
+  storage?: 'sqlite' | 'postgres';
+  /** Required when storage === 'postgres'; defaults to process.env.ACT_DATABASE_URL. */
+  connectionString?: string;
+}
+
+/** Builds a fully wired ledger context: a fresh signing key, an empty key registry, and a migrated storage adapter. */
+export async function createLedgerContext(
+  dbPath: string,
+  options: CreateLedgerContextOptions = {},
+): Promise<LedgerContext> {
+  const adapter = options.adapter ?? (await openConfiguredAdapter(dbPath, options));
+  await adapter.migrate();
+
   const ledgerId = generateId();
   const signerKeyPair = generateKeyPair();
   const keyRegistry = new KeyRegistry();
@@ -64,9 +84,27 @@ export function createLedgerContext(dbPath: string): LedgerContext {
   };
   const ledger = new Ledger({
     ledgerId,
-    db,
+    adapter,
     signer: ledgerSigner,
     trustPolicy: keyRegistry,
   });
   return { ledger, keyRegistry, ledgerId, ledgerSigner };
+}
+
+async function openConfiguredAdapter(
+  dbPath: string,
+  options: CreateLedgerContextOptions,
+): Promise<StorageAdapter> {
+  const storage =
+    options.storage ?? (process.env.ACT_STORAGE as 'sqlite' | 'postgres' | undefined) ?? 'sqlite';
+  if (storage === 'postgres') {
+    const connectionString = options.connectionString ?? process.env.ACT_DATABASE_URL;
+    if (!connectionString) {
+      throw new Error(
+        'ACT_STORAGE=postgres requires a connection string via ACT_DATABASE_URL or options.connectionString',
+      );
+    }
+    return new PostgresAdapter(connectionString);
+  }
+  return SqliteAdapter.open(dbPath);
 }

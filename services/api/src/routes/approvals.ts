@@ -6,7 +6,7 @@ const approvalRoutes: FastifyPluginAsync<{ ctx: LedgerContext }> = async (fastif
   fastify.post('/v1/approval-requests', async (request, reply) => {
     const envelope = parseSignedEnvelope(request.body);
     validateArtifactTypePayload(envelope.payload.payload, 'approval-request');
-    const result = submitEnvelope(ctx.ledger, ctx.keyRegistry, envelope, {
+    const result = await submitEnvelope(ctx.ledger, ctx.keyRegistry, envelope, {
       allowedEventTypes: ['approval_requested'],
       allowedSubjectKinds: ['attestation'],
     });
@@ -16,7 +16,7 @@ const approvalRoutes: FastifyPluginAsync<{ ctx: LedgerContext }> = async (fastif
   fastify.post('/v1/approval-decisions', async (request, reply) => {
     const envelope = parseSignedEnvelope(request.body);
     validateArtifactTypePayload(envelope.payload.payload, 'approval-decision');
-    const result = submitEnvelope(ctx.ledger, ctx.keyRegistry, envelope, {
+    const result = await submitEnvelope(ctx.ledger, ctx.keyRegistry, envelope, {
       allowedEventTypes: [
         'approval_decided',
         'approval_cancelled',
@@ -30,7 +30,7 @@ const approvalRoutes: FastifyPluginAsync<{ ctx: LedgerContext }> = async (fastif
 
   fastify.get('/v1/approvals/:id', async (request) => {
     const { id } = request.params as { id: string };
-    const event = ctx.ledger.getEvent(id);
+    const event = await ctx.ledger.getEvent(id);
     return { event };
   });
 };

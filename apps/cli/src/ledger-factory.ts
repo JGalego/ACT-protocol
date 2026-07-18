@@ -1,8 +1,9 @@
-import { Ledger, openSqliteStore, type TrustPolicy } from '@act/ledger';
+import { Ledger, SqliteAdapter, type TrustPolicy } from '@act/ledger';
 import { loadTrustedKeys, type Workspace } from './workspace.js';
 
-export function openWorkspaceLedger(workspace: Workspace): Ledger {
-  const db = openSqliteStore(workspace.dbPath);
+export async function openWorkspaceLedger(workspace: Workspace): Promise<Ledger> {
+  const adapter = SqliteAdapter.open(workspace.dbPath);
+  await adapter.migrate();
   // Re-reads trusted-keys.json on every check (rather than a snapshot taken
   // once at construction) so that a key trusted mid-import -- e.g. via a Key
   // artifact event's own proof-of-possession bootstrap -- is honored by the
@@ -12,7 +13,7 @@ export function openWorkspaceLedger(workspace: Workspace): Ledger {
   };
   return new Ledger({
     ledgerId: workspace.config.ledgerId,
-    db,
+    adapter,
     signer: {
       keyId: workspace.config.keyId,
       publicKey: workspace.config.publicKey,

@@ -28,7 +28,7 @@ Production runtime dependencies (i.e. what actually ships, excluding `devDepende
 | --- | --- |
 | `packages/core` | `ajv`, `uuid` |
 | `packages/crypto` | `@act/core` (Node's built-in `node:crypto` provides Ed25519; no external crypto library) |
-| `packages/ledger` | `@act/core`, `@act/crypto`, `better-sqlite3` |
+| `packages/ledger` | `@act/core`, `@act/crypto`, `better-sqlite3`, `pg` (PostgreSQL adapter, ADR 0008) |
 | `packages/policy` | `@act/core` |
 | `packages/verification` | `@act/core`, `@act/crypto`, `@act/ledger`, `@act/policy` |
 | `packages/sdk-typescript` | `@act/core`, `@act/crypto` (uses the global `fetch`; no HTTP client library) |

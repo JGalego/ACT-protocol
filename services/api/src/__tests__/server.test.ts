@@ -17,7 +17,7 @@ import {
 } from './helpers.js';
 
 async function makeServer(): Promise<FastifyInstance> {
-  return buildServer({ devMode: true, ledgerContext: createLedgerContext(':memory:') });
+  return buildServer({ devMode: true, ledgerContext: await createLedgerContext(':memory:') });
 }
 
 async function registerActor(server: FastifyInstance, displayName = 'Test Actor') {
@@ -313,7 +313,7 @@ describe('ACT API service', () => {
       buildServer({
         devMode: false,
         nodeEnv: 'production',
-        ledgerContext: createLedgerContext(':memory:'),
+        ledgerContext: await createLedgerContext(':memory:'),
       }),
     ).rejects.toThrow();
   });

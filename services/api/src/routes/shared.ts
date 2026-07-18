@@ -55,7 +55,7 @@ export function validateAgainstSchemaId(
   }
 }
 
-export function submitEnvelope(
+export async function submitEnvelope(
   ledger: Ledger,
   keyRegistry: KeyRegistry,
   envelope: SignedEnvelope,
@@ -79,7 +79,7 @@ export function submitEnvelope(
   }
 
   const publicKeys = keyRegistry.publicKeysByKeyId();
-  const result = ledger.appendEvent(envelope, {
+  const result = await ledger.appendEvent(envelope, {
     publicKeys,
     allowPartialImport: options.allowPartialImport ?? false,
   });

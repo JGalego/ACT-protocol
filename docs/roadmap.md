@@ -2,10 +2,6 @@
 
 This document is the single consolidated list of what `PROMPT.md` specifies that this release does **not** implement, why, and what implementing it next would require. See `docs/adr/0001-phase-1-scope-and-deferred-work.md` for the reasoning behind scoping this release as a vertical slice rather than a shallow pass over everything. Nothing on this list is claimed as done anywhere else in this repository; if you find a doc or comment that implies otherwise, it is a defect — please file an issue.
 
-## Storage
-
-- **PostgreSQL adapter.** `packages/ledger`'s `Ledger` class is written storage-neutrally (ADR 0004) but only a SQLite adapter (`sqlite-store.ts`) exists. Next step: extract a `StorageAdapter` interface from `Ledger`'s current direct `better-sqlite3` usage, add a `pg`-backed implementation, and run `packages/ledger`'s full test suite against both.
-
 ## Federation
 
 - **Multi-ledger network transport.** `POST /v1/bundles/export` and `/import` work against a single ledger's own store (proven by `services/api`'s and `apps/cli`'s test suites). Actually moving a bundle between two independently-hosted ledger deployments over a network, and the associated peer-discovery/authentication story, is not built.

@@ -70,7 +70,7 @@ export function actionInit(cwd: string): ActionResult {
   };
 }
 
-export function actionDoctor(cwd: string): ActionResult {
+export async function actionDoctor(cwd: string): Promise<ActionResult> {
   const checks: { name: string; ok: boolean; detail: string }[] = [];
   checks.push({ name: 'node-version', ok: true, detail: process.version });
   let workspace: Workspace | undefined;
@@ -86,8 +86,8 @@ export function actionDoctor(cwd: string): ActionResult {
   }
   if (workspace) {
     try {
-      const ledger = openWorkspaceLedger(workspace);
-      const events = ledger.listEvents(1);
+      const ledger = await openWorkspaceLedger(workspace);
+      const events = await ledger.listEvents(1);
       checks.push({
         name: 'ledger-readable',
         ok: true,
@@ -120,9 +120,13 @@ export function actionKeyTrust(cwd: string, keyId: string, publicKey: string): A
   return { ok: true, data: { keyId } };
 }
 
-export function actionIntentCreate(cwd: string, statement: string, scope: string): ActionResult {
+export async function actionIntentCreate(
+  cwd: string,
+  statement: string,
+  scope: string,
+): Promise<ActionResult> {
   const workspace = loadWorkspace(cwd);
-  const ledger = openWorkspaceLedger(workspace);
+  const ledger = await openWorkspaceLedger(workspace);
   const artifact = buildArtifactEnvelope(workspace, 'Intent', { statement, scope });
   const event = buildUnsignedEvent({
     eventType: 'genesis',
@@ -143,7 +147,9 @@ export function actionIntentCreate(cwd: string, statement: string, scope: string
       privateKey: workspace.privateKey,
     },
   ]);
-  const result = ledger.appendEvent(envelope, { publicKeys: workspacePublicKeys(workspace) });
+  const result = await ledger.appendEvent(envelope, {
+    publicKeys: workspacePublicKeys(workspace),
+  });
   return {
     ok: true,
     data: {
@@ -155,17 +161,17 @@ export function actionIntentCreate(cwd: string, statement: string, scope: string
   };
 }
 
-export function actionVerify(cwd: string): ActionResult {
+export async function actionVerify(cwd: string): Promise<ActionResult> {
   const workspace = loadWorkspace(cwd);
-  const ledger = openWorkspaceLedger(workspace);
+  const ledger = await openWorkspaceLedger(workspace);
   const publicKeys = workspacePublicKeys(workspace);
-  const events = ledger.listEvents(100_000);
+  const events = await ledger.listEvents(100_000);
 
   const findings = events.flatMap((e) => verifyEventIntegrity(e.envelope, publicKeys));
 
-  const receipts = events
-    .map((e) => ledger.getReceipt(e.sequence))
-    .filter((r): r is NonNullable<typeof r> => r !== null);
+  const receipts = (await Promise.all(events.map((e) => ledger.getReceipt(e.sequence)))).filter(
+    (r): r is NonNullable<typeof r> => r !== null,
+  );
   const chainFindings = verifyReceiptChain(receipts, workspace.config.publicKey);
 
   const allFindings = [...findings, ...chainFindings];
@@ -175,33 +181,46 @@ export function actionVerify(cwd: string): ActionResult {
   };
 }
 
-export function actionLineage(cwd: string, eventId: string, maxDepth?: number): ActionResult {
+export async function actionLineage(
+  cwd: string,
+  eventId: string,
+  maxDepth?: number,
+): Promise<ActionResult> {
   const workspace = loadWorkspace(cwd);
-  const ledger = openWorkspaceLedger(workspace);
-  if (!ledger.getEvent(eventId)) {
+  const ledger = await openWorkspaceLedger(workspace);
+  if (!(await ledger.getEvent(eventId))) {
     return { ok: false, data: { error: `No event found with id ${eventId}` } };
   }
-  return { ok: true, data: ledger.getLineage(eventId, maxDepth) };
+  return { ok: true, data: await ledger.getLineage(eventId, maxDepth) };
 }
 
-export function actionHistory(cwd: string, artifactId: string): ActionResult {
+export async function actionHistory(cwd: string, artifactId: string): Promise<ActionResult> {
   const workspace = loadWorkspace(cwd);
-  const ledger = openWorkspaceLedger(workspace);
-  return { ok: true, data: { artifactId, items: ledger.listEventsForArtifact(artifactId) } };
+  const ledger = await openWorkspaceLedger(workspace);
+  return {
+    ok: true,
+    data: { artifactId, items: await ledger.listEventsForArtifact(artifactId) },
+  };
 }
 
-export function actionExport(cwd: string, outFile: string, artifactIds?: string[]): ActionResult {
+export async function actionExport(
+  cwd: string,
+  outFile: string,
+  artifactIds?: string[],
+): Promise<ActionResult> {
   const workspace = loadWorkspace(cwd);
-  const ledger = openWorkspaceLedger(workspace);
+  const ledger = await openWorkspaceLedger(workspace);
   const events =
     artifactIds && artifactIds.length > 0
-      ? artifactIds.flatMap((id) => ledger.listEventsForArtifact(id))
-      : ledger.listEvents(1_000_000);
+      ? (await Promise.all(artifactIds.map((id) => ledger.listEventsForArtifact(id)))).flat()
+      : await ledger.listEvents(1_000_000);
 
-  const bundleEvents = events.map((e) => ({
-    signed_envelope: e.envelope,
-    source_receipt: ledger.getReceipt(e.sequence),
-  }));
+  const bundleEvents = await Promise.all(
+    events.map(async (e) => ({
+      signed_envelope: e.envelope,
+      source_receipt: await ledger.getReceipt(e.sequence),
+    })),
+  );
   const bundleBody = {
     source_ledger_id: workspace.config.ledgerId,
     exported_at: new Date().toISOString(),
@@ -224,9 +243,9 @@ export function actionExport(cwd: string, outFile: string, artifactIds?: string[
   return { ok: true, data: { outFile, eventCount: events.length } };
 }
 
-export function actionImport(cwd: string, inFile: string): ActionResult {
+export async function actionImport(cwd: string, inFile: string): Promise<ActionResult> {
   const workspace = loadWorkspace(cwd);
-  const ledger = openWorkspaceLedger(workspace);
+  const ledger = await openWorkspaceLedger(workspace);
   if (!existsSync(inFile)) {
     return { ok: false, data: { error: `No such file: ${inFile}` } };
   }
@@ -257,14 +276,14 @@ export function actionImport(cwd: string, inFile: string): ActionResult {
           trustKey(workspace, keyPayload.data.key_id, keyPayload.data.public_key);
         }
       }
-      const result = ledger.appendEvent(envelope, {
+      const result = await ledger.appendEvent(envelope, {
         publicKeys: workspacePublicKeys(workspace),
         allowPartialImport: true,
       });
       if (result.duplicate) duplicate++;
       else accepted++;
     } catch (err) {
-      ledger.quarantine(
+      await ledger.quarantine(
         err instanceof Error ? err.message : 'unknown import failure',
         item.signed_envelope,
       );
@@ -274,10 +293,10 @@ export function actionImport(cwd: string, inFile: string): ActionResult {
   return { ok: true, data: { accepted, duplicate, quarantined } };
 }
 
-export function actionProjectionRebuild(cwd: string): ActionResult {
+export async function actionProjectionRebuild(cwd: string): Promise<ActionResult> {
   const workspace = loadWorkspace(cwd);
-  const ledger = openWorkspaceLedger(workspace);
-  ledger.rebuildProjections();
+  const ledger = await openWorkspaceLedger(workspace);
+  await ledger.rebuildProjections();
   return { ok: true, data: { rebuilt: true } };
 }
 

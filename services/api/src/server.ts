@@ -62,7 +62,7 @@ export async function buildServer(options: BuildServerOptions = {}): Promise<Fas
 
   const ctx =
     options.ledgerContext ??
-    createLedgerContext(options.dbPath ?? process.env.ACT_DB_PATH ?? './data/act.db');
+    (await createLedgerContext(options.dbPath ?? process.env.ACT_DB_PATH ?? './data/act.db'));
 
   await fastify.register(healthRoutes);
   await fastify.register(schemaRoutes);

@@ -7,15 +7,15 @@ const lineageRoutes: FastifyPluginAsync<{ ctx: LedgerContext }> = async (fastify
   fastify.get('/v1/lineage/:id', async (request) => {
     const { id } = request.params as { id: string };
     const { maxDepth } = request.query as { maxDepth?: string };
-    if (!ctx.ledger.getEvent(id)) throw notFound(`No event found with id ${id}`);
-    const lineage = ctx.ledger.getLineage(id, maxDepth ? Number(maxDepth) : undefined);
+    if (!(await ctx.ledger.getEvent(id))) throw notFound(`No event found with id ${id}`);
+    const lineage = await ctx.ledger.getLineage(id, maxDepth ? Number(maxDepth) : undefined);
     const findings = checkLineageCompleteness(id, lineage);
     return { eventId: id, lineage, findings };
   });
 
   fastify.get('/v1/history/:id', async (request) => {
     const { id } = request.params as { id: string };
-    const items = ctx.ledger.listEventsForArtifact(id);
+    const items = await ctx.ledger.listEventsForArtifact(id);
     return { artifactId: id, items };
   });
 };

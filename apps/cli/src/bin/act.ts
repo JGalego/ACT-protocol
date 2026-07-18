@@ -32,9 +32,9 @@ function emit(result: ActionResult, json: boolean): void {
   if (!result.ok) process.exitCode = 1;
 }
 
-function run(fn: () => ActionResult, json: boolean): void {
+async function run(fn: () => ActionResult | Promise<ActionResult>, json: boolean): Promise<void> {
   try {
-    emit(fn(), json);
+    emit(await fn(), json);
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     if (json) {

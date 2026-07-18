@@ -25,7 +25,7 @@ const artifactRoutes: FastifyPluginAsync<{ ctx: LedgerContext }> = async (fastif
         artifactTypeNameToSlug(artifactPayload.artifact_type),
       );
     }
-    const result = submitEnvelope(ctx.ledger, ctx.keyRegistry, envelope, {
+    const result = await submitEnvelope(ctx.ledger, ctx.keyRegistry, envelope, {
       allowedEventTypes: [
         'genesis',
         'artifact_revised',
@@ -40,15 +40,15 @@ const artifactRoutes: FastifyPluginAsync<{ ctx: LedgerContext }> = async (fastif
 
   fastify.get('/v1/artifacts/:id', async (request) => {
     const { id } = request.params as { id: string };
-    const head = ctx.ledger.getHead(id);
+    const head = await ctx.ledger.getHead(id);
     if (!head) throw notFound(`No artifact found with id ${id}`);
-    const event = ctx.ledger.getEvent(head.eventId);
+    const event = await ctx.ledger.getEvent(head.eventId);
     return { artifactId: id, currentVersionId: head.versionId, event };
   });
 
   fastify.get('/v1/artifacts/:id/versions', async (request) => {
     const { id } = request.params as { id: string };
-    const events = ctx.ledger.listEventsForArtifact(id);
+    const events = await ctx.ledger.listEventsForArtifact(id);
     return { items: events };
   });
 };

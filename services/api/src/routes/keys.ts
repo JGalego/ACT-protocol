@@ -73,7 +73,7 @@ const keyRoutes: FastifyPluginAsync<{ ctx: LedgerContext }> = async (fastify, { 
     });
 
     try {
-      const result = submitEnvelope(ctx.ledger, ctx.keyRegistry, envelope, {
+      const result = await submitEnvelope(ctx.ledger, ctx.keyRegistry, envelope, {
         allowedEventTypes: ['genesis', 'key_issued'],
         allowedSubjectKinds: ['artifact'],
       });

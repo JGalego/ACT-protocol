@@ -55,3 +55,12 @@ export class CycleDetectedError extends LedgerError {
     );
   }
 }
+
+export class StorageConflictError extends LedgerError {
+  constructor() {
+    super(
+      'Concurrent write conflict on ledger sequence/head; retry the append',
+      'storage_conflict',
+    );
+  }
+}

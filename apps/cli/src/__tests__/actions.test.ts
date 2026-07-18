@@ -49,26 +49,26 @@ describe('actionInit', () => {
 });
 
 describe('actionDoctor', () => {
-  it('reports a missing workspace as a failing check', () => {
-    const result = actionDoctor(cwd);
+  it('reports a missing workspace as a failing check', async () => {
+    const result = await actionDoctor(cwd);
     expect(result.ok).toBe(false);
     const checks = (result.data as { checks: { name: string; ok: boolean }[] }).checks;
     expect(checks.find((c) => c.name === 'workspace-config')?.ok).toBe(false);
   });
 
-  it('reports a healthy workspace as all-passing', () => {
+  it('reports a healthy workspace as all-passing', async () => {
     actionInit(cwd);
-    const result = actionDoctor(cwd);
+    const result = await actionDoctor(cwd);
     expect(result.ok).toBe(true);
   });
 
-  it('reports an unreadable ledger as a failing check', () => {
+  it('reports an unreadable ledger as a failing check', async () => {
     actionInit(cwd);
     // Replace the ledger file with a directory so opening it as a SQLite
     // database throws (EISDIR), exercising the doctor's failure path.
     rmSync(path.join(cwd, '.act', 'ledger.db'), { force: true });
     mkdirSync(path.join(cwd, '.act', 'ledger.db'));
-    const result = actionDoctor(cwd);
+    const result = await actionDoctor(cwd);
     expect(result.ok).toBe(false);
     const checks = (result.data as { checks: { name: string; ok: boolean }[] }).checks;
     expect(checks.find((c) => c.name === 'ledger-readable')?.ok).toBe(false);
@@ -104,9 +104,9 @@ describe('actionKeyList / actionKeyTrust', () => {
 });
 
 describe('actionIntentCreate', () => {
-  it('creates a genesis Intent event', () => {
+  it('creates a genesis Intent event', async () => {
     actionInit(cwd);
-    const result = actionIntentCreate(cwd, 'Ship the CLI', 'test-scope');
+    const result = await actionIntentCreate(cwd, 'Ship the CLI', 'test-scope');
     expect(result.ok).toBe(true);
     const data = result.data as { eventId: string; sequence: number };
     expect(data.sequence).toBe(0);
@@ -115,44 +115,44 @@ describe('actionIntentCreate', () => {
 });
 
 describe('actionVerify', () => {
-  it('reports no findings for a healthy freshly-created ledger', () => {
+  it('reports no findings for a healthy freshly-created ledger', async () => {
     actionInit(cwd);
-    actionIntentCreate(cwd, 'Intent A', 'test');
-    const result = actionVerify(cwd);
+    await actionIntentCreate(cwd, 'Intent A', 'test');
+    const result = await actionVerify(cwd);
     expect(result.ok).toBe(true);
     expect((result.data as { findings: unknown[] }).findings).toEqual([]);
   });
 });
 
 describe('actionLineage / actionHistory', () => {
-  it('returns lineage for a known event and an error for an unknown one', () => {
+  it('returns lineage for a known event and an error for an unknown one', async () => {
     actionInit(cwd);
-    const created = actionIntentCreate(cwd, 'Intent A', 'test');
+    const created = await actionIntentCreate(cwd, 'Intent A', 'test');
     const eventId = (created.data as { eventId: string }).eventId;
 
-    const found = actionLineage(cwd, eventId);
+    const found = await actionLineage(cwd, eventId);
     expect(found.ok).toBe(true);
 
-    const notFound = actionLineage(cwd, `sha-256:${'0'.repeat(64)}`);
+    const notFound = await actionLineage(cwd, `sha-256:${'0'.repeat(64)}`);
     expect(notFound.ok).toBe(false);
   });
 
-  it('returns the version history for an artifact', () => {
+  it('returns the version history for an artifact', async () => {
     actionInit(cwd);
-    const created = actionIntentCreate(cwd, 'Intent A', 'test');
+    const created = await actionIntentCreate(cwd, 'Intent A', 'test');
     const artifactId = (created.data as { artifactId: string }).artifactId;
-    const history = actionHistory(cwd, artifactId);
+    const history = await actionHistory(cwd, artifactId);
     expect((history.data as { items: unknown[] }).items).toHaveLength(1);
   });
 });
 
 describe('actionExport / actionImport', () => {
-  it('exports a bundle and imports it into a fresh workspace that trusts the source key', () => {
+  it('exports a bundle and imports it into a fresh workspace that trusts the source key', async () => {
     const init = actionInit(cwd);
     const { keyId, publicKey } = init.data as { keyId: string; publicKey: string };
-    actionIntentCreate(cwd, 'Federated intent', 'test');
+    await actionIntentCreate(cwd, 'Federated intent', 'test');
     const bundleFile = path.join(cwd, 'bundle.json');
-    const exportResult = actionExport(cwd, bundleFile);
+    const exportResult = await actionExport(cwd, bundleFile);
     expect(exportResult.ok).toBe(true);
     expect((exportResult.data as { eventCount: number }).eventCount).toBe(1);
 
@@ -163,7 +163,7 @@ describe('actionExport / actionImport', () => {
       // events from another workspace requires explicitly trusting its
       // key first (act key trust), mirroring real cross-workspace federation.
       actionKeyTrust(secondCwd, keyId, publicKey);
-      const importResult = actionImport(secondCwd, bundleFile);
+      const importResult = await actionImport(secondCwd, bundleFile);
       expect(importResult.ok).toBe(true);
       expect((importResult.data as { accepted: number }).accepted).toBe(1);
     } finally {
@@ -171,16 +171,16 @@ describe('actionExport / actionImport', () => {
     }
   });
 
-  it('quarantines an imported event whose signing key is not trusted', () => {
+  it('quarantines an imported event whose signing key is not trusted', async () => {
     actionInit(cwd);
-    actionIntentCreate(cwd, 'Untrusted-origin intent', 'test');
+    await actionIntentCreate(cwd, 'Untrusted-origin intent', 'test');
     const bundleFile = path.join(cwd, 'bundle.json');
-    actionExport(cwd, bundleFile);
+    await actionExport(cwd, bundleFile);
 
     const secondCwd = mkdtempSync(path.join(os.tmpdir(), 'act-cli-test-3-'));
     try {
       actionInit(secondCwd);
-      const importResult = actionImport(secondCwd, bundleFile);
+      const importResult = await actionImport(secondCwd, bundleFile);
       expect(importResult.ok).toBe(true);
       expect((importResult.data as { accepted: number; quarantined: string[] }).accepted).toBe(0);
       expect((importResult.data as { quarantined: string[] }).quarantined.length).toBe(1);
@@ -189,32 +189,34 @@ describe('actionExport / actionImport', () => {
     }
   });
 
-  it('reports an error for a missing import file', () => {
+  it('reports an error for a missing import file', async () => {
     actionInit(cwd);
-    const result = actionImport(cwd, path.join(cwd, 'does-not-exist.json'));
+    const result = await actionImport(cwd, path.join(cwd, 'does-not-exist.json'));
     expect(result.ok).toBe(false);
   });
 
-  it('reports an error for a bundle that fails its own schema validation', () => {
+  it('reports an error for a bundle that fails its own schema validation', async () => {
     actionInit(cwd);
     const badFile = path.join(cwd, 'bad-bundle.json');
     writeFileSync(badFile, JSON.stringify({ not: 'a bundle' }));
-    const result = actionImport(cwd, badFile);
+    const result = await actionImport(cwd, badFile);
     expect(result.ok).toBe(false);
     expect((result.data as { error: string }).error).toMatch(/schema validation/);
   });
 
-  it('restricts export to specific artifact ids', () => {
+  it('restricts export to specific artifact ids', async () => {
     actionInit(cwd);
-    const a = actionIntentCreate(cwd, 'Intent A', 'test');
-    actionIntentCreate(cwd, 'Intent B', 'test');
+    const a = await actionIntentCreate(cwd, 'Intent A', 'test');
+    await actionIntentCreate(cwd, 'Intent B', 'test');
     const outFile = path.join(cwd, 'scoped-bundle.json');
-    const result = actionExport(cwd, outFile, [(a.data as { artifactId: string }).artifactId]);
+    const result = await actionExport(cwd, outFile, [
+      (a.data as { artifactId: string }).artifactId,
+    ]);
     expect(result.ok).toBe(true);
     expect((result.data as { eventCount: number }).eventCount).toBe(1);
   });
 
-  it('bootstraps trust from a Key artifact event during import', () => {
+  it('bootstraps trust from a Key artifact event during import', async () => {
     actionInit(cwd);
     const remoteKeyPair = generateKeyPair();
     const remoteActorId = generateId();
@@ -306,7 +308,7 @@ describe('actionExport / actionImport', () => {
       }),
     );
 
-    const result = actionImport(cwd, bundleFile);
+    const result = await actionImport(cwd, bundleFile);
     expect(result.ok).toBe(true);
     expect((result.data as { accepted: number }).accepted).toBe(1);
     const trustedKeys = actionKeyList(cwd).data as Record<string, string>;
@@ -315,18 +317,18 @@ describe('actionExport / actionImport', () => {
 });
 
 describe('actionProjectionRebuild', () => {
-  it('rebuilds without error', () => {
+  it('rebuilds without error', async () => {
     actionInit(cwd);
-    actionIntentCreate(cwd, 'Intent A', 'test');
-    const result = actionProjectionRebuild(cwd);
+    await actionIntentCreate(cwd, 'Intent A', 'test');
+    const result = await actionProjectionRebuild(cwd);
     expect(result.ok).toBe(true);
   });
 });
 
 describe('actionBackup / actionRestore', () => {
-  it('backs up and restores the ledger database', () => {
+  it('backs up and restores the ledger database', async () => {
     actionInit(cwd);
-    actionIntentCreate(cwd, 'Intent A', 'test');
+    await actionIntentCreate(cwd, 'Intent A', 'test');
     const backupFile = path.join(cwd, 'backup.db');
     const backupResult = actionBackup(cwd, backupFile);
     expect(backupResult.ok).toBe(true);
