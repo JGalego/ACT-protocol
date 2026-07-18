@@ -115,6 +115,15 @@ export class PostgresAdapter implements StorageAdapter {
 
   constructor(connectionString: string) {
     this.pool = new Pool({ connectionString });
+    // node-postgres emits 'error' on the pool for problems with *idle*
+    // clients (e.g. the server terminating a connection during a restart
+    // or, in tests, embedded-postgres shutting down while an idle
+    // connection still sits in the pool). With no listener, Node's
+    // EventEmitter treats an unhandled 'error' event as fatal. This isn't
+    // a query failure -- in-flight queries still reject normally through
+    // their own promise -- so there is nothing to do here beyond
+    // preventing that crash.
+    this.pool.on('error', () => undefined);
   }
 
   async migrate(): Promise<void> {
