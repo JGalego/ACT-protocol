@@ -1,4 +1,4 @@
-.PHONY: install verify verify-integration lint format typecheck test test-coverage \
+.PHONY: install verify verify-integration verify-formal lint format typecheck test test-coverage \
 	test-e2e schemas-validate build clean dev explorer doctor
 
 SHELL := /bin/bash
@@ -44,6 +44,20 @@ verify-integration:
 	pnpm run test:integration || (docker compose -f deploy/compose/docker-compose.test.yml down -v && exit 1)
 	docker compose -f deploy/compose/docker-compose.test.yml down -v
 	@echo "make verify-integration: OK"
+
+## make verify-formal: downloads a pinned, checksum-verified tla2tools.jar
+## (once) and runs the real TLC model checker against every formal/modules/*.cfg.
+## Requires: Java 17+ and network access on first run (to fetch the jar).
+## Not part of `make verify`: unlike the rest of that target this needs
+## network the first time, so it runs as its own CI job (see ci.yml),
+## the same way Explorer's browser tests are their own job.
+verify-formal:
+	@command -v java >/dev/null 2>&1 || { \
+		echo "verify-formal: java (17+) is required and was not found on PATH."; \
+		exit 1; \
+	}
+	bash scripts/formal/run-tlc.sh
+	@echo "make verify-formal: OK"
 
 build:
 	pnpm run build

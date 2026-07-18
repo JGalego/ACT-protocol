@@ -2,7 +2,7 @@
 
 ## Status
 
-**Deferred in this release** — see `docs/adr/0001-phase-1-scope-and-deferred-work.md` and `docs/roadmap.md`. This document specifies what the eventual machine-checked model must cover and how it plugs into `make verify-integration`, so the work is well-scoped for whoever picks it up.
+**Implemented** — see `formal/README.md` for the seven TLA+ modules, `scripts/formal/run-tlc.sh`/`make verify-formal` for how to run them, and `docs/adr/0001-phase-1-scope-and-deferred-work.md`'s amendment. The rest of this document is kept as the original scoping rationale.
 
 ## What Must Be Modeled
 

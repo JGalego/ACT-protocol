@@ -19,6 +19,8 @@ test-results/
 .turbo/
 .pnpm-store/
 .astro/
+/formal/tools/
+/formal/modules/states/
 /tmp/
 target/
 __pycache__/

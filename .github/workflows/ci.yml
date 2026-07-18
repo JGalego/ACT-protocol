@@ -112,3 +112,17 @@ jobs:
 
       - name: Run responsive and visual Explorer checks
         run: pnpm run test:e2e
+
+  formal:
+    name: Formal model checking (TLC)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Run TLC against every formal/modules/*.cfg
+        run: make verify-formal

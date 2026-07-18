@@ -11,10 +11,6 @@ This document is the single consolidated list of what `PROMPT.md` specifies that
 - **Built foundation:** `apps/explorer` is a working React/Vite/Cytoscape.js application with an animated ten-stage support workflow, graph playback and scrubbing, record/evidence/envelope inspection, confidence and intent-drift telemetry, responsive desktop/mobile layouts, visual baselines, and a live adapter for the authenticated `/v1/events` endpoint. It is covered by Vitest and Playwright rather than being a static mockup.
 - **Remaining full Explorer profile:** repository-wide artifact search, version comparison, approval/challenge mutation workflows, bundle import/export, redaction/partial-history/large-graph operating states, and the remaining dedicated Approval Graph, Responsibility Timeline, Confidence Heatmap, Intent Drift Timeline, Decision Tree, and Evidence Graph views are not yet implemented. The current app demonstrates those concepts within one transformation DAG; it does not claim the `Explorer` conformance profile defined in `spec/conformance.md`.
 
-## Formal Methods
-
-- **Machine-checked formal model** (`formal/`) covering append-only receipt integrity, immutable history, acyclic lineage, approval lifecycle safety, and effective-intent transition safety. The properties themselves are implemented and unit-tested in `packages/ledger` (cycle rejection, receipt chaining) and `packages/policy`/`packages/verification` (approval/authority evaluation); what's missing is an independent TLA+ (or Alloy) model of the same invariants, checked by a model checker in CI, per `spec/state-machines.md`.
-
 ## Deployment
 
 - Dockerfiles, Docker Compose (API + PostgreSQL + Explorer + telemetry + local OIDC dev provider), and the Helm chart under `deploy/` are not built. `services/api` runs directly via `node`/`pnpm` today (`make dev`, documented in the root README).
