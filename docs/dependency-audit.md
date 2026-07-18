@@ -7,7 +7,7 @@ $ pnpm audit
 No known vulnerabilities found
 ```
 
-This was not the starting state. `pnpm audit` initially reported 5 advisories against the transitive `vite` dependency pulled in by `vitest`/`@vitest/coverage-v8` (one critical — an arbitrary file read/execute via Vitest's UI server, which this repository never enables — one high, and three moderate, all `vite` path-traversal/UNC-handling issues). All five were dev-tooling-only: `vite` and `vitest` are `devDependencies` in every workspace package, never included in a package's published `files`, a container image, or any runtime dependency tree, so none of them affected `PROMPT.md`'s bar of "no known critical or high-severity vulnerabilities in shipped runtime dependencies or container images." They were fixed anyway rather than left as an accepted risk:
+This was not the starting state. `pnpm audit` initially reported 5 advisories against the transitive `vite` dependency pulled in by `vitest`/`@vitest/coverage-v8`: one critical (an arbitrary file read/execute via Vitest's UI server, which this repository never enables), one high, and three moderate, all `vite` path-traversal/UNC-handling issues. All five were dev-tooling-only: `vite` and `vitest` are `devDependencies` in every workspace package, never included in a package's published `files`, a container image, or any runtime dependency tree, so none of them affected `PROMPT.md`'s bar of "no known critical or high-severity vulnerabilities in shipped runtime dependencies or container images." They were fixed anyway rather than left as an accepted risk:
 
 1. Upgraded `vitest` and `@vitest/coverage-v8` from `^2.1.8` to `^3.2.6` across the workspace packages that use them, which resolved the critical Vitest-UI advisory (fixed upstream in `vitest@3.2.6`).
 2. Added a `pnpm-workspace.yaml` dependency override (`overrides: { vite: "6.4.3" }`) to force the transitive `vite` dependency past the remaining path-traversal/UNC advisories while staying on the major version supported by the Explorer's React plugin.
@@ -40,7 +40,7 @@ This is a deliberately small runtime surface: no external crypto, canonicalizati
 
 ## SBOM
 
-An automated SBOM generation step (e.g. `syft` or `cyclonedx-npm` wired into CI) is not yet set up in this release — see `docs/roadmap.md`. This document, kept current by hand and re-verified before each release (`docs/release-checklist.md`), is the interim substitute.
+An automated SBOM generation step (e.g. `syft` or `cyclonedx-npm` wired into CI) is not yet set up in this release. See `docs/roadmap.md`. This document, kept current by hand and re-verified before each release (`docs/release-checklist.md`), is the interim substitute.
 
 ## CI Enforcement
 

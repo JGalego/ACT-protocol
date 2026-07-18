@@ -18,7 +18,7 @@ This is the operational checklist `GOVERNANCE.md`'s release process refers to. I
 
 1. Update `CHANGELOG.md` and every workspace `package.json` version.
 2. `git tag -a vX.Y.Z -m "..."` on `main` once the checklist above is green.
-3. Publish workspace packages (`packages/*`, `services/api`, `apps/cli`) to their respective registries once publishing is configured (not yet set up in this release — packages currently install via `workspace:*` only).
+3. Publish workspace packages (`packages/*`, `services/api`, `apps/cli`) to their respective registries once publishing is configured. Not yet set up in this release; packages currently install via `workspace:*` only.
 
 ## After a Release
 

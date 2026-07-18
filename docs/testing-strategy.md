@@ -6,7 +6,7 @@ Per `PROMPT.md`'s Quality Engineering section:
 
 - **Core protocol, cryptographic, policy, and ledger packages** (`packages/core`, `packages/crypto`, `packages/ledger`, `packages/policy`, `packages/verification`) maintain **≥90% branch coverage**, enforced by each package's `vitest.config.ts` (`coverage.thresholds`).
 - **The remaining first-party implementation** (`packages/sdk-typescript`, `services/api`, `apps/cli`) maintains **≥80% branch coverage**, same enforcement mechanism.
-- Generated code (`packages/core/src/generated/domain.ts`, `schemas/artifact/types/*.schema.json` and their fixtures) is excluded from coverage accounting — it has no independent logic to cover; its correctness is verified by `scripts/validate-schemas.ts` instead.
+- Generated code (`packages/core/src/generated/domain.ts`, `schemas/artifact/types/*.schema.json` and their fixtures) is excluded from coverage accounting, since it has no independent logic to cover; its correctness is verified by `scripts/validate-schemas.ts` instead.
 
 Run `pnpm --filter <package> exec vitest run --coverage` in any package to check its own numbers, or `make verify` for the aggregate offline gate.
 
@@ -26,4 +26,4 @@ Run `pnpm --filter <package> exec vitest run --coverage` in any package to check
 
 ## Deferred Test Categories
 
-Cross-language SDK conformance, a full automated WCAG audit of every future operational Explorer workflow, formal-model-checker runs, load/resource-limit smoke tests, and PostgreSQL-adapter parity tests are not present, because the systems they would test (Python/Go/Rust SDKs, the remaining Explorer profile, `formal/`, a load-test harness, and a PostgreSQL adapter) are themselves deferred — see `docs/roadmap.md`. `make verify-integration` documents its Docker prerequisite and fails with an explicit message when Docker is unavailable, rather than silently reporting success.
+Cross-language SDK conformance, a full automated WCAG audit of every future operational Explorer workflow, formal-model-checker runs, load/resource-limit smoke tests, and PostgreSQL-adapter parity tests are not present, because the systems they would test (Python/Go/Rust SDKs, the remaining Explorer profile, `formal/`, a load-test harness, and a PostgreSQL adapter) are themselves deferred. See `docs/roadmap.md`. `make verify-integration` documents its Docker prerequisite and fails with an explicit message when Docker is unavailable, rather than silently reporting success.

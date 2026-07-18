@@ -5,14 +5,14 @@
 - Ledger event log and receipt chain (integrity, availability)
 - Actor private keys (confidentiality)
 - Artifact content, especially `confidential`/`restricted`-labeled content (confidentiality, availability)
-- Policy documents and approval decisions (integrity — a forged approval is a direct authorization bypass)
+- Policy documents and approval decisions (integrity: a forged approval is a direct authorization bypass)
 - The API service's availability (denial of service)
 
 ## Actors and Trust Boundaries
 
 - **Human and AI-system actors**, each holding one or more Ed25519 keys, interacting via `apps/cli`, `packages/sdk-typescript`, or direct HTTP calls to `services/api`.
-- **The ledger operator** running `services/api` and its SQLite store — trusted to run the write path honestly but not implicitly trusted with protocol authority beyond what its own trust/authorization policy grants (Core Principle 7).
-- **Peer ledgers** exchanging federation bundles — explicitly _not_ trusted by default; `spec/federation.md` requires an explicit trust policy per source.
+- **The ledger operator** running `services/api` and its SQLite store, trusted to run the write path honestly but not implicitly trusted with protocol authority beyond what its own trust/authorization policy grants (Core Principle 7).
+- **Peer ledgers** exchanging federation bundles, explicitly _not_ trusted by default; `spec/federation.md` requires an explicit trust policy per source.
 - Trust boundary: the HTTP request boundary at `services/api` (untrusted input in, validated/verified/authorized state out); the process boundary between a client holding a private key and the server that never sees it (all signing happens client-side).
 
 ## Attacker Capabilities Considered
@@ -34,18 +34,18 @@ An attacker may: submit arbitrary HTTP requests to `services/api`; hold a validl
 | Fork and equivocation | Cycle detection over lineage-typed causal-parent edges, checked before acceptance | `packages/ledger/src/cycle.ts` | `cycle.test.ts`, `ledger.test.ts` ("rejects an event that would introduce a lineage cycle") |
 | Actor impersonation | Signature verification is independent of and prerequisite to trust-policy evaluation; an unregistered key's signature cannot even be checked, let alone trusted | `packages/ledger/src/ledger.ts` write path steps 2-4 | `server.test.ts` ("rejects a write from a key the ledger has never seen") |
 | Confused-deputy / privilege escalation | Authentication (`services/api`'s bearer scheme) and ledger trust/authorization are wholly separate evaluations; a bearer token alone authorizes nothing on the ledger | `services/api/src/plugins/auth.ts`, ADR 0006 | `server.test.ts` (unauthenticated requests rejected independently of ledger-level checks) |
-| Malicious or compromised verifiers | Verification results identify verifier, method, method version, and are never treated as self-certifying — a Verification Report is itself a signed, disputable attestation | `spec/ACT-1.0.md` section 11.3, `Challenge` artifact type | Schema fixtures for `verification-report` and `challenge` |
+| Malicious or compromised verifiers | Verification results identify verifier, method, and method version, and are never treated as self-certifying; a Verification Report is itself a signed, disputable attestation | `spec/ACT-1.0.md` section 11.3, `Challenge` artifact type | Schema fixtures for `verification-report` and `challenge` |
 | Schema/algorithm downgrade | Closed enumerations reject unrecognized `event_type`/algorithm values rather than reinterpreting them; `additionalProperties: false` throughout | All schemas under `schemas/` | `validate-schemas.ts` negative fixtures |
 | Clock manipulation | `occurred_at` (actor-claimed) and `accepted_at` (ledger-observed) are recorded separately; causal order is established via `causal_parents`/`sequence`, never wall-clock comparison | `spec/ACT-1.0.md` section 5.5, `packages/ledger` | `ledger.test.ts` (sequence-based, not time-based, ordering assertions) |
 | Unauthorized disclosure / cross-tenant access | Tenant field on every event; `services/api` scopes by `x-act-tenant`. Full tenant-isolation enforcement across all read paths is tracked in `docs/roadmap.md` | `services/api/src/plugins/auth.ts` | Partial; full cross-tenant denial test suite is a roadmap item |
 | Content substitution / evidence deletion | Content descriptors carry a digest independent of storage location; deletion changes `availability_state` via a new signed event, never silently | `schemas/common/content-descriptor.schema.json` | Schema fixtures; full redaction-flow tests tracked in `docs/roadmap.md` |
 | Partial-history / omission attacks | Missing parents are an explicit, queryable boundary (`LineageResult.boundaries`), not silently absent | `packages/ledger/src/ledger.ts` (`getLineage`) | `ledger.test.ts`, `lineage.test.ts` |
 | Denial of service / oversized payloads | Fastify `bodyLimit` (2 MB default) and `@fastify/rate-limit` (200 req/min default) on every route | `services/api/src/server.ts` | Configuration present; load-test baseline is a roadmap item |
-| Webhook forgery/replay | Not yet applicable — this release does not implement outbound webhooks | — | Tracked in `docs/roadmap.md` |
+| Webhook forgery/replay | Not yet applicable; this release does not implement outbound webhooks | — | Tracked in `docs/roadmap.md` |
 | Dependency/build/tool supply-chain compromise | Lockfile-pinned dependencies (`pnpm-lock.yaml`); no dependency ships with a known critical/high vulnerability at time of writing (spot-checked via `pnpm audit`) | `pnpm-lock.yaml` | Manual `pnpm audit` run; automated SBOM/scan-in-CI is a roadmap item |
 
 ## Residual Risk
 
 - Tenant isolation, full redaction-flow testing, webhook security, load testing, and an automated SBOM/dependency-scan gate are not complete in this release; each is listed explicitly in `docs/roadmap.md` rather than claimed as done.
-- The API's trust-bootstrap model (ADR 0006) grants ledger trust to any caller who can prove possession of a keypair, with no organizational vetting — an intentional Phase 1 simplification, not an oversight, but a real residual risk for any deployment that needs gated admission.
+- The API's trust-bootstrap model (ADR 0006) grants ledger trust to any caller who can prove possession of a keypair, with no organizational vetting. That's an intentional Phase 1 simplification, not an oversight, but it's a real residual risk for any deployment that needs gated admission.
 - `apps/cli`'s plaintext local private-key storage is a residual risk by design for a local development tool; it must not be used to hold a production signing key.

@@ -11,9 +11,9 @@ ACT distinguishes four version axes that change independently.
 
 ## Why Four Axes, Not One
 
-A protocol-version-`act/1.0`-compliant event can be produced by implementation version `1.0.0-rc.1` today and by some future `2.3.0` next year without either the protocol version or the schema version changing — the implementation improved, the wire contract didn't. Conversely, a schema addition (a new optional field) can ship in implementation `1.1.0` without bumping `protocol_version`, because older `act/1.0` readers that don't understand the new field are required (per `spec/ACT-1.0.md` section 16.2) to preserve it unread rather than reject the event.
+A protocol-version-`act/1.0`-compliant event can be produced by implementation version `1.0.0-rc.1` today and by some future `2.3.0` next year without either the protocol version or the schema version changing, since the implementation improved but the wire contract didn't. Conversely, a schema addition (a new optional field) can ship in implementation `1.1.0` without bumping `protocol_version`, because older `act/1.0` readers that don't understand the new field are required (per `spec/ACT-1.0.md` section 16.2) to preserve it unread rather than reject the event.
 
-Conflating these axes — e.g. tying the API version to the npm package version — would force an API-breaking release every time an internal bugfix ships, or vice versa hide a genuine wire-incompatible change behind a patch-level bump.
+Conflating these axes, for instance tying the API version to the npm package version, would force an API-breaking release every time an internal bugfix ships, or hide a genuine wire-incompatible change behind a patch-level bump.
 
 ## Compatibility Rules
 
