@@ -3,17 +3,19 @@ title: Architecture
 description: How the ACT reference implementation is laid out, and how a transformation actually flows through it.
 ---
 
-Everything below is animated end-to-end in the [live ACT Explorer](/explorer/) — a good companion to read this page alongside.
+The best way to understand ACT is to follow one transformation from the moment a client signs it to the moment an independent verifier checks it. That's exactly what the [live ACT Explorer](/explorer/) animates end to end, so it's worth keeping open alongside this page.
 
 ## Repository layout
+
+Before tracing that path, here's where everything lives:
 
 ```text
 spec/            Normative ACT 1.0 specification (protocol, semantic model,
                   state machines, federation, conformance profiles)
 schemas/          JSON Schema 2020-12 for every wire format: events, the
                   DSSE signed envelope, ledger receipts, all 28 artifact
-                  types, policies, approvals, challenges, federation bundles
-                  — with positive and negative fixtures for each
+                  types, policies, approvals, challenges, federation bundles,
+                  with positive and negative fixtures for each
 packages/
   core/           RFC 8785 canonicalization, SHA-256 digests, UUIDv7 ids,
                   Ajv-based strict validation, schema-generated TS types
@@ -37,20 +39,21 @@ apps/
 docs/             Guides, threat model, versioning, roadmap, ADRs
 ```
 
-Every package builds independently (`pnpm --filter <name> run build`) and ships its own test suite; `packages/core`, `packages/crypto`, `packages/ledger`, `packages/policy`, and `packages/verification` maintain ≥90% branch coverage, the rest ≥80%.
+Every package builds independently (`pnpm --filter <name> run build`) and ships its own test suite. `packages/core`, `packages/crypto`, `packages/ledger`, `packages/policy`, and `packages/verification` hold at least 90% branch coverage; everything else holds at least 80%.
 
-## How a transformation actually flows
+## Following a transformation through the system
 
-1. A client (the CLI or any `packages/sdk-typescript` consumer) builds an unsigned event, signs it with an Ed25519 key it holds locally, and submits the signed envelope — the server never signs on a caller's behalf.
-2. `services/api` validates the envelope's schema, recomputes its digest, verifies every attached signature, evaluates trust policy, checks causal parents, rejects lineage cycles, and only then appends the event and issues a hash-chained receipt (`packages/ledger`) — the exact 9-step write path from `spec/ACT-1.0.md` section 6.1.
-3. `packages/verification` can independently re-check integrity (digest/signature/receipt-chain), lineage completeness, and approval validity at any time, producing explained, attributable findings — never a single collapsed "valid" boolean.
-4. `packages/policy` decides whether a given transformation requires approval, and under what quorum, purely as a function of the current policy version and the request — never a mutable flag on the subject.
+It starts with a client, either the CLI or anything built on `packages/sdk-typescript`, building an unsigned event and signing it with an Ed25519 key held locally. The signed envelope goes to `services/api`. The server itself never signs anything on a caller's behalf; it only ever verifies what arrives.
 
-`services/api/src/__tests__/server.test.ts` is the canonical worked example: it registers a key and actor, submits an Intent, records a two-input Transformation, runs a full approval-request → decision → challenge → verification → policy cycle, and exports/imports a signed bundle into a second, independent ledger — against the real handlers, no mocks.
+That verification is where the real gatekeeping happens. `services/api` validates the envelope's schema, recomputes its digest, checks every attached signature, evaluates trust policy, confirms the causal parents are known, and rejects the write outright if it would create a lineage cycle. Only once all of that passes does it append the event and issue a hash-chained receipt through `packages/ledger`. That's the full nine-step write path from `spec/ACT-1.0.md` section 6.1, traced below.
 
-### Submitting a signed event (the 9-step write path)
+A receipt being issued isn't the end of the story, though. `packages/verification` can independently re-check integrity, lineage completeness, and approval validity at any later point, and what it produces is an explained, attributable finding rather than a single collapsed "valid" boolean. Whether a transformation needed approval in the first place, and under what quorum, was never a flag someone flipped by hand either. `packages/policy` decides that purely as a function of the current policy version and the request itself.
 
-Every write — Intent, Transformation, Approval, Challenge, Verification, Policy — goes through the same atomic path (`spec/ACT-1.0.md` §6.1). If any of steps 1-6 fails, no receipt is issued and no projection is updated.
+`services/api/src/__tests__/server.test.ts` is the canonical worked example, and it runs against the real handlers with no mocks: registering a key and an actor, submitting an Intent, recording a two-input Transformation, running a full cycle from approval request through decision, challenge, and verification, and finally exporting and importing a signed bundle into a second, independent ledger.
+
+### Submitting a signed event: the nine-step write path
+
+Every write, whether it's an Intent, a Transformation, an Approval, a Challenge, a Verification, or a Policy, goes through this same atomic path. If any of the first six steps fails, no receipt is issued and no projection is updated.
 
 ```mermaid
 sequenceDiagram
@@ -81,9 +84,9 @@ sequenceDiagram
     API-->>Client: 201 Created + receipt
 ```
 
-### Approval, challenge, and verification cycle
+### What happens after: approval, challenge, and verification
 
-Whether a Transformation needs approval — and under what quorum — is a policy **evaluation**, never a mutable flag on the record. Any accepted event can later be challenged, and any event can be independently re-verified at any time.
+Getting a transformation onto the ledger is only the start of its life. Whether it needs approval, and under what quorum, stays a policy evaluation rather than a mutable flag on the record. Any accepted event can later be challenged by any party, and any event can be independently re-verified at any time, which is what the sequence below traces.
 
 ```mermaid
 sequenceDiagram
@@ -118,12 +121,12 @@ sequenceDiagram
     Verifier->>API: POST /v1/verifications (integrity, lineage, approval checks)
     API->>Ledger: Append VerificationReport event
     Ledger-->>API: receipt
-    API-->>Verifier: GET /v1/verifications/{eventId} — explained, attributable findings
+    API-->>Verifier: GET /v1/verifications/{eventId}: explained, attributable findings
 ```
 
-### Federated bundle export and import
+### Sharing history across ledgers: federated bundle transfer
 
-Ledgers are independent; sharing history is an explicit, signed bundle transfer, never a shared database. The importing ledger re-verifies everything against its own trust policy rather than trusting the exporter.
+Ledgers never share a database with each other. When one operator wants to give another their history, that handoff is always an explicit, signed bundle transfer, and the importing ledger re-verifies everything against its own trust policy rather than trusting the exporter. An event that fails a check doesn't just vanish, either. It's quarantined: kept on record and flagged, never silently dropped.
 
 ```mermaid
 sequenceDiagram

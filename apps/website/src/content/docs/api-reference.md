@@ -5,7 +5,7 @@ description: The /v1 operations implemented by the reference ACT API service, an
 
 The authoritative machine-readable contract is [`services/api/openapi/act-v1.yaml`](https://github.com/JGalego/ACT-protocol/blob/main/services/api/openapi/act-v1.yaml) (OpenAPI 3.1). This page is a human-oriented index linking each operation to its handler; if the two disagree, the OpenAPI document and the handler code are authoritative.
 
-Request bodies for every write endpoint are DSSE-compatible signed event envelopes (`schemas/envelope/signed-envelope.schema.json` wrapping `schemas/event/unsigned-event.schema.json`), constructed and signed client-side — see `packages/sdk-typescript`'s `buildUnsignedEvent` and `@act/crypto`'s `signEnvelope`. The server never signs on a caller's behalf.
+Request bodies for every write endpoint are DSSE-compatible signed event envelopes (`schemas/envelope/signed-envelope.schema.json` wrapping `schemas/event/unsigned-event.schema.json`), constructed and signed client-side. See `packages/sdk-typescript`'s `buildUnsignedEvent` and `@act/crypto`'s `signEnvelope`. The server never signs on a caller's behalf.
 
 | Operation | Handler | Auth/trust notes |
 | --- | --- | --- |
@@ -27,10 +27,10 @@ Request bodies for every write endpoint are DSSE-compatible signed event envelop
 | `GET /v1/metrics` | `services/api/src/routes/health.ts` | Prometheus text format; scraped by the OpenTelemetry Collector in `deploy/compose/` |
 | `POST /v1/bundles/export`, `POST /v1/bundles/import`, `GET /v1/quarantine` | `services/api/src/routes/bundles.ts` | Import re-runs the same proof-of-possession bootstrap per `Key` artifact event encountered (ADR 0006); invalid events are quarantined, not silently dropped |
 | `POST /v1/federation/peers`, `GET /v1/federation/peers`, `DELETE /v1/federation/peers/{id}` | `services/api/src/routes/federation.ts` | Registers/lists/removes peer ledgers this instance can pull from or push to |
-| `POST /v1/federation/pull`, `POST /v1/federation/push` | `services/api/src/routes/federation.ts` | Real network transport: fetches or sends a signed bundle to a registered peer over HTTP and re-verifies it against local trust policy on receipt — see [Deployment](/deployment/) |
+| `POST /v1/federation/pull`, `POST /v1/federation/push` | `services/api/src/routes/federation.ts` | Real network transport. Fetches or sends a signed bundle to a registered peer over HTTP and re-verifies it against local trust policy on receipt; see [Deployment](/deployment/) |
 
-All error responses are RFC 9457 Problem Details (`services/api/src/problem.ts`, `services/api/src/plugins/error-handler.ts`) with a stable `code` field — see the `LEDGER_ERROR_STATUS` map for ledger-originated codes (`schema_invalid`, `digest_mismatch`, `invalid_signature`, `untrusted_actor`, `missing_parent`, `cycle_detected`) and `services/api/src/problem.ts` for API-originated ones.
+All error responses are RFC 9457 Problem Details (`services/api/src/problem.ts`, `services/api/src/plugins/error-handler.ts`) with a stable `code` field. See the `LEDGER_ERROR_STATUS` map for ledger-originated codes (`schema_invalid`, `digest_mismatch`, `invalid_signature`, `untrusted_actor`, `missing_parent`, `cycle_detected`) and `services/api/src/problem.ts` for API-originated ones.
 
 ## End-to-end example
 
-[`services/api/src/__tests__/server.test.ts`](https://github.com/JGalego/ACT-protocol/blob/main/services/api/src/__tests__/server.test.ts) is the canonical worked example: it registers a key and actor, submits an Intent, records a two-input Transformation, runs a full approval-request/decision/challenge/verification/policy cycle, paginates events, and exports/imports a bundle into a second independent ledger — all against the real handlers, not mocks.
+[`services/api/src/__tests__/server.test.ts`](https://github.com/JGalego/ACT-protocol/blob/main/services/api/src/__tests__/server.test.ts) is the canonical worked example. It registers a key and actor, submits an Intent, records a two-input Transformation, runs a full approval-request/decision/challenge/verification/policy cycle, paginates events, and exports and imports a bundle into a second independent ledger, all against the real handlers, not mocks.

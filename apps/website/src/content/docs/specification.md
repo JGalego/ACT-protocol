@@ -1,9 +1,9 @@
 ---
 title: Specification
-description: An overview of the normative ACT 1.0 specification — node classes, the transformation contract, intent authority, and the companion documents.
+description: An overview of the normative ACT 1.0 specification, covering node classes, the transformation contract, intent authority, and the companion documents.
 ---
 
-The normative specification lives in [`spec/ACT-1.0.md`](https://github.com/JGalego/ACT-protocol/blob/main/spec/ACT-1.0.md) on GitHub, alongside four companion documents. This page is a map of that content, not a replacement for it — where this page and the spec disagree, the spec is authoritative.
+The normative specification lives in [`spec/ACT-1.0.md`](https://github.com/JGalego/ACT-protocol/blob/main/spec/ACT-1.0.md) on GitHub, alongside four companion documents. This page is a map of that content, not a replacement for it. Where the two disagree, the spec wins.
 
 ## The normative document
 
@@ -14,13 +14,13 @@ The normative specification lives in [`spec/ACT-1.0.md`](https://github.com/JGal
 | Document | Covers |
 | --- | --- |
 | [`spec/semantic-model.md`](https://github.com/JGalego/ACT-protocol/blob/main/spec/semantic-model.md) | The entities `ACT-1.0.md` references (Intent, Interpretation, Artifact, Transformation, Revision, Evidence, Approval, Authorization, Accountability Assignment, Confidence Assessment, …) and the relations between them. |
-| [`spec/state-machines.md`](https://github.com/JGalego/ACT-protocol/blob/main/spec/state-machines.md) | Every lifecycle (artifact version, approval, challenge, effective intent) as an explicit state machine — every transition is one new signed Event, never a mutation of an existing record. |
+| [`spec/state-machines.md`](https://github.com/JGalego/ACT-protocol/blob/main/spec/state-machines.md) | Every lifecycle (artifact version, approval, challenge, effective intent) as an explicit state machine. Every transition is one new signed Event, never a mutation of an existing record. |
 | [`spec/federation.md`](https://github.com/JGalego/ACT-protocol/blob/main/spec/federation.md) | Peer-to-peer federation between independently operated ledgers: bundle format, trust policy, causal order via `causal_parents` (never wall-clock time). |
 | [`spec/conformance.md`](https://github.com/JGalego/ACT-protocol/blob/main/spec/conformance.md) | The Core, Cryptographic Integrity, Secure Service, Federation, SDK, and Explorer conformance profiles, and the fixture categories a claimant must pass to certify each. |
 
 ## Node classes and lineage
 
-The semantic graph has five signed node classes — **Artifact**, **Transformation**, **Attestation**, **Policy**, **Evidence** — plus **Events**, the append-only record of changes to the other four. Lineage between nodes is represented as typed, many-to-many edges pointing from a new node to the existing node(s) it depends on; signed records never contain mutable `children` or "current state" arrays — descendants and current heads are always computed projections, never signed facts.
+The semantic graph has five signed node classes: **Artifact**, **Transformation**, **Attestation**, **Policy**, and **Evidence**. **Events** sit alongside them as the append-only record of changes to the other four. Lineage between nodes is represented as typed, many-to-many edges pointing from a new node to the existing node(s) it depends on. Signed records never contain mutable `children` or "current state" arrays; descendants and current heads are always computed projections, never signed facts.
 
 ```mermaid
 flowchart LR
@@ -37,7 +37,7 @@ flowchart LR
     class E1,E2,E3,E4 event;
 ```
 
-Every solid arrow is lineage (`inputs`/`outputs`); every dashed arrow is an attached, attributed claim about the node it touches. Nothing here is ever rewritten in place — a correction is a new Event producing a new Artifact version or a new Attestation, never a mutation of an existing one.
+Every solid arrow is lineage (`inputs`/`outputs`); every dashed arrow is an attached, attributed claim about the node it touches. Nothing here is ever rewritten in place. A correction is a new Event producing a new Artifact version or a new Attestation, never a mutation of an existing one.
 
 ## The transformation contract
 
@@ -55,15 +55,15 @@ Every Transformation record must include `transformation_id`, `mode`, `actor`, `
 | `intent-challenge` | The output disputes or challenges the input's stated intent. |
 | `semantic-modification` | The output changes the meaning of the input. |
 
-A classification is an **attributed claim**, identifying the actor who made it — not an automatically established fact. Policy must require approval for any transformation classified `semantic-modification` when its subject is part of an effective intent baseline; whether approval is required is always a policy **evaluation**, never a mutable boolean field on the transformation record itself.
+A classification is an **attributed claim**, identifying the actor who made it, not an automatically established fact. Policy must require approval for any transformation classified `semantic-modification` when its subject is part of an effective intent baseline. Whether approval is required is always a policy **evaluation**, never a mutable boolean field on the transformation record itself.
 
 ## Intent authority and revision
 
-A conforming implementation distinguishes:
+A conforming implementation distinguishes three states an Intent can be in:
 
-- **root intent** — the immutable Genesis-event-originated Intent artifact version that begins an intent lineage.
-- **proposed intent** — an Intent artifact version submitted but not yet selected as effective by the applicable authority policy.
-- **effective intent** — the Intent artifact version an authority policy currently designates as the approved baseline for a project or branch. Exactly one Intent version may be effective per (project, branch) at a time.
+- **root intent**: the immutable Genesis-event-originated Intent artifact version that begins an intent lineage.
+- **proposed intent**: an Intent artifact version submitted but not yet selected as effective by the applicable authority policy.
+- **effective intent**: the Intent artifact version an authority policy currently designates as the approved baseline for a project or branch. Exactly one Intent version may be effective per project and branch at a time.
 
 ## Versioning
 

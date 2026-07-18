@@ -10,22 +10,28 @@ description: Install ACT Protocol's reference implementation and run the animate
 
 ## Install
 
+Clone the repository and install dependencies.
+
 ```bash
 git clone https://github.com/JGalego/ACT-protocol.git
 cd act-protocol
 pnpm install
+```
 
-# Regenerate the artifact-type schemas and their TypeScript types
-# (already committed, but this is how you'd regenerate them):
+The artifact-type schemas and their TypeScript types are already generated and committed. You only need this if you change a schema and want to regenerate them yourself.
+
+```bash
 pnpm run generate:artifact-types
 pnpm run generate:types
+```
 
-# Run every offline quality gate: formatting, linting, strict type
-# checking, schema fixture validation, and the full test suite.
+Then run every offline quality gate at once: formatting, linting, strict type checking, schema fixture validation, and the full test suite.
+
+```bash
 make verify
 ```
 
-:::tip[Working on just one package] Every package under `packages/`, `services/`, and `apps/` builds and tests independently — `pnpm --filter @act/ledger run test` (for example) is much faster than `make verify` while you're iterating on one piece. :::
+Working on a single package instead? Every package under `packages/`, `services/`, and `apps/` builds and tests independently, so `pnpm --filter @act/ledger run test` finishes in a fraction of the time `make verify` takes.
 
 ## Run the animated protocol demonstration
 
@@ -34,9 +40,13 @@ pnpm run dev:explorer
 # -> ACT Explorer at http://localhost:4173
 ```
 
-The seeded walkthrough animates a complete accountable chain: human intent → AI proposal → requirements transformation → scoped approval → implementation → tests → semantic drift finding → human challenge → revision → runtime observation. Use play/pause, step controls, arrow keys, or the timeline scrubber; select records to inspect rationale, assumptions, uncertainty, evidence, lineage, confidence, and envelope content. The **Data source** control can also load ordered signed envelopes from a running ACT `/v1/events` endpoint. Seeded identities and digests are visibly marked as non-production demonstration data.
+The seeded walkthrough animates a complete accountable chain: human intent, an AI proposal, a requirements transformation, a scoped approval, implementation, tests, a semantic drift finding, a human challenge, a revision, and a runtime observation. Use play/pause, step controls, arrow keys, or the timeline scrubber. Select any record to inspect its rationale, assumptions, uncertainty, evidence, lineage, confidence, and envelope content. The **Data source** control can also load ordered signed envelopes from a running ACT `/v1/events` endpoint. Seeded identities and digests are visibly marked as non-production demonstration data.
 
-:::tip[Five more scenarios beyond the Explorer] `pnpm --filter @act/examples run test` runs five additional seeded, assertion-backed walkthroughs — enterprise quorum approval, competing AI proposals, cross-ledger federation, and more. See [Examples](/examples/). :::
+:::tip[Five more scenarios beyond the Explorer]
+
+`pnpm --filter @act/examples run test` runs five more seeded, assertion-backed walkthroughs alongside this one, including enterprise quorum approval, competing AI proposals, and cross-ledger federation. See [Examples](/examples/) for what each one proves.
+
+:::
 
 ## Start the reference API service
 
@@ -58,16 +68,16 @@ node <path-to-repo>/apps/cli/dist/bin/act.js intent create "Ship the thing" --js
 node <path-to-repo>/apps/cli/dist/bin/act.js verify --json
 ```
 
-(Once published, this will just be `npm install -g @act/cli && act init`.)
+Once published, this will just be `npm install -g @act/cli && act init`.
 
 ## Building against ACT from your own code
 
-Use [`@act/sdk`](/sdks/) (TypeScript) or [`act-sdk`](/sdks/) (Python) rather than hand-building signed envelopes — both handle canonicalization, digesting, and Ed25519 signing for you, and are checked against the same conformance vectors so events built with either are indistinguishable to the API.
+Reach for [`@act/sdk`](/sdks/) in TypeScript or [`act-sdk`](/sdks/) in Python rather than hand-building signed envelopes yourself. Both handle canonicalization, digesting, and Ed25519 signing, and both are checked against the same conformance vectors, so an event built with one is indistinguishable from an event built with the other by the time it reaches the API.
 
 ## Next steps
 
-- Read the [Architecture](/architecture/) page to see how a transformation actually flows through the protocol.
-- Read the [Specification](/specification/) page for the normative node classes, semantic-change taxonomy, and intent authority model.
-- See the [API Reference](/api-reference/) for every `/v1` operation the reference service implements.
-- Browse [Examples](/examples/) for six more seeded end-to-end scenarios, or [Deployment](/deployment/) to run the full stack via Docker Compose or Helm.
-- Read [Design Decisions](/design-decisions/) for the history behind ACT's less-obvious implementation choices.
+- [Architecture](/architecture/) walks through how a transformation actually flows through the protocol.
+- [Specification](/specification/) covers the normative node classes, semantic-change taxonomy, and intent authority model.
+- [API Reference](/api-reference/) lists every `/v1` operation the reference service implements.
+- [Examples](/examples/) has six more seeded end-to-end scenarios. [Deployment](/deployment/) runs the full stack via Docker Compose or Helm.
+- [Design Decisions](/design-decisions/) covers the history behind ACT's less obvious implementation choices.
