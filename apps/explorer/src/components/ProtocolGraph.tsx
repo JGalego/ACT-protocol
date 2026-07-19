@@ -291,13 +291,18 @@ export function ProtocolGraph({
         }
       });
     });
+  }, [events, focusEventId, selectedEventId, visibleThrough]);
+
+  useEffect(() => {
+    const cy = cyRef.current;
+    if (!cy) return;
     const visibleElements = cy.elements().not('.future');
     if (reducedMotion) {
       cy.fit(visibleElements, 52);
     } else {
       cy.animate({ fit: { eles: visibleElements, padding: 52 }, duration: 360 });
     }
-  }, [events, focusEventId, reducedMotion, selectedEventId, visibleThrough]);
+  }, [events, focusEventId, reducedMotion, visibleThrough]);
 
   useEffect(() => {
     if (reducedMotion) return undefined;
