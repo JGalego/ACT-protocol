@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { generateKeyPair, keyIdFor, signBytes, verifyBytes } from '../keys.js';
+import {
+  generateKeyPair,
+  keyIdFor,
+  keyIdMatchesPublicKey,
+  keyPairFromPrivateKey,
+  signBytes,
+  verifyBytes,
+} from '../keys.js';
 
 describe('generateKeyPair', () => {
   it('produces a keyId matching the ed25519:<64-hex> form', () => {
@@ -51,5 +58,38 @@ describe('signBytes / verifyBytes', () => {
 
   it('rejects verification against a malformed public key without throwing', () => {
     expect(verifyBytes('not-a-valid-key', new TextEncoder().encode('x'), 'AA==')).toBe(false);
+  });
+});
+
+describe('keyPairFromPrivateKey', () => {
+  it('reconstructs the identical key pair from a stored private seed', () => {
+    const original = generateKeyPair();
+    const rebuilt = keyPairFromPrivateKey(original.privateKey);
+    expect(rebuilt).toEqual(original);
+    const message = new TextEncoder().encode('hello');
+    expect(
+      verifyBytes(
+        original.publicKey,
+        message,
+        signBytes(rebuilt.privateKey, rebuilt.publicKey, message),
+      ),
+    ).toBe(true);
+  });
+
+  it('rejects a seed of the wrong length', () => {
+    expect(() => keyPairFromPrivateKey(Buffer.from('short').toString('base64'))).toThrow(
+      /32 bytes/,
+    );
+  });
+});
+
+describe('keyIdMatchesPublicKey', () => {
+  it('accepts only the fingerprint-derived key id for a 32-byte public key', () => {
+    const a = generateKeyPair();
+    const b = generateKeyPair();
+    expect(keyIdMatchesPublicKey(a.keyId, a.publicKey)).toBe(true);
+    expect(keyIdMatchesPublicKey(a.keyId, b.publicKey)).toBe(false);
+    expect(keyIdMatchesPublicKey(`ed25519:${'0'.repeat(64)}`, a.publicKey)).toBe(false);
+    expect(keyIdMatchesPublicKey('x', Buffer.from('short').toString('base64'))).toBe(false);
   });
 });

@@ -8,6 +8,7 @@ standing.
 
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass
 from datetime import datetime, timezone
 
@@ -57,30 +58,60 @@ def evaluate_key_validity_at(
             reason="no key history recorded",
         )
 
-    query_time = _parse_iso_ms(query_time_iso)
-    sorted_history = sorted(history, key=lambda e: _parse_iso_ms(e.effective_at))
+    # Fail closed on anything unparseable (mirrors packages/crypto).
+    try:
+        query_time = _parse_iso_ms(query_time_iso)
+    except ValueError:
+        return KeyValidityResult(
+            status_at_time="issued",
+            valid_for_signing=False,
+            reason=f"query time {json.dumps(query_time_iso)} is not a parseable timestamp",
+        )
+    timed: list[tuple[KeyStatusEvent, float]] = []
+    for event in history:
+        try:
+            timed.append((event, _parse_iso_ms(event.effective_at)))
+        except ValueError:
+            return KeyValidityResult(
+                status_at_time="issued",
+                valid_for_signing=False,
+                reason=(
+                    "key history contains an unparseable effectiveAt "
+                    f"{json.dumps(event.effective_at)}"
+                ),
+            )
+    sorted_history = sorted(timed, key=lambda pair: pair[1])
 
-    compromise_event = next((e for e in sorted_history if e.status == "compromised"), None)
-    if compromise_event is not None:
+    compromise = next((pair for pair in sorted_history if pair[0].status == "compromised"), None)
+    if compromise is not None:
         grace_ms = (
             _DEFAULT_GRACE_PERIOD_MS
             if compromise_grace_period_ms is None
             else compromise_grace_period_ms
         )
-        compromise_recorded_at = _parse_iso_ms(compromise_event.effective_at)
-        if query_time >= compromise_recorded_at - grace_ms:
+        if query_time >= compromise[1] - grace_ms:
             return KeyValidityResult(
                 status_at_time="compromised",
                 valid_for_signing=False,
                 reason=(
-                    f"key flagged compromised at {compromise_event.effective_at}; "
+                    f"key flagged compromised at {compromise[0].effective_at}; "
                     f"signature falls within the {grace_ms}ms retroactive grace window"
                 ),
             )
 
-    current = sorted_history[0]
-    for event in sorted_history:
-        if _parse_iso_ms(event.effective_at) > query_time:
+    if query_time < sorted_history[0][1]:
+        return KeyValidityResult(
+            status_at_time="issued",
+            valid_for_signing=False,
+            reason=(
+                f"key did not exist at {query_time_iso} "
+                f"(first recorded status at {sorted_history[0][0].effective_at})"
+            ),
+        )
+
+    current = sorted_history[0][0]
+    for event, at in sorted_history:
+        if at > query_time:
             break
         current = event
 

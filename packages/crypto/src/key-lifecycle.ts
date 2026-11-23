@@ -40,26 +40,53 @@ export function evaluateKeyValidityAt(
   if (history.length === 0) {
     return { statusAtTime: 'issued', validForSigning: false, reason: 'no key history recorded' };
   }
+  // Fail closed on anything unparseable: a query time or history timestamp
+  // that is not a real instant must never make a signature look valid.
   const queryTime = Date.parse(queryTimeIso);
-  const sorted = [...history].sort((a, b) => Date.parse(a.effectiveAt) - Date.parse(b.effectiveAt));
+  if (Number.isNaN(queryTime)) {
+    return {
+      statusAtTime: 'issued',
+      validForSigning: false,
+      reason: `query time ${JSON.stringify(queryTimeIso)} is not a parseable timestamp`,
+    };
+  }
+  const timed = history.map((event) => ({ event, at: Date.parse(event.effectiveAt) }));
+  const badEntry = timed.find((entry) => Number.isNaN(entry.at));
+  if (badEntry) {
+    return {
+      statusAtTime: 'issued',
+      validForSigning: false,
+      reason: `key history contains an unparseable effectiveAt ${JSON.stringify(badEntry.event.effectiveAt)}`,
+    };
+  }
+  const sorted = [...timed].sort((a, b) => a.at - b.at);
 
-  const compromiseEvent = sorted.find((e) => e.status === 'compromised');
-  if (compromiseEvent) {
+  const compromise = sorted.find((entry) => entry.event.status === 'compromised');
+  if (compromise) {
     const graceMs = options.compromiseGracePeriodMs ?? 24 * 60 * 60 * 1000;
-    const compromiseRecordedAt = Date.parse(compromiseEvent.effectiveAt);
-    if (queryTime >= compromiseRecordedAt - graceMs) {
+    if (queryTime >= compromise.at - graceMs) {
       return {
         statusAtTime: 'compromised',
         validForSigning: false,
-        reason: `key flagged compromised at ${compromiseEvent.effectiveAt}; signature falls within the ${graceMs}ms retroactive grace window`,
+        reason: `key flagged compromised at ${compromise.event.effectiveAt}; signature falls within the ${graceMs}ms retroactive grace window`,
       };
     }
   }
 
-  let current: KeyStatusEvent = sorted[0]!;
-  for (const event of sorted) {
-    if (Date.parse(event.effectiveAt) > queryTime) break;
-    current = event;
+  // A signature dated before the key's first recorded status cannot have been
+  // made by a key that did not exist yet.
+  if (queryTime < sorted[0]!.at) {
+    return {
+      statusAtTime: 'issued',
+      validForSigning: false,
+      reason: `key did not exist at ${queryTimeIso} (first recorded status at ${sorted[0]!.event.effectiveAt})`,
+    };
+  }
+
+  let current = sorted[0]!.event;
+  for (const entry of sorted) {
+    if (entry.at > queryTime) break;
+    current = entry.event;
   }
 
   const validForSigning = TRUSTED_SIGNING_STATUSES.has(current.status);

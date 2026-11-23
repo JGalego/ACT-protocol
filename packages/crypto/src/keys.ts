@@ -81,3 +81,28 @@ export function verifyBytes(
     return false;
   }
 }
+
+// PKCS#8 prefix for a raw 32-byte Ed25519 seed (RFC 8410).
+const ED25519_PKCS8_SEED_PREFIX = Buffer.from('302e020100300506032b657004220420', 'hex');
+
+/** Rebuilds a full key pair from a base64-encoded raw 32-byte Ed25519 private seed. */
+export function keyPairFromPrivateKey(privateKeyBase64: string): KeyPair {
+  const seed = Buffer.from(privateKeyBase64, 'base64');
+  if (seed.length !== 32) {
+    throw new Error(`Ed25519 private key seed must be 32 bytes, got ${seed.length}`);
+  }
+  const privateKey = createPrivateKey({
+    key: Buffer.concat([ED25519_PKCS8_SEED_PREFIX, seed]),
+    format: 'der',
+    type: 'pkcs8',
+  });
+  const publicJwk = createPublicKey(privateKey).export({ format: 'jwk' }) as { x: string };
+  const publicKeyB64 = base64UrlToBase64(publicJwk.x);
+  return { keyId: keyIdFor(publicKeyB64), publicKey: publicKeyB64, privateKey: privateKeyBase64 };
+}
+
+/** Whether `keyId` is exactly the fingerprint-derived id of `publicKeyBase64` (spec section 3). */
+export function keyIdMatchesPublicKey(keyId: string, publicKeyBase64: string): boolean {
+  if (Buffer.from(publicKeyBase64, 'base64').length !== 32) return false;
+  return keyId === keyIdFor(publicKeyBase64);
+}

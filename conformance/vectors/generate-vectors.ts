@@ -278,6 +278,27 @@ const lifecycleCases: LifecycleCase[] = [
     queryTimeIso: '2026-01-25T00:00:00Z',
     options: { compromiseGracePeriodMs: 24 * 60 * 60 * 1000 },
   },
+  {
+    id: 'signature-before-key-existed',
+    history: [{ status: 'active', effectiveAt: '2026-01-01T00:00:00Z' }],
+    queryTimeIso: '2020-01-01T00:00:00Z',
+  },
+  {
+    id: 'unparseable-query-time-with-compromise',
+    history: [
+      { status: 'active', effectiveAt: '2026-01-01T00:00:00Z' },
+      { status: 'compromised', effectiveAt: '2026-02-01T00:00:00Z' },
+    ],
+    queryTimeIso: 'garbage',
+  },
+  {
+    id: 'unparseable-history-timestamp',
+    history: [
+      { status: 'active', effectiveAt: '2026-01-01T00:00:00Z' },
+      { status: 'active', effectiveAt: 'not-a-date' },
+    ],
+    queryTimeIso: '2026-03-01T00:00:00Z',
+  },
 ];
 write('key-lifecycle', {
   cases: lifecycleCases.map((c) => ({

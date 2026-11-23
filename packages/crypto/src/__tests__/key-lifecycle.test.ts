@@ -67,4 +67,29 @@ describe('evaluateKeyValidityAt', () => {
     ];
     expect(evaluateKeyValidityAt(history, '2026-03-01T00:00:00Z').validForSigning).toBe(true);
   });
+
+  it('does not treat a signature dated before the key existed as valid', () => {
+    const history: KeyStatusEvent[] = [{ status: 'active', effectiveAt: '2026-01-01T00:00:00Z' }];
+    const result = evaluateKeyValidityAt(history, '2020-01-01T00:00:00Z');
+    expect(result.validForSigning).toBe(false);
+    expect(result.reason).toContain('did not exist');
+  });
+
+  it('fails closed on an unparseable query time, even with a compromise on record', () => {
+    const history: KeyStatusEvent[] = [
+      { status: 'active', effectiveAt: '2026-01-01T00:00:00Z' },
+      { status: 'compromised', effectiveAt: '2026-02-01T00:00:00Z' },
+    ];
+    expect(evaluateKeyValidityAt(history, 'garbage').validForSigning).toBe(false);
+  });
+
+  it('fails closed when the history itself contains an unparseable timestamp', () => {
+    const history: KeyStatusEvent[] = [
+      { status: 'active', effectiveAt: '2026-01-01T00:00:00Z' },
+      { status: 'active', effectiveAt: 'not-a-date' },
+    ];
+    const result = evaluateKeyValidityAt(history, '2026-03-01T00:00:00Z');
+    expect(result.validForSigning).toBe(false);
+    expect(result.reason).toContain('unparseable');
+  });
 });
