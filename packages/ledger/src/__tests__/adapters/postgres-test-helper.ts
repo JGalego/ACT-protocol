@@ -48,6 +48,10 @@ export async function startEmbeddedPostgres(): Promise<EmbeddedPostgresHandle> {
   const adminPool = new pg.Pool({
     connectionString: `postgres://act:act@127.0.0.1:${port}/act_ledger_test`,
   });
+  // Idle-client errors (e.g. the server's FATAL 57P01 while shutting down)
+  // are emitted on the pool; with no listener they become an uncaught
+  // exception that fails the whole vitest run even though every test passed.
+  adminPool.on('error', () => undefined);
 
   return {
     makeConnectionString(schema: string) {
