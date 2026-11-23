@@ -10,6 +10,12 @@ const LEDGER_ERROR_STATUS: Record<string, number> = {
   untrusted_actor: 403,
   missing_parent: 409,
   cycle_detected: 409,
+  actor_key_not_signer: 403,
+  missing_signature: 400,
+  duplicate_parent: 400,
+  idempotency_conflict: 409,
+  artifact_exists: 409,
+  storage_conflict: 503,
 };
 
 const errorHandlerPlugin: FastifyPluginAsync = async (fastify) => {

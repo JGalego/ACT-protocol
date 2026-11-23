@@ -5,6 +5,7 @@ import { diffValues } from '../diff.js';
 import {
   artifactTypeNameToSlug,
   parseSignedEnvelope,
+  idempotencyKeyOf,
   submitEnvelope,
   validateArtifactTypePayload,
 } from './shared.js';
@@ -25,8 +26,16 @@ const artifactRoutes: FastifyPluginAsync<{ ctx: LedgerContext }> = async (fastif
         envelope.payload.payload,
         artifactTypeNameToSlug(artifactPayload.artifact_type),
       );
+    } else if (['genesis', 'artifact_revised'].includes(envelope.payload.event_type as string)) {
+      // A new or revised artifact version must say what it is; otherwise it
+      // would skip type validation entirely.
+      throw badRequest(
+        'artifact_payload_invalid',
+        'Event payload must be an artifact version with an artifact_type',
+      );
     }
-    const result = await submitEnvelope(ctx.ledger, ctx.keyRegistry, envelope, {
+    const result = await submitEnvelope(ctx, envelope, {
+      idempotencyKey: idempotencyKeyOf(request),
       allowedEventTypes: [
         'genesis',
         'artifact_revised',
@@ -41,10 +50,20 @@ const artifactRoutes: FastifyPluginAsync<{ ctx: LedgerContext }> = async (fastif
 
   fastify.get('/v1/artifacts/:id', async (request) => {
     const { id } = request.params as { id: string };
-    const head = await ctx.ledger.getHead(id);
-    if (!head) throw notFound(`No artifact found with id ${id}`);
-    const event = await ctx.ledger.getEvent(head.eventId);
-    return { artifactId: id, currentVersionId: head.versionId, event };
+    // Current state is computed from lineage, not from write order: two
+    // revisions of the same parent are a branch and both stay visible until
+    // something sanctioned resolves them (spec section 7.3).
+    const tips = await ctx.ledger.getTips(id);
+    if (tips.length === 0) throw notFound(`No artifact found with id ${id}`);
+    const single = tips.length === 1 ? tips[0]! : null;
+    return {
+      artifactId: id,
+      currentVersionId: single?.subjectVersionId ?? null,
+      conflict: tips.length > 1,
+      tips: tips.map((t) => ({ versionId: t.subjectVersionId, eventId: t.eventId })),
+      effectiveVersionId: await ctx.ledger.getEffectiveVersion(id),
+      event: single,
+    };
   });
 
   fastify.get('/v1/artifacts/:id/versions', async (request) => {

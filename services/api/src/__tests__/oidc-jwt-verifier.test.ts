@@ -55,6 +55,32 @@ describe('verifyOidcBearerToken discovery failures', () => {
       verifyOidcBearerToken('irrelevant', { issuer: started.url, audience: AUDIENCE }),
     ).rejects.toThrow(/missing "jwks_uri"/);
   });
+
+  it('fetches discovery from <issuer>/.well-known/openid-configuration, keeping the issuer path', async () => {
+    const seen: string[] = [];
+    const front = await startStaticServer((url) => {
+      seen.push(url);
+      return { status: 500, body: '{}' };
+    });
+    server = front.server;
+    await expect(
+      verifyOidcBearerToken('a.b.c', { issuer: `${front.url}/realms/acme`, audience: AUDIENCE }),
+    ).rejects.toThrow();
+    expect(seen).toEqual(['/realms/acme/.well-known/openid-configuration']);
+  });
+
+  it('does not cache a failed discovery fetch', async () => {
+    let calls = 0;
+    const front = await startStaticServer(() => {
+      calls += 1;
+      return { status: 500, body: '{}' };
+    });
+    server = front.server;
+    const config = { issuer: `${front.url}/retry`, audience: AUDIENCE };
+    await expect(verifyOidcBearerToken('a.b.c', config)).rejects.toThrow();
+    await expect(verifyOidcBearerToken('a.b.c', config)).rejects.toThrow();
+    expect(calls).toBe(2);
+  });
 });
 
 describe('verifyOidcBearerToken claim mapping', () => {

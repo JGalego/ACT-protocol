@@ -3,7 +3,7 @@ import type { FastifyInstance } from 'fastify';
 import { signEnvelope } from '@act/crypto';
 import { buildUnsignedEvent } from '@act/sdk';
 import { buildServer } from '../server.js';
-import { createLedgerContext } from '../ledger-context.js';
+import { createLedgerContext, type LedgerContext } from '../ledger-context.js';
 import {
   buildActorRegistrationEnvelope,
   buildApprovalDecisionEnvelope,
@@ -14,10 +14,13 @@ import {
   buildPolicyEnvelope,
   buildVerificationEnvelope,
   makeActor,
+  peerRegistrationBody,
+  resignBundle,
 } from './helpers.js';
 
-async function makeServer(): Promise<FastifyInstance> {
-  return buildServer({ devMode: true, ledgerContext: await createLedgerContext(':memory:') });
+async function makeServerWithContext(): Promise<{ server: FastifyInstance; ctx: LedgerContext }> {
+  const ctx = await createLedgerContext(':memory:');
+  return { server: await buildServer({ devMode: true, ledgerContext: ctx }), ctx };
 }
 
 async function registerActor(server: FastifyInstance, displayName = 'Test Actor') {
@@ -42,9 +45,10 @@ async function registerActor(server: FastifyInstance, displayName = 'Test Actor'
 
 describe('ACT API service', () => {
   let server: FastifyInstance;
+  let serverCtx: LedgerContext;
 
   beforeEach(async () => {
-    server = await makeServer();
+    ({ server, ctx: serverCtx } = await makeServerWithContext());
   });
 
   afterEach(async () => {
@@ -70,10 +74,18 @@ describe('ACT API service', () => {
   });
 
   it('rejects key registration when the embedded public key does not match the signature', async () => {
+    // The registration names `claimed`'s key id and public key (so the
+    // fingerprint check passes) but is signed by a different private key.
     const actor = makeActor();
-    const forged = makeActor();
-    const envelope = buildKeyRegistrationEnvelope(actor);
-    (envelope.payload.payload as any).data.public_key = forged.signer.publicKey;
+    const claimed = makeActor();
+    const honest = buildKeyRegistrationEnvelope(claimed);
+    const envelope = signEnvelope(honest.payload, [
+      {
+        keyId: claimed.signer.keyId,
+        publicKey: actor.signer.publicKey,
+        privateKey: actor.signer.privateKey,
+      },
+    ]);
     const response = await server.inject({
       method: 'POST',
       url: '/v1/keys',
@@ -273,7 +285,7 @@ describe('ACT API service', () => {
     expect(page2.json().items.length).toBeGreaterThan(0);
   });
 
-  it('exports a bundle and imports it into a fresh ledger', async () => {
+  it('exports a bundle and imports it into a fresh ledger that has registered the exporter as a peer', async () => {
     const actor = await registerActor(server);
     const { envelope } = buildIntentEnvelope(actor, 'Federated intent');
     await server.inject({
@@ -292,17 +304,35 @@ describe('ACT API service', () => {
     expect(exportResponse.statusCode).toBe(200);
     const bundle = exportResponse.json();
     expect(bundle.events.length).toBeGreaterThanOrEqual(3); // key + actor + intent genesis
+    expect(bundle.completeness.scope).toBe('complete');
 
-    const secondServer = await makeServer();
+    const { server: secondServer } = await makeServerWithContext();
     try {
+      const admin = { authorization: 'Bearer admin' };
+      const before = await secondServer.inject({
+        method: 'POST',
+        url: '/v1/bundles/import',
+        headers: admin,
+        payload: bundle,
+      });
+      expect(before.statusCode).toBe(403);
+      expect(before.json().code).toBe('untrusted_source_ledger');
+
+      await secondServer.inject({
+        method: 'POST',
+        url: '/v1/federation/peers',
+        headers: admin,
+        payload: peerRegistrationBody('http://peer.example.test', serverCtx),
+      });
       const importResponse = await secondServer.inject({
         method: 'POST',
         url: '/v1/bundles/import',
-        headers: { authorization: `Bearer ${actor.actorId}` },
+        headers: admin,
         payload: bundle,
       });
       expect(importResponse.statusCode).toBe(200);
       expect(importResponse.json().accepted).toBeGreaterThanOrEqual(3);
+      expect(importResponse.json().quarantined).toEqual([]);
     } finally {
       await secondServer.close();
     }
@@ -367,7 +397,7 @@ describe('ACT API service', () => {
       payload: envelope,
     });
     expect(response.statusCode).toBe(400);
-    expect(response.json().code).toBe('invalid_key_payload');
+    expect(response.json().code).toBe('artifact_payload_invalid');
   });
 
   it('rejects key registration when actor.key_id does not match the Key record', async () => {
@@ -471,53 +501,52 @@ describe('ACT API service', () => {
     expect(policySubmit.statusCode).toBe(201);
   });
 
-  it('lists quarantined events after a bad import', async () => {
+  it('quarantines (and lists) an event whose source receipt does not verify', async () => {
     const actor = await registerActor(server);
-    const { envelope } = buildIntentEnvelope(actor, 'Will be tampered');
-    const tampered = {
-      ...envelope,
-      payload: {
-        ...envelope.payload,
-        payload: { ...(envelope.payload as any).payload, data: { statement: 'x', scope: 'y' } },
-      },
-    };
     await server.inject({
       method: 'POST',
-      url: '/v1/bundles/import',
+      url: '/v1/intents',
       headers: { authorization: `Bearer ${actor.actorId}` },
-      payload: {
-        bundle_id: `sha-256:${'6'.repeat(64)}`,
-        source_ledger_id: actor.actorId,
-        exported_at: '2026-07-16T00:00:00Z',
-        events: [
-          {
-            signed_envelope: tampered,
-            source_receipt: {
-              ledger_id: actor.actorId,
-              sequence: 0,
-              event_id: tampered.payloadDigest,
-              accepted_at: '2026-07-16T00:00:00Z',
-              previous_receipt_digest: `sha-256:${'0'.repeat(64)}`,
-              receipt_digest: `sha-256:${'1'.repeat(64)}`,
-              signature: {
-                key_id: actor.signer.keyId,
-                algorithm: 'ed25519',
-                signature: 'ZmFrZQ==',
-              },
-            },
-          },
-        ],
-        completeness: { scope: 'complete', known_gaps: [] },
-        signature: { key_id: 'x', algorithm: 'ed25519', signature: 'ZmFrZQ==' },
-      },
+      payload: buildIntentEnvelope(actor, 'Receipt will be forged').envelope,
     });
-    const quarantineList = await server.inject({
-      method: 'GET',
-      url: '/v1/quarantine',
-      headers: { authorization: `Bearer ${actor.actorId}` },
-    });
-    expect(quarantineList.statusCode).toBe(200);
-    expect(quarantineList.json().items.length).toBeGreaterThan(0);
+    const bundle = (
+      await server.inject({
+        method: 'POST',
+        url: '/v1/bundles/export',
+        headers: { authorization: `Bearer ${actor.actorId}` },
+        payload: {},
+      })
+    ).json();
+    // The exporting ledger signs the bundle honestly, but one receipt inside it was tampered with.
+    bundle.events[bundle.events.length - 1].source_receipt.sequence = 4242;
+
+    const { server: importer } = await makeServerWithContext();
+    try {
+      const admin = { authorization: 'Bearer admin' };
+      await importer.inject({
+        method: 'POST',
+        url: '/v1/federation/peers',
+        headers: admin,
+        payload: peerRegistrationBody('http://peer.example.test', serverCtx),
+      });
+      const imported = await importer.inject({
+        method: 'POST',
+        url: '/v1/bundles/import',
+        headers: admin,
+        payload: resignBundle(serverCtx, bundle),
+      });
+      expect(imported.statusCode).toBe(200);
+      expect(imported.json().quarantined).toHaveLength(1);
+      const quarantineList = await importer.inject({
+        method: 'GET',
+        url: '/v1/quarantine',
+        headers: admin,
+      });
+      expect(quarantineList.statusCode).toBe(200);
+      expect(quarantineList.json().items[0].reason).toMatch(/receipt/);
+    } finally {
+      await importer.close();
+    }
   });
 
   it('rejects an import bundle that fails its own schema validation', async () => {

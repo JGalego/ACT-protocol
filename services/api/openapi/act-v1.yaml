@@ -43,6 +43,12 @@ paths:
       security: []
       responses:
         '200': { description: OK, content: { text/plain: { schema: { type: string } } } }
+  /ledger:
+    get:
+      operationId: getLedgerIdentity
+      summary: This ledger's public identity (ledger id, receipt-signing key id and public key), for pinning by a federation peer
+      responses:
+        '200': { description: OK }
   /schemas:
     get:
       operationId: listSchemas
@@ -53,7 +59,8 @@ paths:
   /keys:
     post:
       operationId: registerKey
-      summary: Registers a new Ed25519 key via self-signed proof of possession (trust bootstrap)
+      summary: >
+        Registers a new Ed25519 key via self-signed proof of possession (trust bootstrap), or records a key status change (key_rotated / key_revoked / key_compromised) signed by a currently trusted key of the same owner. The key_id MUST be the fingerprint of the public key (ed25519:<sha-256 of the raw key>) and the event's actor MUST be the key's owner. When ACT_KEY_REGISTRATION=admin (the production default) only administrators may register a key. A revoked or compromised key is refused for all later writes (403 untrusted_actor).
       requestBody:
         {
           required: true,
@@ -329,7 +336,8 @@ paths:
   /bundles/export:
     post:
       operationId: exportBundle
-      summary: Exports a signed event bundle (optionally scoped to a set of artifact ids)
+      summary: >
+        Exports a signed event bundle (optionally scoped to a set of artifact ids). completeness.scope is computed: `complete` only if every causal parent of every included event is also included, otherwise `partial` with each gap listed in known_gaps.
       requestBody:
         content:
           application/json:
@@ -341,7 +349,8 @@ paths:
   /bundles/import:
     post:
       operationId: importBundle
-      summary: Imports a signed event bundle, quarantining any event that fails validation
+      summary: >
+        Imports a signed event bundle (administrators only). The bundle MUST name a registered federation peer, its bundle_id MUST be the digest of its body, and it MUST be signed by the key pinned for that peer; otherwise the whole bundle is rejected (403 untrusted_source_ledger / invalid_bundle_signature, 400 bundle_digest_mismatch). Each event's source receipt is verified against the peer key, and a missing causal parent is tolerated only where the bundle declares the gap in completeness.known_gaps. Any event that fails is quarantined with a reason.
       requestBody:
         {
           required: true,
@@ -353,35 +362,47 @@ paths:
   /quarantine:
     get:
       operationId: listQuarantine
-      summary: Lists quarantined (rejected) import events with their rejection reason
+      summary: Lists quarantined (rejected) import events with their rejection reason (administrators only)
       responses:
         '200': { description: OK }
   /federation/peers:
     post:
       operationId: registerFederationPeer
-      summary: Registers another independently-hosted ACT ledger as a federation peer
+      summary: >
+        Registers another independently-hosted ACT ledger as a federation peer (administrators only). Registration is an explicit trust decision that pins the peer's ledger id and signing key, which the operator obtains out of band (the peer's GET /v1/ledger). The URL must be http(s) without embedded credentials and, unless ACT_ALLOW_PRIVATE_PEERS is set, must not point at a loopback, private, or link-local address. The response never includes the bearer token.
       requestBody:
         content:
           application/json:
             schema:
               type: object
-              required: [url]
+              required: [url, ledgerId, ledgerKeyId, ledgerPublicKey]
               properties:
-                url: { type: string, description: 'Peer base URL, e.g. http://peer:4000' }
+                url: { type: string, description: 'Peer base URL, e.g. https://peer.example.org' }
                 label: { type: string }
-                bearerToken: { type: string }
+                bearerToken:
+                  {
+                    type: string,
+                    description: 'Sent to the peer on outgoing calls; never returned',
+                  }
+                ledgerId: { type: string, description: "The peer ledger's UUID" }
+                ledgerKeyId:
+                  {
+                    type: string,
+                    description: "The peer ledger's receipt-signing key id (must be the fingerprint of ledgerPublicKey)",
+                  }
+                ledgerPublicKey: { type: string, description: 'Base64 raw Ed25519 public key' }
       responses:
         '201': { description: Created }
         '400': { $ref: '#/components/responses/Problem' }
     get:
       operationId: listFederationPeers
-      summary: Lists registered federation peers
+      summary: Lists registered federation peers (administrators only; bearer tokens are never returned)
       responses:
         '200': { description: OK }
   /federation/peers/{peerId}:
     delete:
       operationId: removeFederationPeer
-      summary: Removes a registered federation peer
+      summary: Removes a registered federation peer (administrators only)
       parameters:
         - { $ref: '#/components/parameters/Id' }
       responses:

@@ -5,13 +5,15 @@ import { generateId } from '@act/core';
 import { buildUnsignedEvent } from '@act/sdk';
 import { signEnvelope } from '@act/crypto';
 import { buildServer } from '../server.js';
-import { createLedgerContext } from '../ledger-context.js';
+import { createLedgerContext, type LedgerContext } from '../ledger-context.js';
 import {
   buildActorRegistrationEnvelope,
   buildArtifactEnvelope,
   buildIntentEnvelope,
+  buildApprovalRequestEnvelope,
   buildKeyRegistrationEnvelope,
   makeActor,
+  peerRegistrationBody,
   type TestActor,
 } from './helpers.js';
 
@@ -21,17 +23,22 @@ async function listenEphemeral(server: FastifyInstance): Promise<string> {
   return `http://127.0.0.1:${addr.port}`;
 }
 
-async function makeListeningServer(): Promise<{ server: FastifyInstance; url: string }> {
-  const server = await buildServer({
-    devMode: true,
-    ledgerContext: await createLedgerContext(':memory:'),
-  });
+async function makeListeningServer(): Promise<{
+  server: FastifyInstance;
+  url: string;
+  ctx: LedgerContext;
+}> {
+  const ctx = await createLedgerContext(':memory:');
+  const server = await buildServer({ devMode: true, ledgerContext: ctx });
   const url = await listenEphemeral(server);
-  return { server, url };
+  return { server, url, ctx };
 }
 
-async function registerActorOn(url: string, displayName = 'Federated Actor') {
-  const actor = makeActor();
+async function registerActorOn(
+  url: string,
+  displayName = 'Federated Actor',
+  actor: TestActor = makeActor(),
+) {
   const keyRes = await fetch(`${url}/v1/keys`, {
     method: 'POST',
     headers: { 'content-type': 'application/json', authorization: `Bearer dev-token` },
@@ -55,13 +62,14 @@ function buildApprovalDecisionEnvelopeWithFixedPolicy(
     subjectVersionId: string;
     policyId: string;
     policyVersion: string;
+    requestId: string;
     decision: 'approved' | 'rejected';
     causalParentEventId: string;
   },
 ) {
   const decision = {
     decision_id: generateId(),
-    request_id: generateId(),
+    request_id: params.requestId,
     subject: { artifact_id: params.subjectArtifactId, version_id: params.subjectVersionId },
     decision: params.decision,
     scope: 'test-scope',
@@ -101,10 +109,11 @@ describe('federation: real peer-to-peer transport between two independently-host
   let serverA: FastifyInstance;
   let serverB: FastifyInstance;
   let urlB: string;
+  let ctxB: LedgerContext;
 
   beforeAll(async () => {
     ({ server: serverA } = await makeListeningServer());
-    ({ server: serverB, url: urlB } = await makeListeningServer());
+    ({ server: serverB, url: urlB, ctx: ctxB } = await makeListeningServer());
   });
 
   afterAll(async () => {
@@ -126,7 +135,7 @@ describe('federation: real peer-to-peer transport between two independently-host
       method: 'POST',
       url: '/v1/federation/peers',
       headers: { authorization: 'Bearer dev-token' },
-      payload: { url: urlB, bearerToken: 'dev-token' },
+      payload: peerRegistrationBody(urlB, ctxB, { bearerToken: 'dev-token' }),
     });
     expect(peerRes.statusCode).toBe(201);
     const { peerId } = peerRes.json();
@@ -153,84 +162,92 @@ describe('federation: real peer-to-peer transport between two independently-host
     expect(eventIds).toContain(envelope.payloadDigest);
   });
 
-  it('surfaces equivocation as a distinct finding, not a hard reject, when a pulled bundle has conflicting decisions from the same reviewer', async () => {
+  it('surfaces equivocation as a distinct finding, not a hard reject, when two ledgers hold conflicting decisions from the same reviewer', async () => {
+    // A single honest ledger refuses a second decision by the same reviewer on
+    // one request, so equivocation can only show up across ledgers: the same
+    // key told ledger B1 "approved" and ledger B2 "rejected".
     const { server: freshA } = await makeListeningServer();
-    const { server: freshB, url: freshUrlB } = await makeListeningServer();
+    const b1 = await makeListeningServer();
+    const b2 = await makeListeningServer();
     try {
-      const reviewer = await registerActorOn(freshUrlB, 'Reviewer');
-      const {
-        envelope: subjectEnvelope,
-        artifactId,
-        versionId,
-      } = buildIntentEnvelope(reviewer, 'Subject of conflicting decisions');
-      await fetch(`${freshUrlB}/v1/intents`, {
-        method: 'POST',
-        headers: { 'content-type': 'application/json', authorization: 'Bearer dev-token' },
-        body: JSON.stringify(subjectEnvelope),
-      });
+      const reviewer = makeActor();
+      await registerActorOn(b1.url, 'Reviewer', reviewer);
+      await registerActorOn(b2.url, 'Reviewer', reviewer);
+      const subject = buildIntentEnvelope(reviewer, 'Subject of conflicting decisions');
 
       const policyId = generateId();
       const policyVersion = `sha-256:${'2'.repeat(64)}`;
-      const approve = buildApprovalDecisionEnvelopeWithFixedPolicy(reviewer, {
-        subjectArtifactId: artifactId,
-        subjectVersionId: versionId,
-        policyId,
-        policyVersion,
-        decision: 'approved',
-        causalParentEventId: subjectEnvelope.payloadDigest,
-      });
-      const reject = buildApprovalDecisionEnvelopeWithFixedPolicy(reviewer, {
-        subjectArtifactId: artifactId,
-        subjectVersionId: versionId,
-        policyId,
-        policyVersion,
-        decision: 'rejected',
-        causalParentEventId: subjectEnvelope.payloadDigest,
-      });
-      for (const envelope of [approve, reject]) {
-        const res = await fetch(`${freshUrlB}/v1/approval-decisions`, {
-          method: 'POST',
-          headers: { 'content-type': 'application/json', authorization: 'Bearer dev-token' },
-          body: JSON.stringify(envelope),
-        });
-        expect(res.status).toBe(201);
+      for (const [peer, verdict] of [
+        [b1, 'approved'],
+        [b2, 'rejected'],
+      ] as const) {
+        const post = async (path: string, envelope: unknown) => {
+          const res = await fetch(`${peer.url}${path}`, {
+            method: 'POST',
+            headers: { 'content-type': 'application/json', authorization: 'Bearer dev-token' },
+            body: JSON.stringify(envelope),
+          });
+          expect(res.status).toBe(201);
+        };
+        await post('/v1/intents', subject.envelope);
+        const request = buildApprovalRequestEnvelope(
+          reviewer,
+          subject.artifactId,
+          subject.versionId,
+          subject.envelope.payloadDigest,
+        );
+        await post('/v1/approval-requests', request.envelope);
+        await post(
+          '/v1/approval-decisions',
+          buildApprovalDecisionEnvelopeWithFixedPolicy(reviewer, {
+            subjectArtifactId: subject.artifactId,
+            subjectVersionId: subject.versionId,
+            policyId,
+            policyVersion,
+            requestId: request.requestId,
+            decision: verdict,
+            causalParentEventId: request.envelope.payloadDigest,
+          }),
+        );
       }
 
-      const peerRes = await freshA.inject({
-        method: 'POST',
-        url: '/v1/federation/peers',
-        headers: { authorization: 'Bearer dev-token' },
-        payload: { url: freshUrlB, bearerToken: 'dev-token' },
-      });
-      const { peerId } = peerRes.json();
-
-      const pullRes = await freshA.inject({
-        method: 'POST',
-        url: '/v1/federation/pull',
-        headers: { authorization: 'Bearer dev-token' },
-        payload: { peerId },
-      });
-      expect(pullRes.statusCode).toBe(200);
-      const summary = pullRes.json();
-      // Both conflicting decisions are still ACCEPTED, not quarantined --
-      // equivocation is reported, not silently rejected.
-      expect(summary.quarantined).toEqual([]);
+      let summary: any;
+      for (const peer of [b1, b2]) {
+        const peerRes = await freshA.inject({
+          method: 'POST',
+          url: '/v1/federation/peers',
+          headers: { authorization: 'Bearer dev-token' },
+          payload: peerRegistrationBody(peer.url, peer.ctx, { bearerToken: 'dev-token' }),
+        });
+        expect(peerRes.statusCode).toBe(201);
+        const pullRes = await freshA.inject({
+          method: 'POST',
+          url: '/v1/federation/pull',
+          headers: { authorization: 'Bearer dev-token' },
+          payload: { peerId: peerRes.json().peerId },
+        });
+        expect(pullRes.statusCode).toBe(200);
+        summary = pullRes.json();
+        // Everything is ACCEPTED, not quarantined -- equivocation is reported, not silently rejected.
+        expect(summary.quarantined).toEqual([]);
+      }
       expect(summary.findings.equivocations).toHaveLength(1);
       expect(summary.findings.equivocations[0]).toMatchObject({
         keyId: reviewer.signer.keyId,
-        subjectArtifactId: artifactId,
-        subjectVersionId: versionId,
+        subjectArtifactId: subject.artifactId,
+        subjectVersionId: subject.versionId,
         decisions: expect.arrayContaining(['approved', 'rejected']),
       });
     } finally {
       await freshA.close();
-      await freshB.close();
+      await b1.server.close();
+      await b2.server.close();
     }
   });
 
   it('surfaces a fork as informational when two events name the same parent under a lineage relation', async () => {
     const { server: freshA } = await makeListeningServer();
-    const { server: freshB, url: freshUrlB } = await makeListeningServer();
+    const { server: freshB, url: freshUrlB, ctx: freshCtxB } = await makeListeningServer();
     try {
       const actor = await registerActorOn(freshUrlB, 'Proposer');
       const { envelope: parentEnvelope, artifactId } = buildIntentEnvelope(
@@ -276,7 +293,7 @@ describe('federation: real peer-to-peer transport between two independently-host
         method: 'POST',
         url: '/v1/federation/peers',
         headers: { authorization: 'Bearer dev-token' },
-        payload: { url: freshUrlB, bearerToken: 'dev-token' },
+        payload: peerRegistrationBody(freshUrlB, freshCtxB, { bearerToken: 'dev-token' }),
       });
       const { peerId } = peerRes.json();
 
@@ -312,7 +329,7 @@ describe('federation: real peer-to-peer transport between two independently-host
       method: 'POST',
       url: '/v1/federation/peers',
       headers: { authorization: 'Bearer dev-token' },
-      payload: { url: 'http://127.0.0.1:1', bearerToken: 'dev-token' },
+      payload: peerRegistrationBody('http://127.0.0.1:1', ctxB, { bearerToken: 'dev-token' }),
     });
     const { peerId } = peerRes.json();
 
@@ -336,9 +353,17 @@ describe('federation: real peer-to-peer transport between two independently-host
   });
 
   it("pushes A's events to B via /v1/federation/push", async () => {
-    const { server: freshA, url: freshUrlA } = await makeListeningServer();
-    const { server: freshB, url: freshUrlB } = await makeListeningServer();
+    const { server: freshA, url: freshUrlA, ctx: freshCtxA } = await makeListeningServer();
+    const { server: freshB, url: freshUrlB, ctx: freshCtxB } = await makeListeningServer();
     try {
+      // B only accepts bundles from ledgers its operator has registered.
+      const reverse = await freshB.inject({
+        method: 'POST',
+        url: '/v1/federation/peers',
+        headers: { authorization: 'Bearer dev-token' },
+        payload: peerRegistrationBody(freshUrlA, freshCtxA),
+      });
+      expect(reverse.statusCode).toBe(201);
       const actor = await registerActorOn(freshUrlA, 'Pusher');
       const { envelope } = buildIntentEnvelope(actor, 'Intent pushed from A to B');
       const submit = await fetch(`${freshUrlA}/v1/intents`, {
@@ -352,7 +377,7 @@ describe('federation: real peer-to-peer transport between two independently-host
         method: 'POST',
         url: '/v1/federation/peers',
         headers: { authorization: 'Bearer dev-token' },
-        payload: { url: freshUrlB, bearerToken: 'dev-token' },
+        payload: peerRegistrationBody(freshUrlB, freshCtxB, { bearerToken: 'dev-token' }),
       });
       const { peerId } = peerRes.json();
 
@@ -382,7 +407,7 @@ describe('federation: real peer-to-peer transport between two independently-host
       method: 'POST',
       url: '/v1/federation/peers',
       headers: { authorization: 'Bearer dev-token' },
-      payload: { url: 'http://127.0.0.1:9', label: 'throwaway' },
+      payload: peerRegistrationBody('http://127.0.0.1:9', ctxB, { label: 'throwaway' }),
     });
     const { peerId } = registerRes.json();
 

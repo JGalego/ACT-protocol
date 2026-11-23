@@ -1,40 +1,63 @@
 import { generateId } from '@act/core';
+import type { StorageAdapter } from '@act/ledger';
 
 export interface PeerConfig {
   peerId: string;
-  /** This peer's base URL, e.g. http://127.0.0.1:4001 -- no trailing slash. */
+  /** This peer's base URL, e.g. https://ledger.example.org -- no trailing slash. */
   url: string;
   label?: string;
-  /** Sent as `Authorization: Bearer <token>` on outgoing calls to this peer. */
+  /** Sent as `Authorization: Bearer <token>` on outgoing calls to this peer. Never returned by the API. */
   bearerToken?: string;
+  /**
+   * The peer ledger's identity, pinned out of band by an operator. A bundle is
+   * only accepted when it names this ledger and is signed by this key
+   * (spec/federation.md section 3); the ledger never learns it from the peer.
+   */
+  ledgerId: string;
+  ledgerKeyId: string;
+  ledgerPublicKey: string;
 }
 
+export type PublicPeerConfig = Omit<PeerConfig, 'bearerToken'> & { hasBearerToken: boolean };
+
+export function toPublicPeer(peer: PeerConfig): PublicPeerConfig {
+  const { bearerToken, ...rest } = peer;
+  return { ...rest, hasBearerToken: bearerToken !== undefined };
+}
+
+const PREFIX = 'peer:';
+
 /**
- * In-memory peer-ledger directory (Phase 1 scope, matching ledger-context.ts's
- * KeyRegistry precedent -- see ADR 0006 for the trust-model maturity level
- * this repository targets). Registering a peer does not itself grant it any
- * trust: pulled events still go through the full appendEvent write path,
- * including trust-policy evaluation against ctx.keyRegistry.
+ * Peer-ledger directory, persisted in the ledger's metadata store so it
+ * survives restarts and is shared by every replica of one database.
+ * Registering a peer is an explicit trust decision by an operator; pulled
+ * events still go through the full write path, including trust-policy
+ * evaluation against the key registry.
  */
 export class PeerRegistry {
-  private readonly peers = new Map<string, PeerConfig>();
+  constructor(private readonly adapter: StorageAdapter) {}
 
-  register(input: Omit<PeerConfig, 'peerId'>): PeerConfig {
-    const peerId = generateId();
-    const config: PeerConfig = { peerId, ...input };
-    this.peers.set(peerId, config);
+  async register(input: Omit<PeerConfig, 'peerId'>): Promise<PeerConfig> {
+    const config: PeerConfig = { peerId: generateId(), ...input };
+    await this.adapter.setMeta(`${PREFIX}${config.peerId}`, JSON.stringify(config));
     return config;
   }
 
-  list(): PeerConfig[] {
-    return [...this.peers.values()];
+  async list(): Promise<PeerConfig[]> {
+    const rows = await this.adapter.listMeta(PREFIX);
+    return rows.map((r) => JSON.parse(r.value) as PeerConfig);
   }
 
-  get(peerId: string): PeerConfig | undefined {
-    return this.peers.get(peerId);
+  async get(peerId: string): Promise<PeerConfig | undefined> {
+    const raw = await this.adapter.getMeta(`${PREFIX}${peerId}`);
+    return raw ? (JSON.parse(raw) as PeerConfig) : undefined;
   }
 
-  remove(peerId: string): boolean {
-    return this.peers.delete(peerId);
+  async findByLedgerId(ledgerId: string): Promise<PeerConfig | undefined> {
+    return (await this.list()).find((p) => p.ledgerId === ledgerId);
+  }
+
+  async remove(peerId: string): Promise<boolean> {
+    return this.adapter.deleteMeta(`${PREFIX}${peerId}`);
   }
 }

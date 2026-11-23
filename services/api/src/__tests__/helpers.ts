@@ -1,6 +1,7 @@
-import { canonicalize, digestBytes, generateId } from '@act/core';
+import { canonicalize, digestBytes, digestCanonicalValue, generateId } from '@act/core';
 import { generateKeyPair, signBytes, signEnvelope, type Signer } from '@act/crypto';
 import { buildUnsignedEvent } from '@act/sdk';
+import type { LedgerContext } from '../ledger-context.js';
 
 export interface TestActor {
   actorId: string;
@@ -308,5 +309,41 @@ export function buildIntentEnvelope(actor: TestActor, statement: string) {
     envelope: signEnvelope(event, [actor.signer]),
     artifactId: intentArtifact.artifact_id as string,
     versionId: intentArtifact.version_id as string,
+  };
+}
+
+/** The body that registers `other` as a federation peer, pinning its identity (as an operator would from GET /v1/ledger). */
+export function peerRegistrationBody(
+  url: string,
+  other: LedgerContext,
+  extra: Record<string, unknown> = {},
+) {
+  return {
+    url,
+    ledgerId: other.ledgerId,
+    ledgerKeyId: other.ledgerSigner.keyId,
+    ledgerPublicKey: other.ledgerSigner.publicKey,
+    ...extra,
+  };
+}
+
+/** Recomputes a bundle's id and signature after a test has edited it, acting as the (possibly malicious) signing peer. */
+export function resignBundle(signer: LedgerContext, bundle: Record<string, any>) {
+  const body = { ...bundle };
+  delete body.bundle_id;
+  delete body.signature;
+  const bundleId = digestCanonicalValue(body);
+  return {
+    bundle_id: bundleId,
+    ...body,
+    signature: {
+      key_id: signer.ledgerSigner.keyId,
+      algorithm: 'ed25519',
+      signature: signBytes(
+        signer.ledgerSigner.privateKey,
+        signer.ledgerSigner.publicKey,
+        new TextEncoder().encode(bundleId),
+      ),
+    },
   };
 }

@@ -1,12 +1,18 @@
 import type { FastifyPluginAsync } from 'fastify';
 import type { LedgerContext } from '../ledger-context.js';
-import { parseSignedEnvelope, submitEnvelope, validateArtifactTypePayload } from './shared.js';
+import {
+  parseSignedEnvelope,
+  idempotencyKeyOf,
+  submitEnvelope,
+  validateArtifactTypePayload,
+} from './shared.js';
 
 const verificationRoutes: FastifyPluginAsync<{ ctx: LedgerContext }> = async (fastify, { ctx }) => {
   fastify.post('/v1/verifications', async (request, reply) => {
     const envelope = parseSignedEnvelope(request.body);
     validateArtifactTypePayload(envelope.payload.payload, 'verification-report');
-    const result = await submitEnvelope(ctx.ledger, ctx.keyRegistry, envelope, {
+    const result = await submitEnvelope(ctx, envelope, {
+      idempotencyKey: idempotencyKeyOf(request),
       allowedEventTypes: ['verification_recorded'],
       allowedSubjectKinds: ['attestation'],
     });

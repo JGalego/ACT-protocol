@@ -18,15 +18,21 @@ import {
 
 const AUDIENCE = 'act-api';
 
-async function mintToken(provider: DevOidcProvider, actor: Actor): Promise<string> {
+/** The OIDC subject of the platform administrator who admits new keys (ACT_ADMIN_ACTORS). */
+const ADMIN_SUBJECT = 'platform-admin';
+
+async function mintTokenFor(provider: DevOidcProvider, sub: string): Promise<string> {
   const response = await fetch(`${provider.url}/token`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ sub: actor.actorId, aud: AUDIENCE, tenant: 'acme-corp' }),
+    body: JSON.stringify({ sub, aud: AUDIENCE, tenant: 'acme-corp' }),
   });
   const { access_token } = (await response.json()) as { access_token: string };
   return access_token;
 }
+
+const mintToken = (provider: DevOidcProvider, actor: Actor) =>
+  mintTokenFor(provider, actor.actorId);
 
 async function registerActorWithOidc(
   url: string,
@@ -35,7 +41,15 @@ async function registerActorWithOidc(
 ): Promise<Actor> {
   const actor = makeActor();
   const token = await mintToken(provider, actor);
-  const keyRes = await postEnvelope(url, '/v1/keys', buildKeyRegistrationEnvelope(actor), token);
+  // Production admission control: the key proves possession by signing its own
+  // registration, but only an administrator may admit it to this ledger.
+  const adminToken = await mintTokenFor(provider, ADMIN_SUBJECT);
+  const keyRes = await postEnvelope(
+    url,
+    '/v1/keys',
+    buildKeyRegistrationEnvelope(actor),
+    adminToken,
+  );
   if (keyRes.status !== 201)
     throw new Error(`key registration failed: ${keyRes.status}: ${await keyRes.text()}`);
   const actorRes = await postEnvelope(
@@ -73,6 +87,7 @@ describe('example: enterprise OIDC identities, quorum approval, and audit export
     ({ server, url } = await makeListeningServer({
       devMode: false,
       oidc: { issuer: provider.url, audience: AUDIENCE },
+      adminActorIds: [ADMIN_SUBJECT],
     }));
     engineer = await registerActorWithOidc(url, provider, 'Engineer');
     reviewerA = await registerActorWithOidc(url, provider, 'Security Reviewer A');

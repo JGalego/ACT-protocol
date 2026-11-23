@@ -1,12 +1,18 @@
 import type { FastifyPluginAsync } from 'fastify';
 import type { LedgerContext } from '../ledger-context.js';
-import { parseSignedEnvelope, submitEnvelope, validateArtifactTypePayload } from './shared.js';
+import {
+  parseSignedEnvelope,
+  idempotencyKeyOf,
+  submitEnvelope,
+  validateArtifactTypePayload,
+} from './shared.js';
 
 const approvalRoutes: FastifyPluginAsync<{ ctx: LedgerContext }> = async (fastify, { ctx }) => {
   fastify.post('/v1/approval-requests', async (request, reply) => {
     const envelope = parseSignedEnvelope(request.body);
     validateArtifactTypePayload(envelope.payload.payload, 'approval-request');
-    const result = await submitEnvelope(ctx.ledger, ctx.keyRegistry, envelope, {
+    const result = await submitEnvelope(ctx, envelope, {
+      idempotencyKey: idempotencyKeyOf(request),
       allowedEventTypes: ['approval_requested'],
       allowedSubjectKinds: ['attestation'],
     });
@@ -16,7 +22,8 @@ const approvalRoutes: FastifyPluginAsync<{ ctx: LedgerContext }> = async (fastif
   fastify.post('/v1/approval-decisions', async (request, reply) => {
     const envelope = parseSignedEnvelope(request.body);
     validateArtifactTypePayload(envelope.payload.payload, 'approval-decision');
-    const result = await submitEnvelope(ctx.ledger, ctx.keyRegistry, envelope, {
+    const result = await submitEnvelope(ctx, envelope, {
+      idempotencyKey: idempotencyKeyOf(request),
       allowedEventTypes: [
         'approval_decided',
         'approval_cancelled',

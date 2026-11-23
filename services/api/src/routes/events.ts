@@ -1,5 +1,6 @@
 import type { FastifyPluginAsync } from 'fastify';
 import type { LedgerContext } from '../ledger-context.js';
+import { parseIntParam } from './shared.js';
 
 const DEFAULT_LIMIT = 50;
 const MAX_LIMIT = 500;
@@ -12,8 +13,16 @@ const eventRoutes: FastifyPluginAsync<{ ctx: LedgerContext }> = async (fastify, 
       eventType?: string;
       subjectKind?: string;
     };
-    const parsedLimit = Math.min(limit ? Number(limit) : DEFAULT_LIMIT, MAX_LIMIT);
-    const afterSequence = cursor ? Number(cursor) : -1;
+    const parsedLimit = parseIntParam('limit', limit, {
+      fallback: DEFAULT_LIMIT,
+      min: 1,
+      max: MAX_LIMIT,
+    });
+    const afterSequence = parseIntParam('cursor', cursor, {
+      fallback: -1,
+      min: -1,
+      max: Number.MAX_SAFE_INTEGER,
+    });
     const items =
       eventType || subjectKind
         ? await ctx.ledger.queryEvents(

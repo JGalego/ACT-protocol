@@ -18,6 +18,15 @@ const healthRoutes: FastifyPluginAsync<{ ctx: LedgerContext }> = async (fastify,
     }
   });
 
+  // The ledger's public identity, so an operator can pin it out of band when
+  // registering this ledger as a federation peer elsewhere.
+  fastify.get('/v1/ledger', async () => ({
+    ledgerId: ctx.ledgerId,
+    keyId: ctx.ledgerSigner.keyId,
+    publicKey: ctx.ledgerSigner.publicKey,
+    protocolVersion: 'act/1.0',
+  }));
+
   fastify.get('/v1/metrics', async (_request, reply) => {
     const memory = process.memoryUsage();
     const lines = [

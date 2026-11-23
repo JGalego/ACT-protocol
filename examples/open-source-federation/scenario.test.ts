@@ -7,6 +7,7 @@ import {
   buildPolicyEnvelope,
   buildTransformationEnvelope,
   makeListeningServer,
+  getJson,
   postEnvelope,
   registerActorOn,
   type Actor,
@@ -90,10 +91,24 @@ describe('example: open-source federation with an external contribution', () => 
     ).toBe(201);
 
     // The maintainer registers the fork as a federation peer and pulls it.
+    // Registering is an explicit trust decision: it pins the fork's ledger id
+    // and signing key, which the maintainer obtained out of band (here, from
+    // the contributor's published GET /v1/ledger) -- never from the bundle.
+    const forkIdentity = await getJson<{ ledgerId: string; keyId: string; publicKey: string }>(
+      forkUrl,
+      '/v1/ledger',
+      contributor.actorId,
+    );
     const peerResponse = await postEnvelope(
       upstreamUrl,
       '/v1/federation/peers',
-      { url: forkUrl, bearerToken: 'upstream-federation-puller' },
+      {
+        url: forkUrl,
+        bearerToken: 'upstream-federation-puller',
+        ledgerId: forkIdentity.ledgerId,
+        ledgerKeyId: forkIdentity.keyId,
+        ledgerPublicKey: forkIdentity.publicKey,
+      },
       maintainer.actorId,
     );
     expect(peerResponse.status).toBe(201);

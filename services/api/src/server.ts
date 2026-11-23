@@ -1,8 +1,14 @@
+import { readFileSync } from 'node:fs';
 import Fastify, { type FastifyInstance } from 'fastify';
 import cors from '@fastify/cors';
 import rateLimit from '@fastify/rate-limit';
 import sensible from '@fastify/sensible';
-import { createLedgerContext, type LedgerContext } from './ledger-context.js';
+import {
+  createLedgerContext,
+  type AuthorityConfig,
+  type LedgerContext,
+  type ServerPolicy,
+} from './ledger-context.js';
 import authPlugin from './plugins/auth.js';
 import type { OidcConfig } from './oidc/jwt-verifier.js';
 import errorHandlerPlugin from './plugins/error-handler.js';
@@ -32,6 +38,39 @@ export interface BuildServerOptions {
   nodeEnv?: string;
   /** Production OIDC/JWT validation config; falls back to ACT_OIDC_ISSUER/ACT_OIDC_AUDIENCE/ACT_OIDC_JWKS_URI. */
   oidc?: OidcConfig | undefined;
+  /** Actor ids that may administer peers, imports and (in admin mode) key registration; falls back to ACT_ADMIN_ACTORS (comma-separated). */
+  adminActorIds?: string[] | undefined;
+  /** `open` or `admin`; falls back to ACT_KEY_REGISTRATION. Default: `open` in dev mode, `admin` otherwise. */
+  keyRegistration?: 'open' | 'admin' | undefined;
+  /** Permit loopback/private federation peers; falls back to ACT_ALLOW_PRIVATE_PEERS. Default: dev mode only. */
+  allowPrivatePeers?: boolean | undefined;
+  /** Authority policy + role assignments for selecting/merging effective intents; falls back to the JSON file at ACT_AUTHORITY_POLICY_FILE. */
+  authority?: AuthorityConfig | undefined;
+}
+
+function resolveAdminActors(options: BuildServerOptions): string[] | undefined {
+  if (options.adminActorIds) return options.adminActorIds;
+  const raw = process.env.ACT_ADMIN_ACTORS;
+  if (!raw) return undefined;
+  return raw
+    .split(',')
+    .map((id) => id.trim())
+    .filter(Boolean);
+}
+
+function resolveAuthority(options: BuildServerOptions): AuthorityConfig | undefined {
+  if (options.authority) return options.authority;
+  const file = process.env.ACT_AUTHORITY_POLICY_FILE;
+  return file ? (JSON.parse(readFileSync(file, 'utf8')) as AuthorityConfig) : undefined;
+}
+
+function resolveKeyRegistration(options: BuildServerOptions, devMode: boolean): 'open' | 'admin' {
+  const value = options.keyRegistration ?? process.env.ACT_KEY_REGISTRATION;
+  if (value === 'open' || value === 'admin') return value;
+  if (value !== undefined) {
+    throw new Error(`ACT_KEY_REGISTRATION must be 'open' or 'admin', got '${value}'`);
+  }
+  return devMode ? 'open' : 'admin';
 }
 
 function resolveOidcConfig(options: BuildServerOptions): OidcConfig | undefined {
@@ -72,6 +111,17 @@ export async function buildServer(options: BuildServerOptions = {}): Promise<Fas
     }
   }
 
+  const adminActorIds = resolveAdminActors(options);
+  if (nodeEnv === 'production' && (!adminActorIds || adminActorIds.length === 0)) {
+    // Peers, federation imports and key admission are administrator
+    // operations; a production server with no administrator cannot be
+    // operated, and one that treated everyone as an administrator would be
+    // wide open. Refuse to start rather than guess.
+    throw new Error(
+      'Production mode requires at least one administrator: set ACT_ADMIN_ACTORS to the OIDC subject(s) allowed to administer this ledger.',
+    );
+  }
+
   const fastify = Fastify({
     logger: nodeEnv !== 'test',
     bodyLimit: options.bodyLimitBytes ?? 2 * 1024 * 1024,
@@ -86,6 +136,16 @@ export async function buildServer(options: BuildServerOptions = {}): Promise<Fas
   const ctx =
     options.ledgerContext ??
     (await createLedgerContext(options.dbPath ?? process.env.ACT_DB_PATH ?? './data/act.db'));
+
+  const policy: ServerPolicy = {
+    devMode,
+    adminActorIds,
+    keyRegistration: resolveKeyRegistration(options, devMode),
+    allowPrivatePeers:
+      options.allowPrivatePeers ?? (process.env.ACT_ALLOW_PRIVATE_PEERS === 'true' || devMode),
+    authority: resolveAuthority(options),
+  };
+  ctx.policy = policy;
 
   await fastify.register(healthRoutes, { ctx });
   await fastify.register(schemaRoutes);

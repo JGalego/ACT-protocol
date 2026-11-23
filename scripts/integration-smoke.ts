@@ -18,8 +18,8 @@ import { type ChildProcessWithoutNullStreams, spawn } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
-import { generateId } from '@act/core';
-import { generateKeyPair, signEnvelope } from '@act/crypto';
+import { canonicalize, digestBytes, generateId } from '@act/core';
+import { generateKeyPair, signBytes, signEnvelope } from '@act/crypto';
 import { buildUnsignedEvent } from '@act/sdk';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -48,7 +48,45 @@ async function runSmokeSequence(): Promise<void> {
   const actorId = generateId();
   const keyPair = generateKeyPair();
   const artifactId = generateId();
-  const versionId = `sha-256:${'1'.repeat(64)}`;
+
+  // A Key artifact version: its version id is the digest of its own canonical
+  // content, and the key signs it (the API recomputes and verifies both).
+  const unsignedArtifact = {
+    artifact_id: artifactId,
+    schema_version: '1.0',
+    protocol_version: 'act/1.0',
+    authoring_actor: { actor_id: actorId, key_id: keyPair.keyId },
+    created_at_claim: new Date().toISOString(),
+    artifact_type: 'Key',
+    content: {
+      media_type: 'application/json',
+      byte_length: 0,
+      digest: `sha-256:${'0'.repeat(64)}`,
+      storage: { kind: 'inline', inline_value: '' },
+      sensitivity: 'internal',
+      availability_state: 'available',
+    },
+    lineage: [],
+    applicable_policy: { not_applicable: true, reason: 'integration smoke fixture' },
+    confidence_assessments: [],
+    uncertainties: [],
+    evidence_refs: [],
+    sensitivity: 'internal',
+    retention_policy_id: null,
+    data: {
+      key_id: keyPair.keyId,
+      algorithm: 'ed25519',
+      public_key: keyPair.publicKey,
+      status: 'active',
+      owner_actor_id: actorId,
+    },
+  };
+  const versionId = digestBytes(canonicalize(unsignedArtifact));
+  const artifactSignature = signBytes(
+    keyPair.privateKey,
+    keyPair.publicKey,
+    new TextEncoder().encode(canonicalize(unsignedArtifact)),
+  );
 
   const keyEvent = buildUnsignedEvent({
     eventType: 'genesis',
@@ -61,35 +99,9 @@ async function runSmokeSequence(): Promise<void> {
       artifact_type: 'Key',
     },
     payload: {
-      artifact_id: artifactId,
-      schema_version: '1.0',
-      protocol_version: 'act/1.0',
-      authoring_actor: { actor_id: actorId, key_id: keyPair.keyId },
-      created_at_claim: new Date().toISOString(),
-      artifact_type: 'Key',
-      content: {
-        media_type: 'application/json',
-        byte_length: 0,
-        digest: `sha-256:${'0'.repeat(64)}`,
-        storage: { kind: 'inline', inline_value: '' },
-        sensitivity: 'internal',
-        availability_state: 'available',
-      },
-      lineage: [],
-      applicable_policy: { not_applicable: true, reason: 'integration smoke fixture' },
-      confidence_assessments: [],
-      uncertainties: [],
-      evidence_refs: [],
-      sensitivity: 'internal',
-      retention_policy_id: null,
+      ...unsignedArtifact,
       version_id: versionId,
-      data: {
-        key_id: keyPair.keyId,
-        algorithm: 'ed25519',
-        public_key: keyPair.publicKey,
-        status: 'active',
-        owner_actor_id: actorId,
-      },
+      signatures: [{ key_id: keyPair.keyId, algorithm: 'ed25519', signature: artifactSignature }],
     },
   });
   const signedKeyEvent = signEnvelope(keyEvent, [keyPair]);

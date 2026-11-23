@@ -133,6 +133,22 @@ describe('production fail-closed behavior', () => {
     }
   });
 
+  it('refuses to start in production with OIDC configured but no administrator', async () => {
+    const provider = await startDevOidcProvider();
+    try {
+      await expect(
+        buildServer({
+          devMode: false,
+          nodeEnv: 'production',
+          oidc: { issuer: provider.url, audience: AUDIENCE },
+          ledgerContext: await createLedgerContext(':memory:'),
+        }),
+      ).rejects.toThrow(/administrator/);
+    } finally {
+      await provider.close();
+    }
+  });
+
   it('builds successfully in production mode when OIDC is configured and devMode is off', async () => {
     const provider = await startDevOidcProvider();
     try {
@@ -140,6 +156,7 @@ describe('production fail-closed behavior', () => {
         devMode: false,
         nodeEnv: 'production',
         oidc: { issuer: provider.url, audience: AUDIENCE },
+        adminActorIds: ['admin-subject'],
         ledgerContext: await createLedgerContext(':memory:'),
       });
       await productionServer.close();

@@ -35,10 +35,9 @@ async function discoverJwksUri(issuer: string): Promise<string> {
   let cached = discoveryCache.get(issuer);
   if (!cached) {
     cached = (async () => {
-      const discoveryUrl = new URL(
-        '/.well-known/openid-configuration',
-        issuer.endsWith('/') ? issuer : `${issuer}/`,
-      );
+      // OIDC Discovery 4: the document lives at `<issuer>/.well-known/openid-configuration`,
+      // appended to the issuer *including its path* (an absolute-path URL would drop it).
+      const discoveryUrl = new URL(`${issuer.replace(/\/$/, '')}/.well-known/openid-configuration`);
       const response = await fetch(discoveryUrl);
       if (!response.ok) {
         throw new Error(
@@ -52,6 +51,11 @@ async function discoverJwksUri(issuer: string): Promise<string> {
       return doc.jwks_uri;
     })();
     discoveryCache.set(issuer, cached);
+    // Do not cache a failure: one provider hiccup at first use must not
+    // disable authentication until the process restarts.
+    cached.catch(() => {
+      if (discoveryCache.get(issuer) === cached) discoveryCache.delete(issuer);
+    });
   }
   return cached;
 }

@@ -1,13 +1,14 @@
 import type { FastifyPluginAsync } from 'fastify';
 import type { LedgerContext } from '../ledger-context.js';
-import { buildExportBundle, importBundleEvents, validateBundleSchema } from '../bundle-ops.js';
+import { buildExportBundle, importBundle, validateBundleSchema } from '../bundle-ops.js';
+import { assertAdmin } from './shared.js';
 
 /**
  * Bundle export/import per spec/federation.md. Real peer-to-peer transport
- * (a ledger pulling/pushing directly to another independently-hosted
- * ledger over HTTP) lives in routes/federation.ts, which reuses the exact
- * same buildExportBundle/importBundleEvents functions as this route so the
- * two paths can never accept/quarantine differently.
+ * lives in routes/federation.ts, which reuses the exact same
+ * buildExportBundle/importBundle functions so the two paths can never
+ * accept/quarantine differently. Importing writes foreign history into this
+ * ledger and is an administrator operation.
  */
 const bundleRoutes: FastifyPluginAsync<{ ctx: LedgerContext }> = async (fastify, { ctx }) => {
   fastify.post('/v1/bundles/export', async (request) => {
@@ -16,11 +17,15 @@ const bundleRoutes: FastifyPluginAsync<{ ctx: LedgerContext }> = async (fastify,
   });
 
   fastify.post('/v1/bundles/import', async (request) => {
+    assertAdmin(ctx, request);
     validateBundleSchema(request.body);
-    return importBundleEvents(ctx, request.body);
+    return importBundle(ctx, request.body);
   });
 
-  fastify.get('/v1/quarantine', async () => ({ items: await ctx.ledger.listQuarantine() }));
+  fastify.get('/v1/quarantine', async (request) => {
+    assertAdmin(ctx, request);
+    return { items: await ctx.ledger.listQuarantine() };
+  });
 };
 
 export default bundleRoutes;
