@@ -17,14 +17,15 @@ A repository or implementation claims a profile only when it passes every fixtur
 
 ## 2. Fixture Categories
 
-- `conformance/fixtures/canonicalization/` — RFC 8785 canonicalization vectors: input JSON (varied key order, unicode, numeric edge cases) and expected canonical bytes/digest.
-- `conformance/fixtures/signatures/` — Ed25519 sign/verify vectors: known keypair, known message, expected signature, and negative vectors (flipped bit, wrong key, truncated signature).
-- `conformance/fixtures/schema/` — positive fixtures (must validate) and negative fixtures (must be rejected, with the specific violated constraint) for every schema under `schemas/`.
-- `conformance/fixtures/state-machines/` — one fixture per transition (including invalid/forbidden transitions) per state machine in `spec/state-machines.md`.
-- `conformance/fixtures/graph/` — DAG fixtures: valid multi-input/output transformations, valid merges, and cycle-introducing fixtures that MUST be rejected.
-- `conformance/fixtures/approval-policy/` — quorum, expiry, revocation, supersession, and separation-of-duties fixtures.
-- `conformance/fixtures/federation/` — export/import round trip, fork, duplicate, and partial-history fixtures.
-- `conformance/fixtures/privacy/` — redaction and cryptographic-erasure fixtures, including expected post-redaction availability state.
+The fixtures live where each is consumed, not in one `fixtures/` tree:
+
+- `conformance/vectors/*.json`: frozen cross-SDK vectors with expected outputs. `canonicalization.json` (RFC 8785 inputs and expected canonical bytes), `digest.json`, `ids.json`, `keys.json`, `signatures.json` (including negative vectors: flipped bit, wrong key), `dsse-pae.json`, `envelopes.json`, and `key-lifecycle.json` (status-at-time and retroactive-compromise cases, including fail-closed ones). Regenerate only deliberately: `generate-vectors.ts` mints new random keys, so a blind regeneration changes the frozen key and signature vectors.
+- `schemas/**/fixtures/{positive,negative}/`: a must-validate and a must-reject fixture for every schema, checked by `scripts/validate-schemas.ts`.
+- `conformance/checks/*.ts`: executable checks for canonicalization, signatures, schema fixtures, DAG/cycle rejection (`graph.ts`), federation, and SDK interoperability, run by `conformance/run-conformance.ts`.
+- `conformance/interop/`: signatures produced by one SDK and verified by the other, in both directions.
+- `formal/` and `packages/*/src/__tests__/`: state-machine and approval/quorum/policy behavior (see `docs/formal-methods.md`).
+
+State-machine transition fixtures, approval-policy fixtures, and privacy (redaction/erasure) fixtures are not yet a separate vector suite; `docs/roadmap.md` tracks them.
 
 ## 3. Conformance Report
 

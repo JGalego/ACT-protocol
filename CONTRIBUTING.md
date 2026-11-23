@@ -6,8 +6,7 @@ Thank you for considering a contribution to the ACT Protocol reference implement
 
 - Node.js 22 LTS and pnpm 9+ (`corepack enable`)
 - Python 3.12+ (for `sdks/python`)
-- A supported stable Go release (for `sdks/go`)
-- Stable Rust (for `sdks/rust`)
+- Go and Rust toolchains only once the Go and Rust SDKs exist (see `docs/roadmap.md`; neither is in this repository yet)
 - Docker and Docker Compose (for `make verify-integration`)
 
 ## Getting Started
@@ -26,7 +25,7 @@ make verify
 1. **Open an issue first** for anything that changes normative protocol behavior (anything in `spec/` or `schemas/`). Protocol changes require an Architecture Decision Record (see `docs/adr/0000-adr-process.md`).
 2. **Write the test first** where practical, especially for canonicalization, cryptographic, ledger, and policy code — these packages maintain a 90% branch-coverage floor (`docs/testing-strategy.md`).
 3. **No placeholder behavior.** Do not merge disabled tests, TODO-only handlers, or APIs that return fabricated data. If something is out of scope for now, it must be absent and documented in `docs/roadmap.md`, not present and fake.
-4. **Schemas are authoritative.** Do not hand-duplicate a type that a JSON Schema already defines; regenerate language models instead (`scripts/generate-schema-types.ts`).
+4. **Schemas are authoritative.** Do not hand-duplicate a type that a JSON Schema already defines; regenerate language models instead (`scripts/generate-schema-types.mjs`).
 5. **Conventional commits** are appreciated but not required; a clear, imperative-mood summary line is.
 
 ## Pull Requests

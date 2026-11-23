@@ -6,7 +6,7 @@ ACT is developed as an open, implementation-independent protocol (`spec/`, `sche
 
 ## Roles
 
-- **Maintainers** — have merge authority, run releases, and are the contact point for security reports. The current maintainer list is kept in `.github/MAINTAINERS.md` (or, until that file exists, in the repository metadata of the hosting organization).
+- **Maintainers** — have merge authority, run releases, and are the contact point for security reports. The current maintainer list is kept in the repository metadata of the hosting organization).
 - **Contributors** — anyone who opens an issue, discussion, or pull request.
 - **Spec Editors** — maintainers designated to accept changes under `spec/` and `schemas/`. Every normative change requires sign-off from at least one Spec Editor in addition to normal PR review.
 

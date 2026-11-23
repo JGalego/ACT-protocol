@@ -59,7 +59,9 @@ Canonical JSON MUST follow [RFC 8785](https://www.rfc-editor.org/rfc/rfc8785) (J
 
 ### 4.2 Signed Envelope
 
-Signed events and receipts MUST use a [DSSE](https://github.com/secure-systems-lab/dsse)-compatible envelope with payload type `application/vnd.act.event+json` (unsigned events) or `application/vnd.act.receipt+json` (receipts). See `schemas/envelope/signed-envelope.schema.json`.
+Signed events MUST use a [DSSE](https://github.com/secure-systems-lab/dsse)-compatible envelope with payload type `application/vnd.act.event+json`. See `schemas/envelope/signed-envelope.schema.json`.
+
+Ledger receipts are not wrapped in a DSSE envelope: a receipt carries its own `receipt_digest` (§5.3) and a single `signature` that is an Ed25519 signature over the UTF-8 bytes of that digest string. The `application/vnd.act.receipt+json` payload type is reserved and unused in 1.0. The receipt digest already covers every other receipt field, so the signature binds all of them.
 
 The event ID MUST be the SHA-256 digest of the canonical (RFC 8785) bytes of the **unsigned** event payload. Signatures, the DSSE `payloadType` framing, and any storage metadata MUST NOT be included in the bytes that are hashed or signed over as the "payload" — i.e., the event ID is stable across re-serialization and across the number or order of signatures attached.
 
@@ -143,7 +145,7 @@ A ledger's write path for a submitted signed event MUST, atomically:
 
 1. validate the envelope against its JSON Schema and configured size/depth limits
 2. recompute the event ID and any referenced content digests
-3. verify every attached signature and its key binding
+3. verify every attached signature and its key binding: the key named by `actor.key_id` MUST be among the signing keys and bound to `actor.actor_id`, and every co-signing key MUST itself be trusted (an event MUST NOT be attributable to a key that did not sign it)
 4. evaluate trust policy (is this actor/key trusted to submit this event type for this subject) and authorization policy (§12)
 5. verify that every `causal_parents` entry is either already accepted by this ledger or the event is explicitly marked as a permitted partial import (§14.3)
 6. reject the event if accepting it would introduce a lineage cycle (§8.4) or if it is a duplicate of an already-accepted event (by event ID) — duplicate submission MUST be idempotent (return the existing receipt, not an error and not a second receipt)
@@ -204,7 +206,7 @@ A conforming implementation MUST distinguish:
 
 Concurrent or conflicting Intent revisions (two proposed revisions of the same parent, or two proposals to make different versions effective) MUST result in a branch, not a silent pick. An **authority policy** (`schemas/policy/authority-policy.schema.json`) — itself versioned — MUST define who may select, merge, or supersede an effective Intent, and whether quorum or separation-of-duties applies to that action. Until an authority-policy-satisfying event resolves a conflict, the conflict MUST remain visible as multiple candidate branch tips; no implementation may select a winner by write order or timestamp.
 
-Drift assessment (comparing an artifact or Intent to a baseline) MUST identify its comparison target as exactly one of: the immediate parent version (explains a single revision), the current effective baseline (assesses implementation fidelity), or the root intent (exposes cumulative historical change). A drift result that does not name its comparison target is invalid per `schemas/verification/drift-assessment.schema.json`.
+Drift assessment (comparing an artifact or Intent to a baseline) MUST identify its comparison target as exactly one of: the immediate parent version (explains a single revision), the current effective baseline (assesses implementation fidelity), or the root intent (exposes cumulative historical change). A drift result that does not name its comparison target is invalid. (A dedicated drift-assessment schema is not part of this release; see `docs/roadmap.md`.)
 
 ## 8. Approval and Accountability
 
@@ -238,7 +240,7 @@ Accountability (who is the proposer, author, reviewer, approver, executor, opera
 
 ## 9. Confidence
 
-A Confidence Assessment (`schemas/artifact/confidence-assessment.schema.json`) MUST contain: `dimension`, an integer `score` from 0 to 100 or the literal `unassessed`, `assessor`, `method` and `method_version`, `evidence` references, `calibration_context`, `timestamp`, and `rationale`.
+A Confidence Assessment (`schemas/common/confidence-assessment.schema.json`) MUST contain: `dimension`, an integer `score` from 0 to 100 or the literal `unassessed`, `assessor`, `method` and `method_version`, `evidence` references, `calibration_context`, `timestamp`, and `rationale`.
 
 Required dimensions: `semantic`, `requirement`, `architectural`, `implementation`, `verification`, `runtime`, `source`.
 
@@ -280,7 +282,7 @@ A Policy is a versioned, immutable document (`schemas/policy/*.schema.json`) gov
 
 ## 13. Formal Model
 
-`formal/` contains a machine-checkable model (see `spec/state-machines.md` and `docs/formal-methods.md` for the toolchain and how to run it) covering, at minimum: append-only receipt-chain integrity, immutable history, acyclic lineage, approval-lifecycle safety (no reachable state authorizes an action without a valid, non-expired, non-revoked, quorum-satisfying approval), and prevention of an unauthorized effective-intent transition.
+`formal/` contains a machine-checkable model (see `spec/state-machines.md` and `docs/formal-methods.md` for the toolchain and how to run it) covering, at minimum: append-only receipt-chain integrity, immutable history, acyclic lineage, approval-lifecycle safety (no reachable state authorizes an action without a valid, non-expired, non-revoked, quorum-satisfying approval), and prevention of an unauthorized effective-intent transition. The model additionally covers attribution (no event is accepted as authored by an actor whose key did not sign it), key identity and revocation, federation import, and the approval authorization decision, each with mutants that the checker must break (`formal/README.md`).
 
 ## 14. Federation
 
@@ -298,7 +300,7 @@ Four version identifiers change independently (`docs/versioning.md`): `protocol_
 
 ### 16.2 Compatibility
 
-A conforming implementation reading an event with a newer, compatible `protocol_version` (same major version) MUST preserve any fields it does not understand rather than dropping them, so that they survive a read-write round trip and remain available to an implementation that does understand them. An implementation MUST reject, rather than reinterpret, an event whose major protocol version it does not support.
+Within a major version, additions are made only inside the open objects of an event: `extensions` (§16.3) and the event-type-specific `payload`. A conforming implementation MUST preserve every field of those objects it does not understand, so that they survive a read-write round trip and remain available to an implementation that does understand them. The top-level event shape is closed (`additionalProperties: false`), and `protocol_version` is pinned to `act/1.0` in this version's schemas, so a 1.0 implementation rejects an event declaring any other `protocol_version`. An implementation MUST reject, rather than reinterpret, an event whose major protocol version it does not support.
 
 ### 16.3 Extensions
 

@@ -63,6 +63,10 @@ On 2026-07-18, `formal/` gained seven TLA+ modules matching `spec/state-machines
 
 This amendment removes "The machine-checked formal model (TLA+ or equivalent) under `formal/`" from deferred scope.
 
+## Amendment: adversarial formal models (ADR 0009)
+
+The seven modules above modeled only single-record state tables and found none of the defects in the later project review. `formal/` now also contains adversarial models of the write path, concurrent/crashing appends, approval authorization, intent authority and federation, 27 mutants that TLC must break, and a stateful test of the real API against the same invariants. See `formal/README.md`.
+
 ## Amendment: Conformance Report
 
 On 2026-07-18, `conformance/` gained a profile-aware conformance runner (`conformance/run-conformance.ts`) and a frozen set of generated vectors (`conformance/vectors/`, produced by `conformance/vectors/generate-vectors.ts` calling `@act/core`/`@act/crypto` directly — never hand-derived) that the TypeScript implementation is checked against and that a future non-TypeScript SDK must reproduce byte-for-byte. Running `pnpm run conformance:run` (wired into `make verify` and CI) writes `conformance/CONFORMANCE_REPORT.md` and `.json` per `spec/conformance.md` §1: Core, Cryptographic Integrity, and Federation profiles are checked and currently pass in full; Secure Service and Explorer profiles are reported as honestly not-yet-claimed, each with its blocking reason, rather than silently omitted or falsely passed. (The SDK profile joined the claimed set once `sdks/python` and its interop checks existed — see the Python SDK amendment below.)

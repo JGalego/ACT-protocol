@@ -11,7 +11,37 @@ Note: this repository distinguishes four version axes that change independently 
 
 ## [Unreleased]
 
+### Security
+
+A project review found that the write path verified signatures and key trust but never tied them together, and that several trust decisions were lost on restart or never made. Fixed (see [ADR 0009](docs/adr/0009-attribution-key-registry-and-federation-trust.md)):
+
+- An event could be attributed to an actor whose key did not sign it, or paired with a different actor's id; the ledger now requires the claimed key to be a signer, bound to the claimed actor, with every co-signer trusted, and at least one signature.
+- A key id could be taken over by re-registering it with a different public key, and a rejected registration deleted the victim's key. Key ids are now fingerprints of their public keys, the owner must register the key, and the key registry is rebuilt from the event log.
+- Federation import verified nothing about the bundle. It now requires a registered peer with a pinned identity, and verifies the bundle id, signature, and every source receipt; missing parents are accepted only where declared; export computes completeness and its gaps.
+- Ledger id, signing key, key registry and peers were regenerated or in memory on every start (and per replica). They are now durable and shared.
+- Approval and key lifecycles are enforced at write time; selecting or merging an effective intent requires an authority policy; artifact current state is computed from lineage so competing revisions stay visible; a second genesis by a different actor on an existing artifact is refused; `version_id` is recomputed and artifact signatures verified.
+- Peer administration, bundle import and the quarantine list are administrator-only; peer URLs are SSRF-checked; peer bearer tokens are never returned.
+- `act key trust` / `act import` (CLI): fingerprint-checked keys with owners, no silent key replacement, verified bundles.
+
+### Fixed
+
+- Key validity: a signature dated before the key existed, or evaluated against an unparseable timestamp, was reported valid (TypeScript and Python SDKs).
+- Concurrent appends on SQLite failed with nested-transaction errors; concurrent duplicate submissions leaked raw constraint errors; Postgres retried every unique violation as a sequence race; migrations did not run inside their transaction and could race across replicas.
+- A missing-parent boundary was never cleared when the parent arrived later; the cycle check loaded every edge in the ledger on each append.
+- `findEquivocations` threw on one malformed decision event; `limit`/`cursor`/`maxDepth` parameters returned 500 or bypassed the page cap; an unknown `artifact_type` returned 500 and a missing one skipped validation; the API ignored the `Idempotency-Key` header both SDKs send; a duplicate parent surfaced a raw database error.
+- OIDC discovery dropped the issuer's path and cached a failed discovery forever.
+- Explorer showed every `approval_decided` as approved and mis-mapped PascalCase artifact types.
+- The structural assessor scored a negation flip ("must not log PII" vs "must log PII") as 93% likely-equivalent.
+- Spec and docs: receipts are not DSSE-wrapped (spec section 4.2 now says so), forward-compatibility wording matches the closed schemas, and dead file references were removed.
+
+### Changed
+
+- **Breaking (API):** federation peers must be registered with `ledgerId`, `ledgerKeyId`, `ledgerPublicKey`; `GET /v1/federation/peers` no longer returns `bearerToken`; peer, import and quarantine endpoints require an administrator; production requires `ACT_ADMIN_ACTORS`; `GET /v1/artifacts/{id}` returns `currentVersionId: null` with `conflict: true` while branches are unresolved.
+- Helm values `api.adminActors` (required), `api.keyRegistration`, `api.ledgerSigningKey`.
+
 ### Added
+
+- `GET /v1/ledger`, `key_rotated` / `key_revoked` / `key_compromised` handling, `ACT_ADMIN_ACTORS`, `ACT_KEY_REGISTRATION`, `ACT_LEDGER_PRIVATE_KEY`, `ACT_ALLOW_PRIVATE_PEERS`, `ACT_AUTHORITY_POLICY_FILE`.
 
 - `apps/explorer`: an animated React/Cytoscape demonstration of intent, AI proposal, transformation, approval, implementation, verification, challenge, revision, and runtime observation, with deterministic replay and optional live `/v1/events` loading.
 - Responsive Playwright browser coverage and visual baselines for the Explorer at desktop and mobile viewports.

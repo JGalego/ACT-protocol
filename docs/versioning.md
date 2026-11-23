@@ -20,4 +20,4 @@ Conflating these axes, for instance tying the API version to the npm package ver
 - A conforming reader MUST reject an event whose `protocol_version` major version it does not support (`spec/ACT-1.0.md` section 16.2) rather than guess at its meaning.
 - A conforming reader MUST preserve fields it does not recognize through a read-write round trip when the major protocol version matches.
 - Extension namespaces (`extensions.<reverse-dns>.*`) never require a protocol version bump; registering one follows `GOVERNANCE.md`'s Standards Adoption process (`docs/standards-adoption.md`).
-- This repository's own `CHANGELOG.md` tracks implementation-version history only; protocol- and schema-version history, once this project ships a `1.1` or `2.0`, will be tracked in `spec/CHANGELOG.md` (not yet created, since `spec/` has not yet changed since `1.0`).
+- This repository's own `CHANGELOG.md` tracks implementation-version history only; protocol- and schema-version history, once this project ships a `1.1` or `2.0`, will be tracked in a dedicated spec changelog created at that time (not yet created, since `spec/` has not yet changed since `1.0`).

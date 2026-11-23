@@ -27,9 +27,13 @@ completeness: # "complete" | "partial", plus a description of what's excluded
 signature: # exporting ledger's signature over the bundle body
 ```
 
+`completeness.scope` MUST be computed, not asserted: `complete` only if every causal parent of every included event is also included; otherwise `partial`, with each omitted parent listed in `known_gaps`.
+
 Export MUST include, for every included event, the **source receipt** issued by the exporting ledger (or, if re-exporting, the receipt chain provenance needed to show the event's original acceptance), so that an importer can verify the event was genuinely accepted by the claimed source at the claimed sequence, not fabricated at export time.
 
 ## 3. Import Algorithm
+
+**Trust precondition.** An importing ledger MUST only accept a bundle from a source ledger its operator has registered, with that ledger's id and signing key pinned out of band. The identity is never taken from the bundle itself. A bundle whose `source_ledger_id` is unregistered, whose `bundle_id` is not the digest of its body, or whose `signature` is not by the pinned key MUST be rejected whole, and nothing inside it read. Each `source_receipt` MUST then be verified against the same pinned key (ledger id, event id, digest, signature, and chain link where its predecessor is present).
 
 On receiving a bundle, the importing ledger MUST, per event, in the bundle's `causal_parents`-respecting topological order:
 

@@ -1,6 +1,6 @@
 # ACT State Machines
 
-Status: Normative, companion to `spec/ACT-1.0.md`. Machine-readable definitions of these state machines live in `formal/state-machines/*.json` and are consumed by the TLA+ model in `formal/` and by `packages/verification`'s lifecycle checks.
+Status: Normative, companion to `spec/ACT-1.0.md`. The TLA+ models in `formal/` mirror these state machines one-to-one (see `formal/README.md`), and `services/api` enforces the approval and key lifecycles at write time.
 
 Every transition below is effected by exactly one new signed Event; no transition is a mutation of an existing record.
 
@@ -75,7 +75,7 @@ active --revoke()--> revoked
 active --flag_compromised()--> compromised
 ```
 
-`rotated`, `expired`, `revoked`, and `compromised` all mean "do not accept new signatures from this key" but are recorded distinctly because they carry different implications for past-signature validity (`ACT-1.0.md` §11.2): a `compromised` flag MAY retroactively cast doubt on signatures made shortly before detection (per the configured grace-period trust-policy rule), while `expired` and `rotated` do not.
+An `issued` key may already sign: a key registers itself by signing its own registration event, so refusing `issued` keys would make registration impossible. `rotated`, `expired`, `revoked`, and `compromised` all mean "do not accept new signatures from this key" but are recorded distinctly because they carry different implications for past-signature validity (`ACT-1.0.md` §11.2): a `compromised` flag MAY retroactively cast doubt on signatures made shortly before detection (per the configured grace-period trust-policy rule), while `expired` and `rotated` do not.
 
 ## 6. Ledger Receipt Chain (per ledger)
 

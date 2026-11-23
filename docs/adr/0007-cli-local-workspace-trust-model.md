@@ -18,3 +18,7 @@ Accepted
 
 - A single-user local workspace has zero-configuration trust for its own identity, matching the "embedded operation" requirement's spirit of being immediately usable.
 - Cross-workspace federation via `act export`/`act import` requires an explicit `act key trust` step (or a `Key` artifact event in the bundle) before events signed by an unfamiliar key are accepted — an unknown key is reported as `invalid_signature` (no public key on file to check the signature against) rather than silently trusted, consistent with ACT-1.0.md section 6.1's write-path ordering (signature verification precedes trust-policy evaluation).
+
+## Amendment: ADR 0009 (key ownership, verified bundles)
+
+`act key trust` now requires the key id to be the fingerprint of the public key, never replaces an already-trusted key or owner, and takes `--owner <actorId>`. A key trusted without an owner can verify bundles but cannot author events: `.act/key-owners.json` records key ownership, and the trust policy only accepts an event whose key belongs to the actor it names. `act import` refuses a bundle unless it is signed by an already-trusted key and its id matches its body, verifies each source receipt against that key, tolerates a missing parent only where the bundle declares the gap, and quarantines anything that fails. `act export` computes `completeness` and `known_gaps` instead of asserting `complete`. A self-signed Key event inside a verified bundle may add a key with its owner, but can no longer overwrite one.
