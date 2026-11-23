@@ -110,10 +110,12 @@ verify-deploy:
 	}
 	helm lint deploy/helm/act \
 		--set api.oidc.issuer=https://idp.example.test \
+		--set 'api.adminActors[0]=platform-admin' \
 		--set api.database.connectionString=postgres://user:pass@host:5432/db
 	@tmp=$$(mktemp --suffix=.yaml); \
 	helm template act deploy/helm/act \
 		--set api.oidc.issuer=https://idp.example.test \
+		--set 'api.adminActors[0]=platform-admin' \
 		--set api.database.connectionString=postgres://user:pass@host:5432/db \
 		--set ingress.enabled=true --set ingress.api.host=api.example.test --set ingress.explorer.host=explorer.example.test \
 		> "$$tmp" && \

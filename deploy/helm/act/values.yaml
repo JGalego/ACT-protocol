@@ -22,6 +22,23 @@ api:
     issuer: ''
     audience: 'act-api'
 
+  # Actor ids (OIDC `sub` claims) allowed to administer this ledger: admit
+  # keys, manage federation peers, import bundles. REQUIRED -- the API
+  # refuses to start in production without at least one (ACT_ADMIN_ACTORS).
+  adminActors: []
+
+  # Who may register signing keys: `admin` (default; only adminActors) or
+  # `open` (any caller who proves possession of the key). See ADR 0009.
+  keyRegistration: admin
+
+  # The ledger's receipt-signing key. By default it is generated once and
+  # stored in the database. To keep the private key out of the database, put
+  # its base64 Ed25519 seed in a Secret and reference it here
+  # (ACT_LEDGER_PRIVATE_KEY).
+  ledgerSigningKey:
+    existingSecret: ''
+    existingSecretKey: 'ACT_LEDGER_PRIVATE_KEY'
+
   # PostgreSQL connection. Reference an existing Secret rather than a
   # literal connection string wherever possible -- see
   # docs/deployment.md#secrets.

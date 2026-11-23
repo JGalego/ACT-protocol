@@ -41,6 +41,13 @@ spec:
                 secretKeyRef:
                   name: {{ if .Values.api.database.existingSecret }}{{ .Values.api.database.existingSecret }}{{ else }}{{ include "act.fullname" . }}-database{{ end }}
                   key: {{ .Values.api.database.existingSecretKey }}
+            {{- if .Values.api.ledgerSigningKey.existingSecret }}
+            - name: ACT_LEDGER_PRIVATE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.api.ledgerSigningKey.existingSecret }}
+                  key: {{ .Values.api.ledgerSigningKey.existingSecretKey }}
+            {{- end }}
           livenessProbe:
             httpGet:
               path: {{ .Values.api.probes.liveness.path }}

@@ -57,6 +57,9 @@ services:
       ACT_DATABASE_URL: postgres://act:act-dev-only@postgres:5432/act_ledger
       ACT_OIDC_ISSUER: http://oidc-provider:8081
       ACT_OIDC_AUDIENCE: act-api
+      # The OIDC subject allowed to admit keys, manage peers and import bundles.
+      # Mint its token from the dev provider with {"sub":"platform-admin"}.
+      ACT_ADMIN_ACTORS: platform-admin
     ports:
       - '4000:4000'
     healthcheck:

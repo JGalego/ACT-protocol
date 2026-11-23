@@ -45,6 +45,13 @@ Everything here is for local/demo use: fixed development-only credentials, and t
 | `ACT_DEV_MODE` | `false` | Enables the local bearer-as-actor-id auth scheme (ADR 0006). **Must** be `false`/unset in production; the server refuses to start otherwise |
 | `ACT_OIDC_ISSUER` / `ACT_OIDC_AUDIENCE` | — | Required in production (mutually exclusive with `ACT_DEV_MODE`); see ADR 0006's amendment |
 | `ACT_OIDC_JWKS_URI` | discovered from `ACT_OIDC_ISSUER` | Set to skip OIDC discovery |
+| `ACT_ADMIN_ACTORS` | — | Comma-separated actor ids (OIDC `sub`) allowed to admit keys, manage federation peers, import bundles, and read the quarantine. **Required in production** (the server refuses to start without one); in dev mode, unset means every caller is an administrator |
+| `ACT_KEY_REGISTRATION` | `open` in dev mode, `admin` otherwise | `open`: any caller proving possession of a key may register it. `admin`: only administrators may (ADR 0009) |
+| `ACT_LEDGER_PRIVATE_KEY` | generated once, stored in the database | Base64 Ed25519 seed for the ledger's receipt-signing key. Set it to keep the private key out of the database; the server refuses to start if it does not match the key already registered for that database |
+| `ACT_ALLOW_PRIVATE_PEERS` | `false` (`true` in dev mode) | Permit federation peers on loopback/private/link-local addresses. Leave off in production: it is the SSRF guard |
+| `ACT_AUTHORITY_POLICY_FILE` | — | Path to a JSON file `{ "policy": <authority policy>, "actorRoles": { "<actor id>": ["role"] } }`. Without it no one may select or merge an effective intent (`authority_policy_required`) |
+
+A ledger's identity (its id and receipt-signing key) is created once and stored in its database, so every replica of one database shares it and a restart keeps it. Peers pin it out of band via `GET /v1/ledger`. Egress policy is the complete defense against SSRF through federation peers: the API re-resolves a peer's host before each call and refuses redirects, but a network policy limiting outbound traffic to known peers closes the remaining DNS-rebinding race.
 
 `NODE_ENV=production` fails closed at startup unless exactly one of `ACT_DEV_MODE=true` (never in production) or both OIDC variables are set. See `services/api/src/server.ts`.
 
@@ -59,6 +66,7 @@ There is no dedicated demo-data seed script yet. `apps/cli`'s `act` commands or 
 ```bash
 helm install act deploy/helm/act \
   --set api.oidc.issuer=https://your-idp.example.com \
+  --set 'api.adminActors[0]=your-admin-subject' \
   --set api.oidc.audience=act-api \
   --set api.database.existingSecret=my-db-secret \
   --wait
