@@ -60,4 +60,36 @@ describe('assessStructural', () => {
     const result = assessStructural('', '');
     expect(result.classification).toBe('exact-preservation');
   });
+
+  it('does not call a negation flip likely-equivalent, however similar the characters are', () => {
+    const result = assessStructural(
+      'The system must not log personally identifiable information.',
+      'The system must log personally identifiable information.',
+    );
+    expect(result.classification).not.toBe('likely-equivalent');
+    expect(result.confidence).toBeLessThan(50);
+    expect(result.rationale).toMatch(/negation/);
+  });
+
+  it('flags a weakened obligation and a changed number', () => {
+    expect(
+      assessStructural(
+        'The service must respond within 200 ms.',
+        'The service may respond within 200 ms.',
+      ).classification,
+    ).not.toBe('likely-equivalent');
+    expect(
+      assessStructural('Retry up to 3 times before failing.', 'Retry up to 8 times before failing.')
+        .classification,
+    ).not.toBe('likely-equivalent');
+  });
+
+  it('still reports a harmless rewording as likely-equivalent', () => {
+    expect(
+      assessStructural(
+        'The system shall record every approval decision.',
+        'The system shall record every approval decision!',
+      ).classification,
+    ).toBe('likely-equivalent');
+  });
 });

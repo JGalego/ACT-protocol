@@ -59,17 +59,107 @@ export function assessStructural(a: string, b: string): SemanticAssessmentResult
   }
 
   const similarity = normalizedSimilarity(normA, normB);
-  const confidence = Math.round(similarity * 100);
+  const mismatch = meaningTokenMismatch(normA, normB);
+  // Character similarity cannot see that one inserted "not" reverses a
+  // requirement. When the words that carry polarity, obligation, or quantity
+  // differ, the texts are never reported as likely equivalent, however close
+  // they look, and the confidence is capped so it cannot read as a strong match.
   const classification: SemanticAssessmentResult['classification'] =
-    similarity >= 0.85 ? 'likely-equivalent' : similarity >= 0.5 ? 'likely-divergent' : 'divergent';
+    similarity >= 0.85 && !mismatch
+      ? 'likely-equivalent'
+      : similarity >= 0.5
+        ? 'likely-divergent'
+        : 'divergent';
+  const confidence = mismatch
+    ? Math.min(Math.round(similarity * 100), 49)
+    : Math.round(similarity * 100);
 
   return {
     classification,
     confidence,
     method: 'structural-text-assessor',
     methodVersion: METHOD_VERSION,
-    rationale: `Normalized-text similarity score ${similarity.toFixed(3)} (1 - Levenshtein distance / max length). A heuristic signal, not a proof of meaning.`,
+    rationale:
+      `Normalized-text similarity score ${similarity.toFixed(3)} (1 - Levenshtein distance / max length). A heuristic signal, not a proof of meaning.` +
+      (mismatch ? ` The texts differ in ${mismatch}, which can change meaning on its own.` : ''),
   };
+}
+
+const NEGATIONS = new Set([
+  'not',
+  'no',
+  'never',
+  'cannot',
+  'without',
+  'neither',
+  'nor',
+  'none',
+  'nothing',
+  'nobody',
+  'prohibit',
+  'prohibited',
+  'forbid',
+  'forbidden',
+  'disable',
+  'disabled',
+  'deny',
+  'denied',
+  'cant',
+  'dont',
+  'wont',
+  'isnt',
+  'arent',
+  'wasnt',
+  'werent',
+  'doesnt',
+  'didnt',
+  'shouldnt',
+  'mustnt',
+  'couldnt',
+  'wouldnt',
+  'hasnt',
+  'havent',
+]);
+const MODALS = new Set([
+  'must',
+  'shall',
+  'should',
+  'may',
+  'might',
+  'can',
+  'could',
+  'will',
+  'would',
+  'required',
+  'optional',
+  'always',
+  'only',
+  'all',
+  'any',
+  'some',
+  'every',
+  'each',
+]);
+
+function meaningTokens(normalized: string) {
+  const tokens = normalized.split(' ').filter(Boolean);
+  const count = (pred: (t: string) => boolean) => tokens.filter(pred).sort().join(',');
+  return {
+    negations: tokens.filter((t) => NEGATIONS.has(t)).length,
+    modals: count((t) => MODALS.has(t)),
+    numbers: count((t) => /\d/.test(t)),
+  };
+}
+
+/** Names what differs between two normalized texts among negations, obligation/quantifier words, and numbers; null if nothing. */
+function meaningTokenMismatch(a: string, b: string): string | null {
+  const x = meaningTokens(a);
+  const y = meaningTokens(b);
+  const parts: string[] = [];
+  if (x.negations !== y.negations) parts.push('negation');
+  if (x.modals !== y.modals) parts.push('obligation or quantifier words');
+  if (x.numbers !== y.numbers) parts.push('numbers');
+  return parts.length > 0 ? parts.join(', ') : null;
 }
 
 function tryParseJson(text: string): unknown {
