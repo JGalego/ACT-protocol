@@ -29,7 +29,7 @@ This document is the single consolidated list of what `PROMPT.md` specifies that
 - **Approval validity and quorum as an API.** `@act/verification`'s `checkApprovalValidity` and `@act/policy`'s `evaluateQuorum` are not yet exposed through an endpoint; the write path enforces the lifecycle but a consumer must call the packages to decide whether an approval currently authorizes an action.
 - **Drift-assessment schema.** Spec section 7.3 requires a drift result to name its comparison target; there is no dedicated schema enforcing it yet.
 - **Tenant isolation (built).** Each tenant is its own ledger in a shared database (ADR 0010). Not built: per-tenant database or KMS-held signing keys for the non-default tenants, per-tenant rate limits and quotas, and tenant-aware metrics.
-- **Key validity at signing time on import.** Imports evaluate key status at import time; evaluating at the original signing time needs a trustworthy signing time (`occurred_at` is an untrusted claim).
+- **Key validity at signing time on import (built).** Imports judge key standing at the source receipt's `accepted_at` (ADR 0012). Not built: bounding the clock skew between ledgers (a revocation within the skew can fall on either side), and applying the same rule to the CLI's workspace trust, which has no key history.
 - **State-machine and privacy conformance vectors.** See `spec/conformance.md` section 2.
 
 ## How to Pick This Up

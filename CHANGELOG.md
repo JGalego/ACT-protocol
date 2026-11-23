@@ -27,6 +27,8 @@ A project review found that the write path verified signatures and key trust but
 
 - Roles for authority come from signed accountability assignments ([ADR 0011](docs/adr/0011-signed-accountability-assignments.md)): who holds which role is now recorded, attributable, versioned and revocable in the tenant's ledger, instead of asserted in a config file. A grant needs an administrator or an owner of that scope (never granting to themselves), roles are evaluated at ledger-observed time, and assignments imported from a peer confer no local role.
 
+- Federation import judges key trust at the source ledger's acceptance time ([ADR 0012](docs/adr/0012-trust-at-signing-time.md)): history signed while a key was valid stays importable after the key is retired locally, and nothing the source accepted after a local revocation is imported, whatever time its signer claims. Key history now carries the time each change was attested by the ledger that first accepted it.
+
 ### Fixed
 
 - Key validity: a signature dated before the key existed, or evaluated against an unparseable timestamp, was reported valid (TypeScript and Python SDKs).

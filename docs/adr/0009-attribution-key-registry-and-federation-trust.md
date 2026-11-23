@@ -34,6 +34,6 @@ A review of the release candidate found that the write path verified that signat
 
 - Trust state is auditable from the log and survives restarts and replicas. The price is that a key registry must be caught up before use; this is incremental and cheap.
 - Federation now requires an explicit, out-of-band pinning step per peer. This is deliberate (spec section 6.4 forbids silently trusting remote ledgers); it makes the ADR 0006 "import bootstraps trust" shortcut conditional on that pin.
-- An event signed by a key later revoked is refused at import, because trust is evaluated at import time, not signing time. Evaluating at the original signing time needs a trustworthy signing time, which `occurred_at` is not; this is a known conservative limitation.
+- An event signed by a key later revoked used to be refused at import because trust was evaluated at import time. ADR 0012 judges it at the source ledger's acceptance time instead, which is trustworthy because it comes from the verified source receipt.
 - Role assignments for authority evaluation were operator-asserted here; ADR 0011 derives them from signed accountability assignments instead.
 - Tenant isolation was a documented gap here; ADR 0010 closes it. The key registry, ledger identity and peers described above are now per tenant.
