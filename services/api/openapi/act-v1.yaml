@@ -257,17 +257,14 @@ paths:
       operationId: getCheckpoint
       summary: The ledger-signed checkpoint for the current head, with every witness cosignature collected for it
       description: >
-        A checkpoint is the ledger id, the number of receipts, and the digest of the last receipt,
-        signed by the tenant ledger's key (ADR 0013). It is signed once per size. The ledger refuses
-        (409 checkpoint_conflict) to sign a second history for a size it already signed. Consumers
-        endorse it only with cosignatures from their own witness set.
+        A checkpoint is the ledger id, the number of receipts, and the digest of the last receipt, signed by the tenant ledger's key (ADR 0013). It is signed once per size. The ledger refuses (409 checkpoint_conflict) to sign a second history for a size it already signed. Consumers endorse it only with cosignatures from their own witness set.
       responses:
         '200': { description: OK }
         '409': { $ref: '#/components/responses/Problem' }
   /receipts:
     get:
       operationId: listReceipts
-      summary: Receipts after a sequence, oldest first: the material for consistency and inclusion proofs
+      summary: Receipts after a sequence, oldest first (the material for consistency and inclusion proofs)
       parameters:
         - name: after
           in: query
