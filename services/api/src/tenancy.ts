@@ -1,4 +1,5 @@
 import type { StorageAdapter } from '@act/ledger';
+import type { LedgerContext } from './ledger-context.js';
 
 /** The tenant used when authentication names none and `requireTenant` is off. Existing single-tenant data lives here. */
 export const DEFAULT_TENANT = 'default';
@@ -65,4 +66,12 @@ export function isAdministrator(
     if (split === -1) return entry === actorId;
     return entry.slice(0, split) === tenantId && entry.slice(split + 2) === actorId;
   });
+}
+
+/** Whether `actorId` administers this context's tenant. With no administrators configured, only dev mode treats everyone as one. */
+export function isAdmin(ctx: LedgerContext, actorId: string): boolean {
+  const { adminActorIds, devMode } = ctx.policy;
+  return adminActorIds === undefined
+    ? devMode
+    : isAdministrator(adminActorIds, ctx.tenantId, actorId);
 }

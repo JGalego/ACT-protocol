@@ -17,6 +17,7 @@ import healthRoutes from './routes/health.js';
 import keyRoutes from './routes/keys.js';
 import actorRoutes from './routes/actors.js';
 import intentRoutes from './routes/intents.js';
+import assignmentRoutes from './routes/assignments.js';
 import transformationRoutes from './routes/transformations.js';
 import artifactRoutes from './routes/artifacts.js';
 import approvalRoutes from './routes/approvals.js';
@@ -67,7 +68,17 @@ function resolveAdminActors(options: BuildServerOptions): string[] | undefined {
 function resolveAuthority(options: BuildServerOptions): AuthorityConfig | undefined {
   if (options.authority) return options.authority;
   const file = process.env.ACT_AUTHORITY_POLICY_FILE;
-  return file ? (JSON.parse(readFileSync(file, 'utf8')) as AuthorityConfig) : undefined;
+  if (!file) return undefined;
+  const parsed = JSON.parse(readFileSync(file, 'utf8')) as AuthorityConfig & {
+    actorRoles?: unknown;
+  };
+  if (parsed.actorRoles !== undefined) {
+    throw new Error(
+      `${file}: "actorRoles" is no longer supported. Roles come from signed accountability assignments ` +
+        '(POST /v1/assignments, ADR 0011); an administrator issues the first ones. Remove "actorRoles" from the file.',
+    );
+  }
+  return { policy: parsed.policy };
 }
 
 function resolveKeyRegistration(options: BuildServerOptions, devMode: boolean): 'open' | 'admin' {
@@ -177,6 +188,7 @@ export async function buildServer(options: BuildServerOptions = {}): Promise<Fas
   await fastify.register(keyRoutes);
   await fastify.register(actorRoutes);
   await fastify.register(intentRoutes);
+  await fastify.register(assignmentRoutes);
   await fastify.register(transformationRoutes);
   await fastify.register(artifactRoutes);
   await fastify.register(approvalRoutes);

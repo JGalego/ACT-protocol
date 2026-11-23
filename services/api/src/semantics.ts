@@ -4,6 +4,8 @@ import type { StoredEvent } from '@act/ledger';
 import { evaluateAuthoritySelection } from '@act/policy';
 import { ApiProblemError, badRequest, conflict, forbidden } from './problem.js';
 import type { LedgerContext } from './ledger-context.js';
+import { evaluateAssignmentEvent } from './role-registry.js';
+import { isAdmin } from './tenancy.js';
 
 interface EventBody {
   event_type: string;
@@ -286,10 +288,13 @@ async function enforceIntentAuthority(ctx: LedgerContext, envelope: SignedEnvelo
     ...(typeof branch === 'string' ? { branch } : {}),
   };
 
+  // Roles are what signed accountability assignments confer right now (ADR 0011).
+  await ctx.roleRegistry.catchUp(ctx.ledger);
+  const nowMs = Date.now();
   const signerOwners = new Map<string, string[]>();
   for (const sig of envelope.signatures) {
     const owner = ctx.keyRegistry.get(sig.key_id)?.ownerActorId;
-    if (owner) signerOwners.set(owner, authority.actorRoles[owner] ?? []);
+    if (owner) signerOwners.set(owner, ctx.roleRegistry.rolesOf(owner, scope.project, nowMs));
   }
   const acting = [...signerOwners].map(([actorId, roles]) => ({ actorId, roles }));
 
@@ -312,6 +317,25 @@ async function enforceIntentAuthority(ctx: LedgerContext, envelope: SignedEnvelo
   }
 }
 
+/**
+ * Recording an accountability assignment: who may grant or end a role is a
+ * decision about authority, made against the registry as it stands (ADR 0011).
+ */
+async function enforceAccountabilityAssignment(
+  ctx: LedgerContext,
+  envelope: SignedEnvelope,
+): Promise<void> {
+  await ctx.roleRegistry.catchUp(ctx.ledger);
+  const outcome = evaluateAssignmentEvent(ctx.roleRegistry, envelope, {
+    isAdministrator: (actorId) => isAdmin(ctx, actorId),
+    nowMs: Date.now(),
+    keyRegistry: ctx.keyRegistry,
+  });
+  if (outcome.kind === 'reject') {
+    throw new ApiProblemError(outcome.httpStatus, outcome.code, outcome.message);
+  }
+}
+
 /** Protocol rules beyond schema and signature validity, applied to every event the API accepts directly. */
 export async function enforceProtocolSemantics(
   ctx: LedgerContext,
@@ -321,6 +345,7 @@ export async function enforceProtocolSemantics(
   validateArtifactIntegrity(envelope, publicKeys);
   const type = body(envelope).event_type;
   if (APPROVAL_TYPES.includes(type)) await enforceApprovalLifecycle(ctx, envelope);
+  if (type === 'accountability_assigned') await enforceAccountabilityAssignment(ctx, envelope);
   if (type === 'intent_effective_selected' || type === 'intent_merged') {
     await enforceIntentAuthority(ctx, envelope);
   }

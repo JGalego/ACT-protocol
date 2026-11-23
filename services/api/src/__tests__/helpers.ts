@@ -330,6 +330,63 @@ export function buildIntentEnvelope(actor: TestActor, statement: string) {
   };
 }
 
+/**
+ * An `accountability_assigned` event (ADR 0011). Without `revises` it grants a
+ * role; with it, it is the next version of that assignment.
+ */
+export function buildAssignmentEnvelope(params: {
+  issuer: TestActor;
+  assignee: TestActor;
+  role: string;
+  scope: string;
+  /** Event this one responds to: the assignee's registration for a grant, the previous version's event for a revision. */
+  parentEventId: string;
+  assignmentId?: string;
+  revises?: boolean;
+  status?: 'active' | 'ended' | 'revoked';
+  startTime?: string;
+  endTime?: string | null;
+  /** Lets a test forge who the assignment says issued it. */
+  claimedIssuer?: TestActor;
+}) {
+  const assignmentId = params.assignmentId ?? generateId();
+  const claimedIssuer = params.claimedIssuer ?? params.issuer;
+  const artifact = buildArtifactEnvelope({
+    actor: params.issuer,
+    artifactType: 'AccountabilityAssignment',
+    artifactId: assignmentId,
+    data: {
+      role: params.role,
+      assignee: { actor_id: params.assignee.actorId, key_id: params.assignee.signer.keyId },
+      scope: params.scope,
+      issuer: { actor_id: claimedIssuer.actorId, key_id: claimedIssuer.signer.keyId },
+      authority: 'test fixture',
+      start_time: params.startTime ?? '2026-01-01T00:00:00Z',
+      ...(params.endTime !== undefined ? { end_time: params.endTime } : {}),
+      status: params.status ?? 'active',
+    },
+  });
+  const event = buildUnsignedEvent({
+    eventType: 'accountability_assigned',
+    actor: { actorId: params.issuer.actorId, keyId: params.issuer.signer.keyId },
+    tenant: testTenant.current,
+    subject: {
+      kind: 'artifact',
+      artifact_id: assignmentId,
+      version_id: artifact.version_id as string,
+      artifact_type: 'AccountabilityAssignment',
+    },
+    causalParents: [
+      {
+        event_id: params.parentEventId,
+        relation: params.revises ? 'revision-of' : 'input',
+      },
+    ],
+    payload: artifact,
+  });
+  return { envelope: signEnvelope(event, [params.issuer.signer]), assignmentId };
+}
+
 /** The body that registers `other` as a federation peer, pinning its identity (as an operator would from GET /v1/ledger). */
 export function peerRegistrationBody(
   url: string,

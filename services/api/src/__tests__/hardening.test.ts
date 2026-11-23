@@ -13,6 +13,7 @@ import {
   buildApprovalDecisionEnvelope,
   buildApprovalRequestEnvelope,
   buildArtifactEnvelope,
+  buildAssignmentEnvelope,
   buildIntentEnvelope,
   buildKeyRegistrationEnvelope,
   makeActor,
@@ -696,6 +697,24 @@ describe('effective-intent authority', () => {
     const server = await buildServer({ devMode: true, ledgerContext: ctx });
     try {
       const { proposer, owner, root, proposal, select } = await scenario(server);
+      // Roles are not configuration: an administrator grants them with signed assignments.
+      const admin = await register(server);
+      ctx.policy.adminActorIds = [admin.actorId];
+      for (const holder of [owner, proposer]) {
+        const granted = await post(
+          server,
+          '/v1/assignments',
+          admin,
+          buildAssignmentEnvelope({
+            issuer: admin,
+            assignee: holder,
+            role: 'owner',
+            scope: 'test',
+            parentEventId: root.envelope.payloadDigest,
+          }).envelope,
+        );
+        expect(granted.statusCode).toBe(201);
+      }
       ctx.policy.authority = {
         policy: {
           policy_id: generateId(),
@@ -705,7 +724,6 @@ describe('effective-intent authority', () => {
           quorum: 1,
           separation_of_duties: true,
         },
-        actorRoles: { [owner.actorId]: ['owner'], [proposer.actorId]: ['owner'] },
       };
 
       // The proposer holds the role but may not act as their own authority.

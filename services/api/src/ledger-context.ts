@@ -4,15 +4,18 @@ import { generateId } from '@act/core';
 import type { AuthorityPolicyDocument } from '@act/policy';
 import { PeerRegistry } from './peer-registry.js';
 import { KeyRegistry } from './key-registry.js';
+import { RoleRegistry } from './role-registry.js';
 import { ApiProblemError } from './problem.js';
 import { DEFAULT_TENANT, isValidTenantId, scopedMeta, type MetaStore } from './tenancy.js';
 
 export { KeyRegistry } from './key-registry.js';
 
+/**
+ * Which roles may decide, and how many. Who holds a role is not configuration:
+ * it comes from signed accountability assignments in the ledger (ADR 0011).
+ */
 export interface AuthorityConfig {
   policy: AuthorityPolicyDocument;
-  /** actor_id -> roles held. The operator-asserted source of roles for authority evaluation. */
-  actorRoles: Record<string, string[]>;
 }
 
 /** Operator-controlled settings that decide who may do what. Set by `buildServer`. */
@@ -34,6 +37,7 @@ export interface LedgerContext {
   ledger: Ledger;
   adapter: StorageAdapter;
   keyRegistry: KeyRegistry;
+  roleRegistry: RoleRegistry;
   peerRegistry: PeerRegistry;
   ledgerId: string;
   ledgerSigner: { keyId: string; publicKey: string; privateKey: string };
@@ -195,12 +199,15 @@ export class TenantRegistry {
       tenant: tenantId,
     });
     await keyRegistry.catchUp(ledger);
+    const roleRegistry = new RoleRegistry();
+    await roleRegistry.catchUp(ledger);
     return {
       tenantId,
       registry: this,
       ledger,
       adapter: this.adapter,
       keyRegistry,
+      roleRegistry,
       peerRegistry: new PeerRegistry(meta),
       ledgerId,
       ledgerSigner: signer,

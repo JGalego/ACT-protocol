@@ -4,7 +4,7 @@ import type { SignedEnvelope } from '@act/crypto';
 import { badRequest, forbidden } from '../problem.js';
 import type { LedgerContext } from '../ledger-context.js';
 import { enforceProtocolSemantics } from '../semantics.js';
-import { isAdministrator } from '../tenancy.js';
+import { isAdmin } from '../tenancy.js';
 
 export interface SubmitOptions {
   /** Restrict acceptance to these event_type values (e.g. ['genesis'] for POST /v1/intents). */
@@ -95,12 +95,7 @@ export function idempotencyKeyOf(request: FastifyRequest): string | undefined {
   return value;
 }
 
-export function isAdmin(ctx: LedgerContext, callerActorId: string): boolean {
-  const { adminActorIds, devMode } = ctx.policy;
-  return adminActorIds === undefined
-    ? devMode
-    : isAdministrator(adminActorIds, ctx.tenantId, callerActorId);
-}
+export { isAdmin };
 
 export function assertAdmin(ctx: LedgerContext, request: FastifyRequest): void {
   if (!isAdmin(ctx, request.callerActorId)) {
@@ -176,6 +171,7 @@ export async function submitEnvelope(
       : {}),
   });
   await ctx.keyRegistry.catchUp(ctx.ledger);
+  await ctx.roleRegistry.catchUp(ctx.ledger);
 
   return {
     eventId: result.event.eventId,
