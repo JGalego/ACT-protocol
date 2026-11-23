@@ -1,6 +1,7 @@
 ---- MODULE KeyLifecycle ----
 \* Models spec/state-machines.md section 5. TypeOK + terminal-state sanity
-\* only. The retroactive-doubt semantics of a compromised flag
+\* only. (`issued` keys may sign: a key signs its own registration. The enforcement of
+\* revocation, ownership and authorization is modelled in WritePath.tla.) The retroactive-doubt semantics of a compromised flag
 \* (ACT-1.0.md section 11.2) are pure-function-tested (no state machine)
 \* in packages/crypto/src/__tests__/key-lifecycle.test.ts.
 EXTENDS Naturals

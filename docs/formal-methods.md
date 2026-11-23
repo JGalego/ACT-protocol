@@ -2,28 +2,33 @@
 
 ## Status
 
-**Implemented.** See `formal/README.md` for the seven TLA+ modules, `scripts/formal/run-tlc.sh`/`make verify-formal` for how to run them, and `docs/adr/0001-phase-1-scope-and-deferred-work.md`'s amendment. The rest of this document is kept as the original scoping rationale.
+**Implemented.** The authoritative description, with the exact invariants, mutants, results and limits, is [`formal/README.md`](../formal/README.md). Run it with `make verify-formal` (`scripts/formal/run-tlc.sh`).
 
-## What Must Be Modeled
+This page records the scoping rationale and the toolchain choice.
 
-`spec/state-machines.md` already gives the normative, implementation-independent state machines. `formal/` is where they become machine-checkable. At minimum, per `PROMPT.md`:
+## What Is Modeled
 
-1. **Append-only receipt-chain integrity**: `spec/state-machines.md` section 6's invariant that `receipt_n.previous_receipt_digest == digest(receipt_{n-1})` for every `n > 0`, and that `sequence` is contiguous. This repository's own `ReceiptChainIntegrity` name for this invariant appears in `spec/semantic-model.md` section 4 and is unit-tested (not model-checked) in `packages/ledger/src/__tests__/receipts.test.ts`.
-2. **Immutable history**: an accepted event's canonical payload never changes.
-3. **Acyclic lineage**: `spec/semantic-model.md`'s `AcyclicLineage` invariant, unit-tested (not model-checked) in `packages/ledger/src/__tests__/cycle.test.ts` and `ledger.test.ts`.
-4. **Approval lifecycle safety**: `spec/semantic-model.md`'s `ApprovalLifecycleSafety`, meaning no reachable state authorizes an action without a currently valid, non-expired, non-revoked, quorum-satisfying approval. Partially covered by unit tests in `packages/verification/src/__tests__/approval.test.ts` and `packages/policy/src/__tests__/quorum.test.ts`, but those test specific scenarios, not every reachable state.
-5. **Effective-intent transition safety**: `spec/semantic-model.md`'s `EffectiveIntentSafety`, meaning at most one Intent version is effective per project and branch, and a transition to effective requires an authority-policy-satisfying event. Covered at the unit level by `packages/policy/src/__tests__/authority.test.ts`.
+`spec/ACT-1.0.md` section 13 requires, at minimum: append-only receipt-chain integrity, immutable history, acyclic lineage, approval-lifecycle safety, and prevention of an unauthorized effective-intent transition. The first version of `formal/` modeled each state machine of `spec/state-machines.md` as a single-record transition table and checked those five names. A review of the project then found real defects in the very properties those models claimed to cover (events attributable to an actor who did not sign them, a key id that could be taken over, a ledger identity lost on restart, an effective-intent transition open to anyone). The old models passed because they contained no adversary and no notion of _who_ may take a step: they could not express the failure.
+
+The models now state the adversary explicitly, and cover what actually failed:
+
+| Property family | Module |
+| --- | --- |
+| Attribution, key identity, revocation, artifact ownership | `WritePath` |
+| Append-only receipt chain, immutable history, atomic append, duplicate suppression, under concurrency and crashes | `LedgerAppend` |
+| Approval-lifecycle safety: authorization exactly when spec section 8.3 says | `ApprovalAuthorization` |
+| Effective-intent transition safety, including who may select | `IntentAuthority` |
+| Federation: no forged imports, accurate partial-history boundaries | `Federation` |
+| Acyclic lineage (discipline of the cycle check) and the single-record state machines | `AcyclicLineage`, `ApprovalLifecycle`, `KeyLifecycle`, ... |
 
 ## Why Unit Tests Are Not a Substitute
 
-Each invariant above is exercised by hand-picked scenarios today. A model checker (TLA+ via TLC, or Alloy) explores the full reachable state space up to a bound, catching a violation that no test author thought to write. That's the entire point of formal verification. This repository's current unit tests are necessary but not sufficient evidence for the Definition of Done's "machine-checkable formal model" requirement.
+Hand-picked scenarios catch the bugs their author thought of. A model checker explores every interleaving of the adversary's actions within the bound and returns the shortest counterexample. Each of the bugs fixed in the review has a 3 to 10 step counterexample against the corresponding mutant in `formal/mutants/`. Unit tests remain necessary: the model is not the code, and the tests listed in `formal/README.md` ("Tying the models to the code") are what connect them.
 
-## Intended Toolchain
+## Toolchain
 
-- **TLA+/TLC** is recommended over Alloy for this protocol, since the invariants above are fundamentally about sequences of events over time (temporal properties), which is TLA+'s strength.
-- The model should take `spec/state-machines.md`'s five state machines (Artifact Version Lifecycle, Approval Lifecycle, Challenge Lifecycle, Intent Authority State, Key Lifecycle) plus the Ledger Receipt Chain as its starting modules, matching the document's structure 1:1 so the spec and the model never drift silently.
-- `make verify-integration` should run the model checker in a container (per `PROMPT.md`'s "using a container when host tooling is unavailable") once this exists, with a bounded exploration depth documented alongside the results.
+**TLA+/TLC.** The invariants are about sequences of actions by an adversary over time, which is TLA+'s strength. TLC is bounded and explicit-state, so a pass means "no violation within the bounds", not a proof for all sizes; `formal/README.md` lists what a stronger proof would take (TLAPS or Apalache for unbounded inductive invariants, trace validation against the implementation, Dafny/Lean for the pure functions, Tamarin/ProVerif for the cryptographic layer).
 
 ## Non-Normative
 
-Nothing in this document is itself normative; `spec/state-machines.md` and `spec/ACT-1.0.md` remain the normative source. This document only scopes the verification work.
+Nothing in this document is itself normative; `spec/state-machines.md` and `spec/ACT-1.0.md` remain the normative source.

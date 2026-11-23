@@ -29,9 +29,10 @@ TypeOK == state \in States
 \* (spec: "no further transition event referencing it is valid").
 TerminalStable == [](state \in Terminal => [](state \in Terminal))
 
-\* An approved decision is the only state from which "authorizes an
-\* action" (modeled here as the ability to fire Expire/Revoke/Supersede --
-\* the transitions this spec says only an approved decision permits) holds.
-OnlyApprovedAuthorizes ==
-  [](ENABLED Expire \/ ENABLED Revoke \/ ENABLED Supersede => state = "approved")
+\* NOTE: an earlier version also checked `OnlyApprovedAuthorizes`, defined as "Expire,
+\* Revoke and Supersede are only enabled in `approved`". That restated the transition
+\* guards above, so it could never fail. The property that matters -- that the
+\* authorization decision never authorizes without a valid, current, non-revoked,
+\* quorum-satisfying approval -- needs requests, several reviewers, a clock and the
+\* algorithm itself, and is checked in ApprovalAuthorization.tla.
 ====

@@ -4,6 +4,14 @@
 \* packages/ledger/src/cycle.ts's detectCycle: only lineage-typed relations
 \* (input, output, revision-of, merge-of) participate; a new edge is
 \* rejected if the child is already a (transitive) ancestor of the parent.
+\*
+\* SCOPE: this checks the cycle-rejection DISCIPLINE of `detectCycle` on a graph that
+\* is mutated edge by edge. A single ledger accepting events one at a time cannot
+\* create a cycle at all (an event's id hashes its parents, so a parent always
+\* precedes its child), which is why cycle.ts's own comment says the check "earns
+\* its keep" for batch/partial imports. The real protections against a cyclic or
+\* forged lineage are the recomputed event ids and version ids; see
+\* WritePath.tla, Federation.tla, and `validateArtifactIntegrity`.
 EXTENDS Naturals, FiniteSets
 CONSTANT Nodes
 VARIABLE reach

@@ -134,7 +134,7 @@ jobs:
           distribution: temurin
           java-version: '21'
 
-      - name: Run TLC against every formal/modules/*.cfg
+      - name: Run TLC on every model and confirm it breaks every mutant
         run: make verify-formal
 
   python-sdk:
