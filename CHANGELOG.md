@@ -33,6 +33,7 @@ A project review found that the write path verified signatures and key trust but
 
 ### Fixed
 
+- SQLite: a read or metadata write made outside a transaction ran inside whatever transaction was open on the shared connection, so it could see rows later rolled back (a duplicate check could report an append as successful when the transaction then aborted) or be rolled back with an unrelated append. Such calls are now serialized with transactions. Found by a new randomized, crash-injecting test of the append path.
 - Key validity: a signature dated before the key existed, or evaluated against an unparseable timestamp, was reported valid (TypeScript and Python SDKs).
 - Concurrent appends on SQLite failed with nested-transaction errors; concurrent duplicate submissions leaked raw constraint errors; Postgres retried every unique violation as a sequence race; migrations did not run inside their transaction and could race across replicas.
 - A missing-parent boundary was never cleared when the parent arrived later; the cycle check loaded every edge in the ledger on each append.

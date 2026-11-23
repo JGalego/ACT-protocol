@@ -36,3 +36,7 @@ Hand-picked scenarios catch the bugs their author thought of. A model checker ex
 ## Non-Normative
 
 Nothing in this document is itself normative; `spec/state-machines.md` and `spec/ACT-1.0.md` remain the normative source.
+
+## Unbounded proofs
+
+TLC is bounded: a pass means no violation within the stated sizes. A TLAPS proof would hold for every number of principals, events and workers. The inductive invariants are small (for `LedgerAppend`: `ReceiptChainIntegrity` plus "each worker's snapshot is a prefix of the log"), so the proof is a bounded piece of work, but TLAPS is distributed as a single opaque installer binary. Install it deliberately (checksum it, review its provenance, run it in a throwaway environment) before adding `.tlaps` proof steps to the CI target; this repository does not fetch and execute it automatically the way it does the pinned `tla2tools.jar`.
