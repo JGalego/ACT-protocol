@@ -29,6 +29,7 @@
     "clean": "pnpm -r --if-present run clean"
   },
   "devDependencies": {
+    "@act/core": "workspace:*",
     "@act/crypto": "workspace:*",
     "@act/sdk": "workspace:*",
     "@apidevtools/json-schema-ref-parser": "^11.7.3",

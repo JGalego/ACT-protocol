@@ -12,6 +12,9 @@ importers:
 
   .:
     devDependencies:
+      '@act/core':
+        specifier: workspace:*
+        version: link:packages/core
       '@act/crypto':
         specifier: workspace:*
         version: link:packages/crypto
