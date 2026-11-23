@@ -160,15 +160,28 @@ export class Ledger {
 
     // Step 4: evaluate trust policy -- the claimed actor/key pairing, and every
     // co-signer's key (a revoked co-signer must not lend authority).
+    // An imported event is judged at the instant its source ledger accepted it
+    // (the receipt, signed by the pinned ledger key); a native event is judged now.
+    const attestedAt = options.sourceReceipt?.accepted_at;
+    const policy = this.trustPolicy;
     const bootstrap = new Set(options.additionalTrustedKeyIds ?? []);
-    if (!bootstrap.has(actorKeyId) && !this.trustPolicy.isTrusted(actorId, actorKeyId)) {
+    const actorTrusted =
+      attestedAt !== undefined && policy.isTrustedAt
+        ? policy.isTrustedAt(actorId, actorKeyId, attestedAt)
+        : policy.isTrusted(actorId, actorKeyId);
+    if (!bootstrap.has(actorKeyId) && !actorTrusted) {
       throw new UntrustedActorError(actorId, actorKeyId);
     }
     for (const keyId of new Set(signerKeyIds)) {
       if (keyId === actorKeyId || bootstrap.has(keyId)) continue;
-      const trusted = this.trustPolicy.isKeyTrusted
-        ? this.trustPolicy.isKeyTrusted(keyId)
-        : this.trustPolicy.isTrusted('', keyId);
+      let trusted: boolean;
+      if (attestedAt !== undefined && policy.isKeyTrustedAt) {
+        trusted = policy.isKeyTrustedAt(keyId, attestedAt);
+      } else if (policy.isKeyTrusted) {
+        trusted = policy.isKeyTrusted(keyId);
+      } else {
+        trusted = policy.isTrusted('', keyId);
+      }
       if (!trusted) throw new UntrustedActorError('(co-signer)', keyId);
     }
 

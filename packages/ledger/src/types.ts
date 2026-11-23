@@ -26,6 +26,15 @@ export interface TrustPolicy {
    * ownership should implement this.
    */
   isKeyTrusted?(keyId: string): boolean;
+  /**
+   * Like `isTrusted`, but as of an ISO time. Optional. The write path asks it
+   * for an event that arrives with a source receipt, passing the receipt's
+   * `accepted_at`: the instant the source ledger accepted it, which the signer
+   * cannot influence (ADR 0012). A policy without it is asked `isTrusted`.
+   */
+  isTrustedAt?(actorId: string, keyId: string, atIso: string): boolean;
+  /** Like `isKeyTrusted`, as of an ISO time (co-signers of an imported event). */
+  isKeyTrustedAt?(keyId: string, atIso: string): boolean;
 }
 
 /** A trust policy backed by an explicit allowlist. There is intentionally no "trust everyone" default. */

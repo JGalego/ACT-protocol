@@ -198,9 +198,16 @@ export async function importBundle(
       const event = envelope.payload as unknown as { event_type: string; payload: unknown };
       validateEventBody(event);
 
-      const keyOutcome = evaluateKeyEvent(ctx.keyRegistry, envelope);
+      const keyOutcome = evaluateKeyEvent(ctx.keyRegistry, envelope, receipt.accepted_at);
       if (keyOutcome.kind === 'reject')
         throw new Error(`${keyOutcome.code}: ${keyOutcome.message}`);
+      // A key's own registration vouches for itself, whether it is new here or already known.
+      const selfRegisteredKeyId =
+        keyOutcome.kind === 'register'
+          ? keyOutcome.keyId
+          : keyOutcome.kind === 'noop'
+            ? keyOutcome.registration?.keyId
+            : undefined;
       const bootstrapped =
         keyOutcome.kind === 'register' ? { [keyOutcome.keyId]: keyOutcome.publicKey } : {};
       const publicKeys = { ...ctx.keyRegistry.publicKeysByKeyId(), ...bootstrapped };
@@ -210,7 +217,7 @@ export async function importBundle(
         publicKeys,
         permittedMissingParentIds: gaps.get(envelope.payloadDigest) ?? [],
         sourceReceipt: receipt,
-        ...(keyOutcome.kind === 'register' ? { additionalTrustedKeyIds: [keyOutcome.keyId] } : {}),
+        ...(selfRegisteredKeyId ? { additionalTrustedKeyIds: [selfRegisteredKeyId] } : {}),
       });
       await ctx.keyRegistry.catchUp(ctx.ledger);
       if (result.duplicate) duplicate++;

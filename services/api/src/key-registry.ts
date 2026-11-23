@@ -1,4 +1,4 @@
-import { verifyEnvelope, keyIdMatchesPublicKey } from '@act/crypto';
+import { verifyEnvelope, keyIdMatchesPublicKey, evaluateKeyValidityAt } from '@act/crypto';
 import type { KeyStatusEvent, SignedEnvelope } from '@act/crypto';
 import type { Ledger, StoredEvent } from '@act/ledger';
 
@@ -23,7 +23,7 @@ const STATUS_EVENT_TYPES: Readonly<Record<string, KeyStatus>> = {
 export type KeyEventOutcome =
   | { kind: 'not-a-key-event' }
   | { kind: 'register'; keyId: string; publicKey: string; ownerActorId: string; status: KeyStatus }
-  | { kind: 'noop' }
+  | { kind: 'noop'; registration?: { keyId: string; status: KeyStatus } }
   | { kind: 'status'; keyId: string; status: KeyStatus }
   | { kind: 'reject'; httpStatus: number; code: string; message: string };
 
@@ -53,9 +53,16 @@ const reject = (httpStatus: number, code: string, message: string): KeyEventOutc
  *   it, and be owned by the event's own actor. Because the id is the
  *   fingerprint, one actor can never claim another's key id.
  * - A status change (`key_rotated` / `key_revoked` / `key_compromised`) must be
- *   signed by a currently trusted key belonging to the same owner as the target.
+ *   signed by a key belonging to the same owner as the target that was trusted
+ *   when the event was accepted (now for a native event, at the source's
+ *   acceptance time for an imported one).
  */
-export function evaluateKeyEvent(registry: KeyRegistry, envelope: SignedEnvelope): KeyEventOutcome {
+export function evaluateKeyEvent(
+  registry: KeyRegistry,
+  envelope: SignedEnvelope,
+  /** For an imported event: the source ledger's acceptance time, at which the signer's trust is judged (ADR 0012). */
+  attestedAtIso?: string,
+): KeyEventOutcome {
   const event = envelope.payload as {
     event_type?: string;
     actor?: { actor_id?: string; key_id?: string };
@@ -109,7 +116,7 @@ export function evaluateKeyEvent(registry: KeyRegistry, envelope: SignedEnvelope
     const existing = registry.get(data.key_id);
     if (existing) {
       return existing.publicKey === data.public_key
-        ? { kind: 'noop' }
+        ? { kind: 'noop', registration: { keyId: data.key_id, status: data.status } }
         : reject(
             409,
             'key_conflict',
@@ -138,7 +145,12 @@ export function evaluateKeyEvent(registry: KeyRegistry, envelope: SignedEnvelope
   if (target.publicKey !== data.public_key || target.ownerActorId !== data.owner_actor_id) {
     return reject(400, 'key_record_mismatch', 'The Key record does not match the registered key');
   }
-  if (!actor.actor_id || !registry.isTrusted(actor.actor_id, actor.key_id)) {
+  const signerTrusted =
+    actor.actor_id !== undefined &&
+    (attestedAtIso === undefined
+      ? registry.isTrusted(actor.actor_id, actor.key_id)
+      : registry.isTrustedAt(actor.actor_id, actor.key_id, attestedAtIso));
+  if (!signerTrusted) {
     return reject(
       403,
       'untrusted_actor',
@@ -193,6 +205,21 @@ export class KeyRegistry {
     );
   }
 
+  /** Whether `keyId`, owned by `actorId`, could sign at `atIso` (key history as attested by the ledgers that accepted each change). */
+  isTrustedAt(actorId: string, keyId: string, atIso: string): boolean {
+    const entry = this.keys.get(keyId);
+    return (
+      entry !== undefined &&
+      entry.ownerActorId === actorId &&
+      evaluateKeyValidityAt(entry.history, atIso).validForSigning
+    );
+  }
+
+  isKeyTrustedAt(keyId: string, atIso: string): boolean {
+    const entry = this.keys.get(keyId);
+    return entry !== undefined && evaluateKeyValidityAt(entry.history, atIso).validForSigning;
+  }
+
   isKeyTrusted(keyId: string): boolean {
     return this.keys.has(keyId) && SIGNING_STATUSES.has(this.statusOf(keyId) ?? '');
   }
@@ -204,21 +231,36 @@ export class KeyRegistry {
     return out;
   }
 
-  /** Applies one accepted event to the projection. Events that do not validate are skipped, exactly as they were at write time. */
-  applyStored(stored: StoredEvent): void {
-    const outcome = evaluateKeyEvent(this, stored.envelope);
+  /**
+   * Applies one accepted event to the projection. Events that do not validate
+   * are skipped, exactly as they were at write time. `sourceAcceptedAt` is set
+   * for an imported event: its history entry takes the time the source ledger
+   * attested, not the time it arrived here (ADR 0012).
+   */
+  applyStored(stored: StoredEvent, sourceAcceptedAt?: string): void {
+    const outcome = evaluateKeyEvent(this, stored.envelope, sourceAcceptedAt);
+    const effectiveAt = sourceAcceptedAt ?? stored.acceptedAt;
     if (outcome.kind === 'register') {
       this.keys.set(outcome.keyId, {
         keyId: outcome.keyId,
         publicKey: outcome.publicKey,
         ownerActorId: outcome.ownerActorId,
-        history: [{ status: outcome.status, effectiveAt: stored.acceptedAt }],
+        history: [{ status: outcome.status, effectiveAt }],
       });
     } else if (outcome.kind === 'status') {
-      this.keys.get(outcome.keyId)!.history.push({
-        status: outcome.status,
-        effectiveAt: stored.acceptedAt,
-      });
+      this.keys.get(outcome.keyId)!.history.push({ status: outcome.status, effectiveAt });
+    } else if (outcome.kind === 'noop' && outcome.registration && sourceAcceptedAt) {
+      // The peer attests this key existed from an earlier time than we first saw it. That is
+      // evidence about when its events can be judged, not new local trust: history only moves
+      // earlier, and native events are still judged at the moment they are accepted.
+      const entry = this.keys.get(outcome.registration.keyId)!;
+      const first = Math.min(...entry.history.map((h) => Date.parse(h.effectiveAt)));
+      if (Date.parse(sourceAcceptedAt) < first) {
+        entry.history.unshift({
+          status: outcome.registration.status,
+          effectiveAt: sourceAcceptedAt,
+        });
+      }
     }
   }
 
@@ -228,7 +270,11 @@ export class KeyRegistry {
       for (;;) {
         const page = await ledger.listEvents(500, this.lastSequence);
         for (const stored of page) {
-          this.applyStored(stored);
+          // Only a key event can change the registry, and only an imported one has a source time.
+          const sourceAcceptedAt = isKeyEventCandidate(stored)
+            ? ((await ledger.getSourceReceipt(stored.eventId))?.accepted_at ?? undefined)
+            : undefined;
+          this.applyStored(stored, sourceAcceptedAt);
           this.lastSequence = stored.sequence;
         }
         if (page.length < 500) return;
@@ -237,4 +283,13 @@ export class KeyRegistry {
     this.chain = this.chain.then(run, run);
     await this.chain;
   }
+}
+
+/** Cheap pre-filter: could this event be a key registration or status change? */
+function isKeyEventCandidate(stored: StoredEvent): boolean {
+  const payload = (stored.envelope.payload as { payload?: { artifact_type?: string } }).payload;
+  return (
+    payload?.artifact_type === 'Key' &&
+    (REGISTRATION_EVENT_TYPES.has(stored.eventType) || stored.eventType in STATUS_EVENT_TYPES)
+  );
 }
