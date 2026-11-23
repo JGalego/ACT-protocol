@@ -21,6 +21,7 @@ The models now state the adversary explicitly, and cover what actually failed:
 | Federation: no forged imports, accurate partial-history boundaries | `Federation` |
 | Tenant isolation: no cross-tenant read, oracle, trust, sequence or administrator leak | `TenantIsolation` |
 | Roles from signed assignments: only legitimate grants, scoped delegation, final revocation, no decision by a lapsed role | `RoleAssignment` |
+| Import trust: events judged at the source's acceptance time, never the claimed time | `ImportTrustTime` |
 | Acyclic lineage (discipline of the cycle check) and the single-record state machines | `AcyclicLineage`, `ApprovalLifecycle`, `KeyLifecycle`, ... |
 
 ## Why Unit Tests Are Not a Substitute
