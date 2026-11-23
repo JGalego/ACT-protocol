@@ -145,6 +145,95 @@ describe('key trust on import is judged at the source acceptance time', () => {
     expect(quarantine[0]!.reason).toMatch(/not trusted|untrusted/i);
   });
 
+  it('imports the history of a key that is new here and was revoked at the source', async () => {
+    // A registers z, accepts an event under it, then revokes it; B has never heard of z.
+    const z = makeActor();
+    const reg = await post(a, '/v1/keys', z, buildKeyRegistrationEnvelope(z));
+    expect(reg.statusCode).toBe(201);
+    await pause();
+    const signed = buildIntentEnvelope(z, 'signed while z was valid');
+    expect((await post(a, '/v1/intents', z, signed.envelope)).statusCode).toBe(201);
+    await pause();
+    expect((await post(a, '/v1/keys', z, revocation(z, reg.json().eventId))).statusCode).toBe(201);
+    await pause(); // so that "now" here is clearly later than everything the source did
+
+    const bundle = (await post(a, '/v1/bundles/export', z, {})).json();
+    await post(b, '/v1/federation/peers', 'admin', peerRegistrationBody('http://x.test', a.ctx));
+    const imported = (await post(b, '/v1/bundles/import', 'admin', bundle)).json() as {
+      accepted: number;
+      quarantined: string[];
+    };
+    // All three arrive: the event is judged while z was still valid, before the revocation that follows it.
+    expect(imported.quarantined).toEqual([]);
+    expect(imported.accepted).toBe(3);
+    const history = b.ctx.keyRegistry.get(z.signer.keyId)!.history;
+    expect(history.map((h) => h.status)).toEqual(['active', 'revoked']);
+    // The history carries the source's times, not the time of import.
+    const sourceRegistered = (await a.ctx.ledger.getEvent(reg.json().eventId))!.acceptedAt;
+    expect(history[0]!.effectiveAt).toBe(sourceRegistered);
+  });
+
+  it('vets an imported key status change by whether its signer was trusted then, not now', async () => {
+    // One actor with two keys. At the source, the first key revokes the second.
+    const k1 = makeActor();
+    const k2: TestActor = { actorId: k1.actorId, signer: makeActor().signer };
+    expect((await post(a, '/v1/keys', k1, buildKeyRegistrationEnvelope(k1))).statusCode).toBe(201);
+    const regK2 = await post(a, '/v1/keys', k2, buildKeyRegistrationEnvelope(k2));
+    expect(regK2.statusCode).toBe(201);
+    await pause();
+    const revokesK2 = (() => {
+      const artifact = buildArtifactEnvelope({
+        actor: k1,
+        artifactType: 'Key',
+        data: {
+          key_id: k2.signer.keyId,
+          algorithm: 'ed25519',
+          public_key: k2.signer.publicKey,
+          status: 'revoked',
+          owner_actor_id: k2.actorId,
+        },
+      });
+      return signEnvelope(
+        buildUnsignedEvent({
+          eventType: 'key_revoked',
+          actor: { actorId: k1.actorId, keyId: k1.signer.keyId },
+          tenant: 'default',
+          subject: {
+            kind: 'artifact',
+            artifact_id: artifact.artifact_id as string,
+            version_id: artifact.version_id as string,
+            artifact_type: 'Key',
+          },
+          causalParents: [{ event_id: regK2.json().eventId, relation: 'revision-of' }],
+          payload: artifact,
+        }),
+        [k1.signer],
+      );
+    })();
+    expect((await post(a, '/v1/keys', k1, revokesK2)).statusCode).toBe(201);
+    await pause();
+
+    // Meanwhile this ledger registers both keys, and later revokes the first one itself.
+    const bK1 = await post(b, '/v1/keys', k1, buildKeyRegistrationEnvelope(k1));
+    expect((await post(b, '/v1/keys', k2, buildKeyRegistrationEnvelope(k2))).statusCode).toBe(201);
+    await pause();
+    expect((await post(b, '/v1/keys', k1, revocation(k1, bK1.json().eventId))).statusCode).toBe(
+      201,
+    );
+    await pause();
+
+    const bundle = (await post(a, '/v1/bundles/export', k1, {})).json();
+    await post(b, '/v1/federation/peers', 'admin', peerRegistrationBody('http://x.test', a.ctx));
+    const imported = (await post(b, '/v1/bundles/import', 'admin', bundle)).json() as {
+      quarantined: string[];
+    };
+    // The first key was valid when it revoked the second at the source, so that revocation stands here,
+    // even though the first key has since been revoked on this ledger.
+    expect(imported.quarantined).toEqual([]);
+    expect(b.ctx.keyRegistry.statusOf(k2.signer.keyId)).toBe('revoked');
+    expect(b.ctx.keyRegistry.statusOf(k1.signer.keyId)).toBe('revoked');
+  });
+
   it('keeps native judgement at the moment of acceptance: a revoked key cannot sign here', async () => {
     const reg = await post(b, '/v1/keys', k, buildKeyRegistrationEnvelope(k));
     await pause();
