@@ -99,6 +99,19 @@ export class SqliteAdapter implements StorageAdapter {
 
   constructor(private readonly db: SqliteDatabase) {}
 
+  /**
+   * Runs `fn` as its own unit in the same queue as transactions. There is one
+   * connection, so a read or write issued while a transaction is open (it
+   * spans awaits) would run *inside* it: seeing rows that may yet roll back, or
+   * being committed or rolled back with it. Serializing keeps every call outside
+   * a transaction strictly before or after one.
+   */
+  private serial<T>(fn: () => T): Promise<T> {
+    const next = this.txQueue.then(fn);
+    this.txQueue = next.catch(() => undefined);
+    return next;
+  }
+
   /** Test/debug-only escape hatch to the raw better-sqlite3 handle; not part of the StorageAdapter contract. */
   raw(): SqliteDatabase {
     return this.db;
@@ -116,11 +129,15 @@ export class SqliteAdapter implements StorageAdapter {
   }
 
   async close(): Promise<void> {
-    this.db.close();
+    return this.serial(() => {
+      this.db.close();
+    });
   }
 
   async exec(sql: string): Promise<void> {
-    this.db.exec(sql);
+    return this.serial(() => {
+      this.db.exec(sql);
+    });
   }
 
   async withTransaction<T>(fn: (tx: StorageTransaction) => Promise<T>): Promise<T> {
@@ -141,38 +158,48 @@ export class SqliteAdapter implements StorageAdapter {
   }
 
   async getEvent(ledgerId: string, eventId: string): Promise<EventRow | null> {
-    const row = this.db
-      .prepare('SELECT * FROM events WHERE ledger_id = ? AND event_id = ?')
-      .get(ledgerId, eventId) as EventRow | undefined;
-    return row ?? null;
+    return this.serial(() => {
+      const row = this.db
+        .prepare('SELECT * FROM events WHERE ledger_id = ? AND event_id = ?')
+        .get(ledgerId, eventId) as EventRow | undefined;
+      return row ?? null;
+    });
   }
 
   async findByIdempotencyKey(ledgerId: string, key: string): Promise<EventRow | null> {
-    const row = this.db
-      .prepare('SELECT * FROM events WHERE ledger_id = ? AND idempotency_key = ?')
-      .get(ledgerId, key) as EventRow | undefined;
-    return row ?? null;
+    return this.serial(() => {
+      const row = this.db
+        .prepare('SELECT * FROM events WHERE ledger_id = ? AND idempotency_key = ?')
+        .get(ledgerId, key) as EventRow | undefined;
+      return row ?? null;
+    });
   }
 
   async getReceiptByEventId(ledgerId: string, eventId: string): Promise<ReceiptRow | null> {
-    const row = this.db
-      .prepare('SELECT * FROM receipts WHERE ledger_id = ? AND event_id = ?')
-      .get(ledgerId, eventId) as ReceiptRow | undefined;
-    return row ?? null;
+    return this.serial(() => {
+      const row = this.db
+        .prepare('SELECT * FROM receipts WHERE ledger_id = ? AND event_id = ?')
+        .get(ledgerId, eventId) as ReceiptRow | undefined;
+      return row ?? null;
+    });
   }
 
   async getReceiptBySequence(ledgerId: string, sequence: number): Promise<ReceiptRow | null> {
-    const row = this.db
-      .prepare('SELECT * FROM receipts WHERE ledger_id = ? AND sequence = ?')
-      .get(ledgerId, sequence) as ReceiptRow | undefined;
-    return row ?? null;
+    return this.serial(() => {
+      const row = this.db
+        .prepare('SELECT * FROM receipts WHERE ledger_id = ? AND sequence = ?')
+        .get(ledgerId, sequence) as ReceiptRow | undefined;
+      return row ?? null;
+    });
   }
 
   async getHeadReceipt(ledgerId: string): Promise<ReceiptRow | null> {
-    const row = this.db
-      .prepare('SELECT * FROM receipts WHERE ledger_id = ? ORDER BY sequence DESC LIMIT 1')
-      .get(ledgerId) as ReceiptRow | undefined;
-    return row ?? null;
+    return this.serial(() => {
+      const row = this.db
+        .prepare('SELECT * FROM receipts WHERE ledger_id = ? ORDER BY sequence DESC LIMIT 1')
+        .get(ledgerId) as ReceiptRow | undefined;
+      return row ?? null;
+    });
   }
 
   async listReceipts(
@@ -180,34 +207,42 @@ export class SqliteAdapter implements StorageAdapter {
     afterSequence: number,
     limit: number,
   ): Promise<ReceiptRow[]> {
-    return this.db
-      .prepare(
-        'SELECT * FROM receipts WHERE ledger_id = ? AND sequence > ? ORDER BY sequence ASC LIMIT ?',
-      )
-      .all(ledgerId, afterSequence, limit) as ReceiptRow[];
+    return this.serial(() => {
+      return this.db
+        .prepare(
+          'SELECT * FROM receipts WHERE ledger_id = ? AND sequence > ? ORDER BY sequence ASC LIMIT ?',
+        )
+        .all(ledgerId, afterSequence, limit) as ReceiptRow[];
+    });
   }
 
   async getHead(ledgerId: string, artifactId: string): Promise<HeadRow | null> {
-    const row = this.db
-      .prepare('SELECT * FROM heads WHERE ledger_id = ? AND artifact_id = ?')
-      .get(ledgerId, artifactId) as HeadRow | undefined;
-    return row ?? null;
+    return this.serial(() => {
+      const row = this.db
+        .prepare('SELECT * FROM heads WHERE ledger_id = ? AND artifact_id = ?')
+        .get(ledgerId, artifactId) as HeadRow | undefined;
+      return row ?? null;
+    });
   }
 
   async listEvents(ledgerId: string, limit: number, afterSequence: number): Promise<EventRow[]> {
-    return this.db
-      .prepare(
-        'SELECT * FROM events WHERE ledger_id = ? AND sequence > ? ORDER BY sequence ASC LIMIT ?',
-      )
-      .all(ledgerId, afterSequence, limit) as EventRow[];
+    return this.serial(() => {
+      return this.db
+        .prepare(
+          'SELECT * FROM events WHERE ledger_id = ? AND sequence > ? ORDER BY sequence ASC LIMIT ?',
+        )
+        .all(ledgerId, afterSequence, limit) as EventRow[];
+    });
   }
 
   async listEventsForArtifact(ledgerId: string, artifactId: string): Promise<EventRow[]> {
-    return this.db
-      .prepare(
-        'SELECT * FROM events WHERE ledger_id = ? AND subject_artifact_id = ? ORDER BY sequence ASC',
-      )
-      .all(ledgerId, artifactId) as EventRow[];
+    return this.serial(() => {
+      return this.db
+        .prepare(
+          'SELECT * FROM events WHERE ledger_id = ? AND subject_artifact_id = ? ORDER BY sequence ASC',
+        )
+        .all(ledgerId, artifactId) as EventRow[];
+    });
   }
 
   async queryEvents(
@@ -216,97 +251,123 @@ export class SqliteAdapter implements StorageAdapter {
     limit: number,
     afterSequence: number,
   ): Promise<EventRow[]> {
-    const conditions = ['ledger_id = ?', 'sequence > ?'];
-    const params: (string | number)[] = [ledgerId, afterSequence];
-    if (filter.eventTypes && filter.eventTypes.length > 0) {
-      conditions.push(`event_type IN (${filter.eventTypes.map(() => '?').join(',')})`);
-      params.push(...filter.eventTypes);
-    }
-    if (filter.subjectKind) {
-      conditions.push('subject_kind = ?');
-      params.push(filter.subjectKind);
-    }
-    params.push(limit);
-    return this.db
-      .prepare(
-        `SELECT * FROM events WHERE ${conditions.join(' AND ')} ORDER BY sequence ASC LIMIT ?`,
-      )
-      .all(...params) as EventRow[];
+    return this.serial(() => {
+      const conditions = ['ledger_id = ?', 'sequence > ?'];
+      const params: (string | number)[] = [ledgerId, afterSequence];
+      if (filter.eventTypes && filter.eventTypes.length > 0) {
+        conditions.push(`event_type IN (${filter.eventTypes.map(() => '?').join(',')})`);
+        params.push(...filter.eventTypes);
+      }
+      if (filter.subjectKind) {
+        conditions.push('subject_kind = ?');
+        params.push(filter.subjectKind);
+      }
+      params.push(limit);
+      return this.db
+        .prepare(
+          `SELECT * FROM events WHERE ${conditions.join(' AND ')} ORDER BY sequence ASC LIMIT ?`,
+        )
+        .all(...params) as EventRow[];
+    });
   }
 
   async getCausalParentsFor(ledgerId: string, eventId: string): Promise<CausalParentRow[]> {
-    return this.db
-      .prepare('SELECT * FROM causal_parents WHERE ledger_id = ? AND event_id = ?')
-      .all(ledgerId, eventId) as CausalParentRow[];
+    return this.serial(() => {
+      return this.db
+        .prepare('SELECT * FROM causal_parents WHERE ledger_id = ? AND event_id = ?')
+        .all(ledgerId, eventId) as CausalParentRow[];
+    });
   }
 
   async getChildrenOf(ledgerId: string, parentEventId: string): Promise<CausalParentRow[]> {
-    return this.db
-      .prepare('SELECT * FROM causal_parents WHERE ledger_id = ? AND parent_event_id = ?')
-      .all(ledgerId, parentEventId) as CausalParentRow[];
+    return this.serial(() => {
+      return this.db
+        .prepare('SELECT * FROM causal_parents WHERE ledger_id = ? AND parent_event_id = ?')
+        .all(ledgerId, parentEventId) as CausalParentRow[];
+    });
   }
 
   async getAllCausalParents(ledgerId: string): Promise<CausalParentRow[]> {
-    return this.db
-      .prepare('SELECT * FROM causal_parents WHERE ledger_id = ?')
-      .all(ledgerId) as CausalParentRow[];
+    return this.serial(() => {
+      return this.db
+        .prepare('SELECT * FROM causal_parents WHERE ledger_id = ?')
+        .all(ledgerId) as CausalParentRow[];
+    });
   }
 
   async insertQuarantine(row: QuarantineRow): Promise<void> {
-    this.db
-      .prepare(
-        'INSERT INTO quarantine (id, ledger_id, reason, envelope_json, quarantined_at) VALUES (@id, @ledger_id, @reason, @envelope_json, @quarantined_at)',
-      )
-      .run(row);
+    return this.serial(() => {
+      this.db
+        .prepare(
+          'INSERT INTO quarantine (id, ledger_id, reason, envelope_json, quarantined_at) VALUES (@id, @ledger_id, @reason, @envelope_json, @quarantined_at)',
+        )
+        .run(row);
+    });
   }
 
   async listQuarantine(ledgerId: string): Promise<QuarantineRow[]> {
-    return this.db
-      .prepare('SELECT * FROM quarantine WHERE ledger_id = ? ORDER BY quarantined_at ASC')
-      .all(ledgerId) as QuarantineRow[];
+    return this.serial(() => {
+      return this.db
+        .prepare('SELECT * FROM quarantine WHERE ledger_id = ? ORDER BY quarantined_at ASC')
+        .all(ledgerId) as QuarantineRow[];
+    });
   }
 
   async clearProjections(ledgerId: string): Promise<void> {
-    this.db.prepare('DELETE FROM heads WHERE ledger_id = ?').run(ledgerId);
+    return this.serial(() => {
+      this.db.prepare('DELETE FROM heads WHERE ledger_id = ?').run(ledgerId);
+    });
   }
 
   async upsertHead(row: HeadRow): Promise<void> {
-    this.db
-      .prepare(
-        `INSERT INTO heads (ledger_id, artifact_id, version_id, event_id, updated_at) VALUES (@ledger_id, @artifact_id, @version_id, @event_id, @updated_at)
-         ON CONFLICT(ledger_id, artifact_id) DO UPDATE SET version_id = excluded.version_id, event_id = excluded.event_id, updated_at = excluded.updated_at`,
-      )
-      .run(row);
+    return this.serial(() => {
+      this.db
+        .prepare(
+          `INSERT INTO heads (ledger_id, artifact_id, version_id, event_id, updated_at) VALUES (@ledger_id, @artifact_id, @version_id, @event_id, @updated_at)
+           ON CONFLICT(ledger_id, artifact_id) DO UPDATE SET version_id = excluded.version_id, event_id = excluded.event_id, updated_at = excluded.updated_at`,
+        )
+        .run(row);
+    });
   }
 
   async getMeta(key: string): Promise<string | null> {
-    const row = this.db.prepare('SELECT value FROM ledger_meta WHERE key = ?').get(key) as
-      { value: string } | undefined;
-    return row?.value ?? null;
+    return this.serial(() => {
+      const row = this.db.prepare('SELECT value FROM ledger_meta WHERE key = ?').get(key) as
+        { value: string } | undefined;
+      return row?.value ?? null;
+    });
   }
 
   async setMeta(key: string, value: string): Promise<void> {
-    this.db
-      .prepare(
-        'INSERT INTO ledger_meta (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value',
-      )
-      .run(key, value);
+    return this.serial(() => {
+      this.db
+        .prepare(
+          'INSERT INTO ledger_meta (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value',
+        )
+        .run(key, value);
+    });
   }
 
   async setMetaIfAbsent(key: string, value: string): Promise<boolean> {
-    const result = this.db
-      .prepare('INSERT INTO ledger_meta (key, value) VALUES (?, ?) ON CONFLICT(key) DO NOTHING')
-      .run(key, value);
-    return result.changes > 0;
+    return this.serial(() => {
+      const result = this.db
+        .prepare('INSERT INTO ledger_meta (key, value) VALUES (?, ?) ON CONFLICT(key) DO NOTHING')
+        .run(key, value);
+      return result.changes > 0;
+    });
   }
 
   async deleteMeta(key: string): Promise<boolean> {
-    return this.db.prepare('DELETE FROM ledger_meta WHERE key = ?').run(key).changes > 0;
+    return this.serial(() => {
+      return this.db.prepare('DELETE FROM ledger_meta WHERE key = ?').run(key).changes > 0;
+    });
   }
 
   async listMeta(prefix: string): Promise<{ key: string; value: string }[]> {
-    return this.db
-      .prepare("SELECT key, value FROM ledger_meta WHERE key LIKE ? ESCAPE '\\' ORDER BY key")
-      .all(`${prefix.replace(/[\\%_]/g, '\\$&')}%`) as { key: string; value: string }[];
+    return this.serial(() => {
+      return this.db
+        .prepare("SELECT key, value FROM ledger_meta WHERE key LIKE ? ESCAPE '\\' ORDER BY key")
+        .all(`${prefix.replace(/[\\%_]/g, '\\$&')}%`) as { key: string; value: string }[];
+    });
   }
 }
