@@ -6,6 +6,8 @@ Every write honours an `Idempotency-Key` header: a retry that re-signs the same 
 
 Request bodies for every write endpoint are DSSE-compatible signed event envelopes (`schemas/envelope/signed-envelope.schema.json` wrapping `schemas/event/unsigned-event.schema.json`), constructed and signed client-side. See `packages/sdk-typescript`'s `buildUnsignedEvent` and `@act/crypto`'s `signEnvelope`. The server never signs on a caller's behalf.
 
+**Tenants.** Every authenticated request acts on exactly one tenant's ledger, named by the verified token's `act_tenant` claim (development scheme: the `x-act-tenant` header; no tenant means `default` unless `ACT_REQUIRE_TENANT` is on, the production default, which refuses the request with `401`). A malformed tenant id is `400 invalid_tenant`, one outside `ACT_TENANTS` is `403 tenant_not_allowed`, and `ACT_MAX_TENANTS` bounds how many exist (`503 tenant_limit_reached`). A signed event must state the caller's tenant in its `tenant` field (`403 tenant_mismatch`; `not_applicable` is refused), except events arriving in a federation bundle, which keep their authoring ledger's tenant. Reading, diffing, tracing or referencing anything that exists only in another tenant behaves exactly as if it did not exist (`404`, or `missing_parent`). `GET /v1/ledger`, peers, the quarantine list, bundle export and every list endpoint are per tenant (ADR 0010).
+
 | Operation | Handler | Auth/trust notes |
 | --- | --- | --- |
 | `GET /v1/health/live`, `/ready` | `services/api/src/routes/health.ts` | No authentication required |

@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted
+Accepted. Amended by ADR 0010: every adapter method now names the ledger it acts on, and migration `0003-tenant-scoping` re-keys the tables by ledger id.
 
 ## Context
 

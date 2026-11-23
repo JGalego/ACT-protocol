@@ -97,7 +97,7 @@ protocol_version:   # e.g. "act/1.0"
 event_type:         # enum, see schemas/event/event-type.schema.json
 occurred_at:        # actor-claimed wall-clock time (RFC 3339)
 actor:              # { actor_id, key_id }
-tenant:             # tenant identifier, or "not_applicable" with reason
+tenant:             # tenant identifier, or "not_applicable" with reason (see §6.5)
 subject:            # { kind, artifact_id?, version_id?, ... } — what this event is about
 causal_parents:     # array of { event_id } — see §5.4; empty only for Genesis
 content_descriptors:# array of content descriptors (see spec/privacy semantics, docs)
@@ -166,6 +166,10 @@ The ledger MUST reject any event whose acceptance would create a cycle in the ca
 ### 6.4 Trust Policy
 
 A ledger's trust policy determines which actors/keys it accepts events from and under what conditions it accepts imported events from another ledger. Trust policy is local, versioned, and explicit; a conforming implementation MUST NOT ship a default trust policy that silently trusts every remote ledger or every imported signature. See `spec/federation.md` §3.
+
+### 6.5 Tenant Isolation
+
+A ledger that serves more than one tenant MUST keep each tenant's events in a separate ledger: its own ledger id, receipt-signing key, receipt chain, trust state and peer registrations. Nothing recorded for one tenant may be read, used, or detected (through a duplicate, a conflict, a sequence gap, or a trust decision) from another. The tenant is established by authentication and never by the content of a request. An event recorded natively on a tenant's ledger MUST state that tenant in its `tenant` field (`not_applicable` is not permitted there); an event imported from a peer under §14 keeps the tenant of the ledger that authored it. A reference to something that exists only in another tenant's ledger MUST behave exactly as a reference to something that does not exist. Tenants exchange events only through federation (`spec/federation.md`). See ADR 0010.
 
 ## 7. Artifacts, Transformations, and Intent
 

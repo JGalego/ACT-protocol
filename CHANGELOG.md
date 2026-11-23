@@ -23,6 +23,8 @@ A project review found that the write path verified signatures and key trust but
 - Peer administration, bundle import and the quarantine list are administrator-only; peer URLs are SSRF-checked; peer bearer tokens are never returned.
 - `act key trust` / `act import` (CLI): fingerprint-checked keys with owners, no silent key replacement, verified bundles.
 
+- Tenant isolation ([ADR 0010](docs/adr/0010-tenant-isolation.md)): each tenant is now its own ledger (own ledger id, signing key, receipt chain, key registry, peers, quarantine) in the shared database. The tenant comes only from the verified token claim; a signed event must state the caller's tenant; a cross-tenant reference behaves as a missing one, so duplicates, conflicts, sequence numbers and key trust reveal nothing. Previously every caller shared one ledger and `x-act-tenant` was parsed and ignored.
+
 ### Fixed
 
 - Key validity: a signature dated before the key existed, or evaluated against an unparseable timestamp, was reported valid (TypeScript and Python SDKs).
@@ -37,10 +39,13 @@ A project review found that the write path verified signatures and key trust but
 ### Changed
 
 - **Breaking (API):** federation peers must be registered with `ledgerId`, `ledgerKeyId`, `ledgerPublicKey`; `GET /v1/federation/peers` no longer returns `bearerToken`; peer, import and quarantine endpoints require an administrator; production requires `ACT_ADMIN_ACTORS`; `GET /v1/artifacts/{id}` returns `currentVersionId: null` with `conflict: true` while branches are unresolved.
+- **Breaking (API):** an event's `tenant` must equal the caller's tenant (`default` when single-tenant; `not_applicable` is refused); production requires the tenant claim unless `ACT_REQUIRE_TENANT=false`; `StorageAdapter` methods take a ledger id; migration `0003-tenant-scoping` re-keys `events`, `causal_parents`, `heads` and `quarantine` by ledger id (existing data becomes the `default` tenant).
+- Helm values `api.requireTenant`, `api.tenants`, `api.maxTenants`; `ACT_ADMIN_ACTORS` accepts `tenant::actor`.
 - Helm values `api.adminActors` (required), `api.keyRegistration`, `api.ledgerSigningKey`.
 
 ### Added
 
+- `ACT_REQUIRE_TENANT`, `ACT_TENANTS`, `ACT_MAX_TENANTS`; a `tenant` option on both SDK clients.
 - `GET /v1/ledger`, `key_rotated` / `key_revoked` / `key_compromised` handling, `ACT_ADMIN_ACTORS`, `ACT_KEY_REGISTRATION`, `ACT_LEDGER_PRIVATE_KEY`, `ACT_ALLOW_PRIVATE_PEERS`, `ACT_AUTHORITY_POLICY_FILE`.
 
 - `apps/explorer`: an animated React/Cytoscape demonstration of intent, AI proposal, transformation, approval, implementation, verification, challenge, revision, and runtime observation, with deterministic replay and optional live `/v1/events` loading.

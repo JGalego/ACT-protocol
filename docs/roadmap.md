@@ -28,7 +28,7 @@ This document is the single consolidated list of what `PROMPT.md` specifies that
 - **Authority roles from signed assignments.** Roles for `intent_effective_selected` / `intent_merged` come from operator configuration (`ACT_AUTHORITY_POLICY_FILE`). Deriving them from Accountability Assignment events, issued by administrators, would put them in the auditable log.
 - **Approval validity and quorum as an API.** `@act/verification`'s `checkApprovalValidity` and `@act/policy`'s `evaluateQuorum` are not yet exposed through an endpoint; the write path enforces the lifecycle but a consumer must call the packages to decide whether an approval currently authorizes an action.
 - **Drift-assessment schema.** Spec section 7.3 requires a drift result to name its comparison target; there is no dedicated schema enforcing it yet.
-- **Tenant isolation.** `x-act-tenant` / the OIDC tenant claim is parsed per request but reads and writes are not yet tenant-scoped (see `docs/threat-model.md`).
+- **Tenant isolation (built).** Each tenant is its own ledger in a shared database (ADR 0010). Not built: per-tenant database or KMS-held signing keys for the non-default tenants, per-tenant rate limits and quotas, and tenant-aware metrics.
 - **Key validity at signing time on import.** Imports evaluate key status at import time; evaluating at the original signing time needs a trustworthy signing time (`occurred_at` is an untrusted claim).
 - **State-machine and privacy conformance vectors.** See `spec/conformance.md` section 2.
 

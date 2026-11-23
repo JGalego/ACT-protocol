@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted
+Accepted. Amended by ADR 0010: every adapter method now names the ledger it acts on.
 
 ## Context
 

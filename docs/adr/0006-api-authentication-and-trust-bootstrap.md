@@ -39,3 +39,7 @@ This amendment removes "Production OIDC/JWT validation" from deferred scope. Org
 ## Amendment: ADR 0009 (attribution, key identity, durable trust)
 
 The bootstrap described above is tightened by ADR 0009. A `key_id` must now be the fingerprint of its public key and the registering actor must own the key, so a key id cannot be claimed for someone else's key; a rejected registration no longer deletes an existing key; and the registry is rebuilt from the event log, so trust survives restarts and replicas. Registration is administrator-only by default outside dev mode (`ACT_KEY_REGISTRATION`). Federation import no longer bootstraps trust from any self-signed Key event: it requires a registered peer with a pinned ledger identity, and only a Key event inside a bundle verified against that pin may add a key.
+
+## Amendment: ADR 0010 (tenant from authentication)
+
+The tenant is established here and nowhere else: the verified token's `act_tenant` claim (or, in the development scheme, the `x-act-tenant` header). It is format-checked, and `ACT_REQUIRE_TENANT` (default on in production) refuses a token with no tenant claim instead of falling back to `default`. The tenant selects that tenant's ledger; it is also what a signed event's `tenant` field must equal. See ADR 0010.
