@@ -106,3 +106,12 @@ export class ArtifactExistsError extends LedgerError {
     );
   }
 }
+
+export class TenantMismatchError extends LedgerError {
+  constructor(expected: string, claimed: string) {
+    super(
+      `This ledger belongs to tenant ${JSON.stringify(expected)}; the event states ${claimed}. An event must name the tenant whose ledger records it`,
+      'tenant_mismatch',
+    );
+  }
+}

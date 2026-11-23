@@ -81,8 +81,8 @@ class PostgresTransaction implements StorageTransaction {
 
   async insertCausalParent(row: CausalParentRow): Promise<void> {
     await this.client.query(
-      'INSERT INTO causal_parents (event_id, parent_event_id, relation, is_missing) VALUES ($1, $2, $3, $4)',
-      [row.event_id, row.parent_event_id, row.relation, row.is_missing],
+      'INSERT INTO causal_parents (ledger_id, event_id, parent_event_id, relation, is_missing) VALUES ($1, $2, $3, $4, $5)',
+      [row.ledger_id, row.event_id, row.parent_event_id, row.relation, row.is_missing],
     );
   }
 
@@ -105,16 +105,17 @@ class PostgresTransaction implements StorageTransaction {
 
   async upsertHead(row: HeadRow): Promise<void> {
     await this.client.query(
-      `INSERT INTO heads (artifact_id, version_id, event_id, updated_at) VALUES ($1, $2, $3, $4)
-       ON CONFLICT (artifact_id) DO UPDATE SET version_id = excluded.version_id, event_id = excluded.event_id, updated_at = excluded.updated_at`,
-      [row.artifact_id, row.version_id, row.event_id, row.updated_at],
+      `INSERT INTO heads (ledger_id, artifact_id, version_id, event_id, updated_at) VALUES ($1, $2, $3, $4, $5)
+       ON CONFLICT (ledger_id, artifact_id) DO UPDATE SET version_id = excluded.version_id, event_id = excluded.event_id, updated_at = excluded.updated_at`,
+      [row.ledger_id, row.artifact_id, row.version_id, row.event_id, row.updated_at],
     );
   }
 
-  async resolveMissingParent(parentEventId: string): Promise<void> {
-    await this.client.query('UPDATE causal_parents SET is_missing = 0 WHERE parent_event_id = $1', [
-      parentEventId,
-    ]);
+  async resolveMissingParent(ledgerId: string, parentEventId: string): Promise<void> {
+    await this.client.query(
+      'UPDATE causal_parents SET is_missing = 0 WHERE ledger_id = $1 AND parent_event_id = $2',
+      [ledgerId, parentEventId],
+    );
   }
 
   async exec(sql: string): Promise<void> {
@@ -194,8 +195,11 @@ export class PostgresAdapter implements StorageAdapter {
     }
   }
 
-  async getEvent(eventId: string): Promise<EventRow | null> {
-    const result = await this.pool.query('SELECT * FROM events WHERE event_id = $1', [eventId]);
+  async getEvent(ledgerId: string, eventId: string): Promise<EventRow | null> {
+    const result = await this.pool.query(
+      'SELECT * FROM events WHERE ledger_id = $1 AND event_id = $2',
+      [ledgerId, eventId],
+    );
     return (result.rows[0] as EventRow | undefined) ?? null;
   }
 
@@ -223,10 +227,11 @@ export class PostgresAdapter implements StorageAdapter {
     return (result.rows[0] as ReceiptRow | undefined) ?? null;
   }
 
-  async getHead(artifactId: string): Promise<HeadRow | null> {
-    const result = await this.pool.query('SELECT * FROM heads WHERE artifact_id = $1', [
-      artifactId,
-    ]);
+  async getHead(ledgerId: string, artifactId: string): Promise<HeadRow | null> {
+    const result = await this.pool.query(
+      'SELECT * FROM heads WHERE ledger_id = $1 AND artifact_id = $2',
+      [ledgerId, artifactId],
+    );
     return (result.rows[0] as HeadRow | undefined) ?? null;
   }
 
@@ -270,47 +275,53 @@ export class PostgresAdapter implements StorageAdapter {
     return result.rows as EventRow[];
   }
 
-  async getCausalParentsFor(eventId: string): Promise<CausalParentRow[]> {
-    const result = await this.pool.query('SELECT * FROM causal_parents WHERE event_id = $1', [
-      eventId,
-    ]);
-    return result.rows as CausalParentRow[];
-  }
-
-  async getChildrenOf(parentEventId: string): Promise<CausalParentRow[]> {
+  async getCausalParentsFor(ledgerId: string, eventId: string): Promise<CausalParentRow[]> {
     const result = await this.pool.query(
-      'SELECT * FROM causal_parents WHERE parent_event_id = $1',
-      [parentEventId],
+      'SELECT * FROM causal_parents WHERE ledger_id = $1 AND event_id = $2',
+      [ledgerId, eventId],
     );
     return result.rows as CausalParentRow[];
   }
 
-  async getAllCausalParents(): Promise<CausalParentRow[]> {
-    const result = await this.pool.query('SELECT * FROM causal_parents');
+  async getChildrenOf(ledgerId: string, parentEventId: string): Promise<CausalParentRow[]> {
+    const result = await this.pool.query(
+      'SELECT * FROM causal_parents WHERE ledger_id = $1 AND parent_event_id = $2',
+      [ledgerId, parentEventId],
+    );
+    return result.rows as CausalParentRow[];
+  }
+
+  async getAllCausalParents(ledgerId: string): Promise<CausalParentRow[]> {
+    const result = await this.pool.query('SELECT * FROM causal_parents WHERE ledger_id = $1', [
+      ledgerId,
+    ]);
     return result.rows as CausalParentRow[];
   }
 
   async insertQuarantine(row: QuarantineRow): Promise<void> {
     await this.pool.query(
-      'INSERT INTO quarantine (id, reason, envelope_json, quarantined_at) VALUES ($1, $2, $3, $4)',
-      [row.id, row.reason, row.envelope_json, row.quarantined_at],
+      'INSERT INTO quarantine (id, ledger_id, reason, envelope_json, quarantined_at) VALUES ($1, $2, $3, $4, $5)',
+      [row.id, row.ledger_id, row.reason, row.envelope_json, row.quarantined_at],
     );
   }
 
-  async listQuarantine(): Promise<QuarantineRow[]> {
-    const result = await this.pool.query('SELECT * FROM quarantine ORDER BY quarantined_at ASC');
+  async listQuarantine(ledgerId: string): Promise<QuarantineRow[]> {
+    const result = await this.pool.query(
+      'SELECT * FROM quarantine WHERE ledger_id = $1 ORDER BY quarantined_at ASC',
+      [ledgerId],
+    );
     return result.rows as QuarantineRow[];
   }
 
-  async clearProjections(): Promise<void> {
-    await this.pool.query('DELETE FROM heads');
+  async clearProjections(ledgerId: string): Promise<void> {
+    await this.pool.query('DELETE FROM heads WHERE ledger_id = $1', [ledgerId]);
   }
 
   async upsertHead(row: HeadRow): Promise<void> {
     await this.pool.query(
-      `INSERT INTO heads (artifact_id, version_id, event_id, updated_at) VALUES ($1, $2, $3, $4)
-       ON CONFLICT (artifact_id) DO UPDATE SET version_id = excluded.version_id, event_id = excluded.event_id, updated_at = excluded.updated_at`,
-      [row.artifact_id, row.version_id, row.event_id, row.updated_at],
+      `INSERT INTO heads (ledger_id, artifact_id, version_id, event_id, updated_at) VALUES ($1, $2, $3, $4, $5)
+       ON CONFLICT (ledger_id, artifact_id) DO UPDATE SET version_id = excluded.version_id, event_id = excluded.event_id, updated_at = excluded.updated_at`,
+      [row.ledger_id, row.artifact_id, row.version_id, row.event_id, row.updated_at],
     );
   }
 

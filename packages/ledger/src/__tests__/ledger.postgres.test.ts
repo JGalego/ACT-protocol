@@ -9,6 +9,9 @@ import {
   type EmbeddedPostgresHandle,
 } from './adapters/postgres-test-helper.js';
 import { registerLedgerSuite } from './shared/ledger-suite.js';
+import { registerTenantSuite } from './shared/tenant-suite.js';
+import { registerMigrationSuite } from './shared/migration-suite.js';
+import { POSTGRES_MIGRATIONS } from '../migrations.js';
 import type { StorageAdapter } from '../storage-adapter.js';
 import { buildEvent, makeActor, publicKeysFor, signedEnvelope } from './helpers.js';
 
@@ -40,6 +43,23 @@ async function makePostgresAdapter(): Promise<PostgresAdapter> {
 registerLedgerSuite('postgres', makePostgresAdapter, async (adapter: StorageAdapter) => {
   await adapter.close();
 });
+
+registerTenantSuite('postgres', makePostgresAdapter, async (adapter: StorageAdapter) => {
+  await adapter.close();
+});
+
+registerMigrationSuite(
+  'postgres',
+  async () => {
+    const schema = `test_${Date.now()}_${schemaCounter++}`;
+    await handle.createSchema(schema);
+    return new PostgresAdapter(handle.makeConnectionString(schema));
+  },
+  POSTGRES_MIGRATIONS,
+  async (adapter: StorageAdapter) => {
+    await adapter.close();
+  },
+);
 
 describe('PostgresAdapter concurrency', () => {
   it('retries and assigns distinct sequential sequence numbers when appends genuinely race', async () => {

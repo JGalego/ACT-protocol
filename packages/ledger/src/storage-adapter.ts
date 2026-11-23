@@ -4,6 +4,10 @@
  * direct `better-sqlite3` usage so the write path in `ledger.ts` no longer
  * assumes a specific engine (docs/adr/0008-storage-adapter-and-postgres.md).
  *
+ * Every read and write names the ledger it acts on (ADR 0010). Several
+ * ledgers (one per tenant) share one database, and the type system, not
+ * caller discipline, is what keeps a query from crossing between them.
+ *
  * Every method returns a Promise so one interface covers both a
  * synchronous driver (better-sqlite3, wrapped in already-resolved promises)
  * and an inherently asynchronous one (pg) without special-casing either in
@@ -35,6 +39,7 @@ export interface ReceiptRow {
 }
 
 export interface CausalParentRow {
+  ledger_id: string;
   event_id: string;
   parent_event_id: string;
   relation: string;
@@ -42,6 +47,7 @@ export interface CausalParentRow {
 }
 
 export interface HeadRow {
+  ledger_id: string;
   artifact_id: string;
   version_id: string;
   event_id: string;
@@ -50,6 +56,7 @@ export interface HeadRow {
 
 export interface QuarantineRow {
   id: string;
+  ledger_id: string;
   reason: string;
   envelope_json: string;
   quarantined_at: string;
@@ -70,7 +77,7 @@ export interface StorageTransaction {
   insertReceipt(row: ReceiptRow): Promise<void>;
   upsertHead(row: HeadRow): Promise<void>;
   /** Clears the missing-parent flag on every edge that named `parentEventId`, now that it has arrived. */
-  resolveMissingParent(parentEventId: string): Promise<void>;
+  resolveMissingParent(ledgerId: string, parentEventId: string): Promise<void>;
   /** Raw statement execution inside this transaction; used only by the migration runner. */
   exec(sql: string): Promise<void>;
   /** Whether the migration with this id is already recorded, read inside this transaction. */
@@ -95,11 +102,11 @@ export interface StorageAdapter {
    */
   withTransaction<T>(fn: (tx: StorageTransaction) => Promise<T>): Promise<T>;
 
-  getEvent(eventId: string): Promise<EventRow | null>;
+  getEvent(ledgerId: string, eventId: string): Promise<EventRow | null>;
   findByIdempotencyKey(ledgerId: string, key: string): Promise<EventRow | null>;
   getReceiptByEventId(ledgerId: string, eventId: string): Promise<ReceiptRow | null>;
   getReceiptBySequence(ledgerId: string, sequence: number): Promise<ReceiptRow | null>;
-  getHead(artifactId: string): Promise<HeadRow | null>;
+  getHead(ledgerId: string, artifactId: string): Promise<HeadRow | null>;
   listEvents(ledgerId: string, limit: number, afterSequence: number): Promise<EventRow[]>;
   listEventsForArtifact(ledgerId: string, artifactId: string): Promise<EventRow[]>;
   /**
@@ -116,16 +123,16 @@ export interface StorageAdapter {
     limit: number,
     afterSequence: number,
   ): Promise<EventRow[]>;
-  getCausalParentsFor(eventId: string): Promise<CausalParentRow[]>;
-  getChildrenOf(parentEventId: string): Promise<CausalParentRow[]>;
-  /** Every lineage-relation causal-parent edge accepted by this ledger; drives cycle/fork/equivocation detection. */
-  getAllCausalParents(): Promise<CausalParentRow[]>;
+  getCausalParentsFor(ledgerId: string, eventId: string): Promise<CausalParentRow[]>;
+  getChildrenOf(ledgerId: string, parentEventId: string): Promise<CausalParentRow[]>;
+  /** Every causal-parent edge accepted by this ledger; drives cycle/fork/equivocation detection. */
+  getAllCausalParents(ledgerId: string): Promise<CausalParentRow[]>;
 
   insertQuarantine(row: QuarantineRow): Promise<void>;
-  listQuarantine(): Promise<QuarantineRow[]>;
+  listQuarantine(ledgerId: string): Promise<QuarantineRow[]>;
 
-  /** Drops every projection table (heads) without touching the immutable event/receipt log. */
-  clearProjections(): Promise<void>;
+  /** Drops one ledger's projection rows (heads) without touching the immutable event/receipt log or any other ledger. */
+  clearProjections(ledgerId: string): Promise<void>;
   upsertHead(row: HeadRow): Promise<void>;
 
   /** Raw statement execution outside any transaction. */

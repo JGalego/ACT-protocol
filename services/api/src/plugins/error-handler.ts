@@ -15,6 +15,7 @@ const LEDGER_ERROR_STATUS: Record<string, number> = {
   duplicate_parent: 400,
   idempotency_conflict: 409,
   artifact_exists: 409,
+  tenant_mismatch: 403,
   storage_conflict: 503,
 };
 

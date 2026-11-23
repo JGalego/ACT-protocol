@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { SqliteAdapter } from '../sqlite-adapter.js';
 import { runMigrations, SQLITE_MIGRATIONS } from '../migrations.js';
+import { registerMigrationSuite } from './shared/migration-suite.js';
 
 describe('SqliteAdapter', () => {
   it('close() releases the underlying database handle without throwing', async () => {
@@ -31,7 +32,7 @@ describe('SqliteAdapter', () => {
       }),
     ).rejects.toThrow('simulated failure after the insert');
 
-    expect(await adapter.getEvent('sha-256:' + '1'.repeat(64))).toBeNull();
+    expect(await adapter.getEvent('L', 'sha-256:' + '1'.repeat(64))).toBeNull();
   });
 
   it('runMigrations is idempotent -- a second run against an already-migrated store applies nothing new', async () => {
@@ -43,3 +44,5 @@ describe('SqliteAdapter', () => {
     ).toBeDefined();
   });
 });
+
+registerMigrationSuite('sqlite', async () => SqliteAdapter.open(':memory:'), SQLITE_MIGRATIONS);

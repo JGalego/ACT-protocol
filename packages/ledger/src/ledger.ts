@@ -26,6 +26,7 @@ import {
   MissingParentError,
   MissingSignatureError,
   SchemaValidationError,
+  TenantMismatchError,
   UntrustedActorError,
 } from './errors.js';
 import type {
@@ -48,6 +49,14 @@ export interface LedgerOptions {
   adapter: StorageAdapter;
   signer: LedgerSigner;
   trustPolicy: TrustPolicy;
+  /**
+   * The tenant this ledger records events for (ADR 0010). When set, every
+   * natively submitted event must state exactly this tenant: a signature made
+   * for one tenant cannot be replayed into another's ledger. Events imported
+   * from a peer (they carry a source receipt) keep the tenant of the ledger
+   * that authored them. Omit for a ledger that is not tenant-scoped.
+   */
+  tenant?: string;
   /** Overridable for deterministic tests; defaults to `new Date().toISOString()`. */
   now?: () => string;
 }
@@ -59,6 +68,7 @@ export interface LedgerOptions {
  */
 export class Ledger {
   readonly ledgerId: string;
+  readonly tenant: string | undefined;
   private readonly adapter: StorageAdapter;
   private readonly signer: LedgerSigner;
   private readonly trustPolicy: TrustPolicy;
@@ -66,6 +76,7 @@ export class Ledger {
 
   constructor(options: LedgerOptions) {
     this.ledgerId = options.ledgerId;
+    this.tenant = options.tenant;
     this.adapter = options.adapter;
     this.signer = options.signer;
     this.trustPolicy = options.trustPolicy;
@@ -87,6 +98,15 @@ export class Ledger {
     const schemaResult = validateAgainst(SCHEMA_IDS.unsignedEvent, envelope.payload);
     if (!schemaResult.valid) {
       throw new SchemaValidationError(JSON.stringify(schemaResult.errors));
+    }
+    if (this.tenant !== undefined && !options.sourceReceipt) {
+      const claimed = (envelope.payload as { tenant?: unknown }).tenant;
+      if (claimed !== this.tenant) {
+        throw new TenantMismatchError(
+          this.tenant,
+          typeof claimed === 'string' ? JSON.stringify(claimed) : 'no tenant of this ledger',
+        );
+      }
     }
     // An event nobody signed is not an event (spec section 5.2). The envelope
     // schema also requires this, but the ledger is callable directly, not only
@@ -164,7 +184,7 @@ export class Ledger {
     }
     const missingParentIds: string[] = [];
     for (const parent of causalParents) {
-      if (!(await this.adapter.getEvent(parent.event_id))) {
+      if (!(await this.adapter.getEvent(this.ledgerId, parent.event_id))) {
         missingParentIds.push(parent.event_id);
       }
     }
@@ -254,6 +274,7 @@ export class Ledger {
 
         for (const parent of causalParents) {
           await tx.insertCausalParent({
+            ledger_id: this.ledgerId,
             event_id: eventId,
             parent_event_id: parent.event_id,
             relation: parent.relation,
@@ -262,7 +283,7 @@ export class Ledger {
         }
         // This event may be the parent that earlier partial imports were
         // missing: those boundaries are now resolved, not stale.
-        await tx.resolveMissingParent(eventId);
+        await tx.resolveMissingParent(this.ledgerId, eventId);
 
         await tx.insertReceipt({
           ledger_id: this.ledgerId,
@@ -277,6 +298,7 @@ export class Ledger {
 
         if (subject.artifact_id && subject.version_id) {
           await tx.upsertHead({
+            ledger_id: this.ledgerId,
             artifact_id: subject.artifact_id,
             version_id: subject.version_id,
             event_id: eventId,
@@ -303,12 +325,12 @@ export class Ledger {
       throw err;
     }
 
-    const finalRow = await this.adapter.getEvent(eventId);
+    const finalRow = await this.adapter.getEvent(this.ledgerId, eventId);
     return { event: rowToStoredEvent(finalRow!), receipt, duplicate: false };
   }
 
   private async existingResult(eventId: string): Promise<AppendResult | null> {
-    const existing = await this.adapter.getEvent(eventId);
+    const existing = await this.adapter.getEvent(this.ledgerId, eventId);
     if (!existing) return null;
     const receiptRow = await this.adapter.getReceiptByEventId(this.ledgerId, eventId);
     if (!receiptRow) {
@@ -328,7 +350,7 @@ export class Ledger {
     const queue = [eventId];
     while (queue.length > 0) {
       const id = queue.shift()!;
-      const children = (await this.adapter.getChildrenOf(id))
+      const children = (await this.adapter.getChildrenOf(this.ledgerId, id))
         .filter((c) => LINEAGE_RELATIONS.has(c.relation))
         .map((c) => c.event_id);
       if (children.length > 0) edges.set(id, children);
@@ -389,7 +411,7 @@ export class Ledger {
   }
 
   async getEvent(eventId: string): Promise<StoredEvent | null> {
-    const row = await this.adapter.getEvent(eventId);
+    const row = await this.adapter.getEvent(this.ledgerId, eventId);
     return row ? rowToStoredEvent(row) : null;
   }
 
@@ -406,7 +428,7 @@ export class Ledger {
   }
 
   async getHead(artifactId: string): Promise<{ versionId: string; eventId: string } | null> {
-    const row = await this.adapter.getHead(artifactId);
+    const row = await this.adapter.getHead(this.ledgerId, artifactId);
     return row ? { versionId: row.version_id, eventId: row.event_id } : null;
   }
 
@@ -433,12 +455,13 @@ export class Ledger {
 
   /** Rebuilds the `heads` projection solely from the accepted event log. */
   async rebuildProjections(): Promise<void> {
-    await this.adapter.clearProjections();
+    await this.adapter.clearProjections(this.ledgerId);
     const rows = await this.adapter.listEvents(this.ledgerId, Number.MAX_SAFE_INTEGER, -1);
     for (const row of rows) {
       const stored = rowToStoredEvent(row);
       if (stored.subjectArtifactId && stored.subjectVersionId) {
         await this.adapter.upsertHead({
+          ledger_id: this.ledgerId,
           artifact_id: stored.subjectArtifactId,
           version_id: stored.subjectVersionId,
           event_id: stored.eventId,
@@ -463,7 +486,7 @@ export class Ledger {
     while (frontier.length > 0 && depth < maxDepth) {
       const nextFrontier: string[] = [];
       for (const id of frontier) {
-        const parents = await this.adapter.getCausalParentsFor(id);
+        const parents = await this.adapter.getCausalParentsFor(this.ledgerId, id);
         for (const p of parents) {
           if (p.is_missing) {
             boundaries.push({ missingParentEventId: p.parent_event_id, referencedBy: id });
@@ -471,7 +494,7 @@ export class Ledger {
           }
           if (seenAncestors.has(p.parent_event_id)) continue;
           seenAncestors.add(p.parent_event_id);
-          const row = await this.adapter.getEvent(p.parent_event_id);
+          const row = await this.adapter.getEvent(this.ledgerId, p.parent_event_id);
           if (row) {
             ancestors.push(rowToStoredEvent(row));
             nextFrontier.push(p.parent_event_id);
@@ -490,11 +513,11 @@ export class Ledger {
     while (frontier.length > 0 && depth < maxDepth) {
       const nextFrontier: string[] = [];
       for (const id of frontier) {
-        const children = await this.adapter.getChildrenOf(id);
+        const children = await this.adapter.getChildrenOf(this.ledgerId, id);
         for (const c of children) {
           if (seenDescendants.has(c.event_id)) continue;
           seenDescendants.add(c.event_id);
-          const row = await this.adapter.getEvent(c.event_id);
+          const row = await this.adapter.getEvent(this.ledgerId, c.event_id);
           if (row) {
             descendants.push(rowToStoredEvent(row));
             nextFrontier.push(c.event_id);
@@ -511,6 +534,7 @@ export class Ledger {
 
   async quarantine(reason: string, envelope: SignedEnvelope): Promise<void> {
     await this.adapter.insertQuarantine({
+      ledger_id: this.ledgerId,
       id: `${this.ledgerId}:${Date.parse(this.now())}:${Math.random().toString(36).slice(2)}`,
       reason,
       envelope_json: JSON.stringify(envelope),
@@ -521,7 +545,7 @@ export class Ledger {
   async listQuarantine(): Promise<
     { id: string; reason: string; envelope: SignedEnvelope; quarantinedAt: string }[]
   > {
-    const rows = await this.adapter.listQuarantine();
+    const rows = await this.adapter.listQuarantine(this.ledgerId);
     return rows.map((r) => ({
       id: r.id,
       reason: r.reason,
@@ -532,7 +556,7 @@ export class Ledger {
 
   /** Legitimate branches: two+ accepted events naming the same lineage-typed parent (spec/federation.md section 6). Informational, not rejected. */
   async findForks(): Promise<ForkFinding[]> {
-    const rows = await this.adapter.getAllCausalParents();
+    const rows = await this.adapter.getAllCausalParents(this.ledgerId);
     return detectForks(
       rows.map((r) => ({
         parentEventId: r.parent_event_id,

@@ -42,7 +42,7 @@ class SqliteTransaction implements StorageTransaction {
   async insertCausalParent(row: CausalParentRow): Promise<void> {
     this.db
       .prepare(
-        'INSERT INTO causal_parents (event_id, parent_event_id, relation, is_missing) VALUES (@event_id, @parent_event_id, @relation, @is_missing)',
+        'INSERT INTO causal_parents (ledger_id, event_id, parent_event_id, relation, is_missing) VALUES (@ledger_id, @event_id, @parent_event_id, @relation, @is_missing)',
       )
       .run(row);
   }
@@ -59,16 +59,18 @@ class SqliteTransaction implements StorageTransaction {
   async upsertHead(row: HeadRow): Promise<void> {
     this.db
       .prepare(
-        `INSERT INTO heads (artifact_id, version_id, event_id, updated_at) VALUES (@artifact_id, @version_id, @event_id, @updated_at)
-         ON CONFLICT(artifact_id) DO UPDATE SET version_id = excluded.version_id, event_id = excluded.event_id, updated_at = excluded.updated_at`,
+        `INSERT INTO heads (ledger_id, artifact_id, version_id, event_id, updated_at) VALUES (@ledger_id, @artifact_id, @version_id, @event_id, @updated_at)
+         ON CONFLICT(ledger_id, artifact_id) DO UPDATE SET version_id = excluded.version_id, event_id = excluded.event_id, updated_at = excluded.updated_at`,
       )
       .run(row);
   }
 
-  async resolveMissingParent(parentEventId: string): Promise<void> {
+  async resolveMissingParent(ledgerId: string, parentEventId: string): Promise<void> {
     this.db
-      .prepare('UPDATE causal_parents SET is_missing = 0 WHERE parent_event_id = ?')
-      .run(parentEventId);
+      .prepare(
+        'UPDATE causal_parents SET is_missing = 0 WHERE ledger_id = ? AND parent_event_id = ?',
+      )
+      .run(ledgerId, parentEventId);
   }
 
   async exec(sql: string): Promise<void> {
@@ -138,9 +140,10 @@ export class SqliteAdapter implements StorageAdapter {
     return next;
   }
 
-  async getEvent(eventId: string): Promise<EventRow | null> {
-    const row = this.db.prepare('SELECT * FROM events WHERE event_id = ?').get(eventId) as
-      EventRow | undefined;
+  async getEvent(ledgerId: string, eventId: string): Promise<EventRow | null> {
+    const row = this.db
+      .prepare('SELECT * FROM events WHERE ledger_id = ? AND event_id = ?')
+      .get(ledgerId, eventId) as EventRow | undefined;
     return row ?? null;
   }
 
@@ -165,9 +168,10 @@ export class SqliteAdapter implements StorageAdapter {
     return row ?? null;
   }
 
-  async getHead(artifactId: string): Promise<HeadRow | null> {
-    const row = this.db.prepare('SELECT * FROM heads WHERE artifact_id = ?').get(artifactId) as
-      HeadRow | undefined;
+  async getHead(ledgerId: string, artifactId: string): Promise<HeadRow | null> {
+    const row = this.db
+      .prepare('SELECT * FROM heads WHERE ledger_id = ? AND artifact_id = ?')
+      .get(ledgerId, artifactId) as HeadRow | undefined;
     return row ?? null;
   }
 
@@ -211,45 +215,47 @@ export class SqliteAdapter implements StorageAdapter {
       .all(...params) as EventRow[];
   }
 
-  async getCausalParentsFor(eventId: string): Promise<CausalParentRow[]> {
+  async getCausalParentsFor(ledgerId: string, eventId: string): Promise<CausalParentRow[]> {
     return this.db
-      .prepare('SELECT * FROM causal_parents WHERE event_id = ?')
-      .all(eventId) as CausalParentRow[];
+      .prepare('SELECT * FROM causal_parents WHERE ledger_id = ? AND event_id = ?')
+      .all(ledgerId, eventId) as CausalParentRow[];
   }
 
-  async getChildrenOf(parentEventId: string): Promise<CausalParentRow[]> {
+  async getChildrenOf(ledgerId: string, parentEventId: string): Promise<CausalParentRow[]> {
     return this.db
-      .prepare('SELECT * FROM causal_parents WHERE parent_event_id = ?')
-      .all(parentEventId) as CausalParentRow[];
+      .prepare('SELECT * FROM causal_parents WHERE ledger_id = ? AND parent_event_id = ?')
+      .all(ledgerId, parentEventId) as CausalParentRow[];
   }
 
-  async getAllCausalParents(): Promise<CausalParentRow[]> {
-    return this.db.prepare('SELECT * FROM causal_parents').all() as CausalParentRow[];
+  async getAllCausalParents(ledgerId: string): Promise<CausalParentRow[]> {
+    return this.db
+      .prepare('SELECT * FROM causal_parents WHERE ledger_id = ?')
+      .all(ledgerId) as CausalParentRow[];
   }
 
   async insertQuarantine(row: QuarantineRow): Promise<void> {
     this.db
       .prepare(
-        'INSERT INTO quarantine (id, reason, envelope_json, quarantined_at) VALUES (@id, @reason, @envelope_json, @quarantined_at)',
+        'INSERT INTO quarantine (id, ledger_id, reason, envelope_json, quarantined_at) VALUES (@id, @ledger_id, @reason, @envelope_json, @quarantined_at)',
       )
       .run(row);
   }
 
-  async listQuarantine(): Promise<QuarantineRow[]> {
+  async listQuarantine(ledgerId: string): Promise<QuarantineRow[]> {
     return this.db
-      .prepare('SELECT * FROM quarantine ORDER BY quarantined_at ASC')
-      .all() as QuarantineRow[];
+      .prepare('SELECT * FROM quarantine WHERE ledger_id = ? ORDER BY quarantined_at ASC')
+      .all(ledgerId) as QuarantineRow[];
   }
 
-  async clearProjections(): Promise<void> {
-    this.db.exec('DELETE FROM heads;');
+  async clearProjections(ledgerId: string): Promise<void> {
+    this.db.prepare('DELETE FROM heads WHERE ledger_id = ?').run(ledgerId);
   }
 
   async upsertHead(row: HeadRow): Promise<void> {
     this.db
       .prepare(
-        `INSERT INTO heads (artifact_id, version_id, event_id, updated_at) VALUES (@artifact_id, @version_id, @event_id, @updated_at)
-         ON CONFLICT(artifact_id) DO UPDATE SET version_id = excluded.version_id, event_id = excluded.event_id, updated_at = excluded.updated_at`,
+        `INSERT INTO heads (ledger_id, artifact_id, version_id, event_id, updated_at) VALUES (@ledger_id, @artifact_id, @version_id, @event_id, @updated_at)
+         ON CONFLICT(ledger_id, artifact_id) DO UPDATE SET version_id = excluded.version_id, event_id = excluded.event_id, updated_at = excluded.updated_at`,
       )
       .run(row);
   }

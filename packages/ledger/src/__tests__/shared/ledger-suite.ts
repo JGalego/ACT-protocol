@@ -916,6 +916,7 @@ export function registerLedgerSuite(
       // event as its own parent.
       await adapter.withTransaction(async (tx) => {
         await tx.insertCausalParent({
+          ledger_id: ledger.ledgerId,
           event_id: existing.event.eventId,
           parent_event_id: nextEventId,
           relation: 'input',
