@@ -3,6 +3,12 @@ import type { SignedEnvelope } from '@act/crypto';
 export interface ActClientOptions {
   baseUrl: string;
   bearerToken?: string;
+  /**
+   * Sent as `x-act-tenant`. Only a server running the local development bearer
+   * scheme reads it; a production server takes the tenant from the verified
+   * token's claim and ignores this header (ADR 0010).
+   */
+  tenant?: string;
   fetchImpl?: typeof fetch;
   maxRetries?: number;
   retryDelayMs?: number;
@@ -42,6 +48,7 @@ export interface PagedResult<T> {
 export class ActClient {
   private readonly baseUrl: string;
   private readonly bearerToken: string | undefined;
+  private readonly tenant: string | undefined;
   private readonly fetchImpl: typeof fetch;
   private readonly maxRetries: number;
   private readonly retryDelayMs: number;
@@ -49,6 +56,7 @@ export class ActClient {
   constructor(options: ActClientOptions) {
     this.baseUrl = options.baseUrl.replace(/\/$/, '');
     this.bearerToken = options.bearerToken;
+    this.tenant = options.tenant;
     this.fetchImpl = options.fetchImpl ?? fetch;
     this.maxRetries = options.maxRetries ?? 2;
     this.retryDelayMs = options.retryDelayMs ?? 200;
@@ -149,6 +157,7 @@ export class ActClient {
   ): Promise<unknown> {
     const headers: Record<string, string> = { 'content-type': 'application/json' };
     if (this.bearerToken) headers.authorization = `Bearer ${this.bearerToken}`;
+    if (this.tenant) headers['x-act-tenant'] = this.tenant;
     if (idempotencyKey) headers['idempotency-key'] = idempotencyKey;
 
     let lastError: unknown;

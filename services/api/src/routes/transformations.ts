@@ -1,6 +1,5 @@
 import type { FastifyPluginAsync } from 'fastify';
 import { SCHEMA_IDS } from '@act/core';
-import type { LedgerContext } from '../ledger-context.js';
 import {
   parseSignedEnvelope,
   idempotencyKeyOf,
@@ -8,11 +7,9 @@ import {
   validateAgainstSchemaId,
 } from './shared.js';
 
-const transformationRoutes: FastifyPluginAsync<{ ctx: LedgerContext }> = async (
-  fastify,
-  { ctx },
-) => {
+const transformationRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.post('/v1/transformations', async (request, reply) => {
+    const ctx = request.ctx;
     const envelope = parseSignedEnvelope(request.body);
     validateAgainstSchemaId(envelope.payload.payload, SCHEMA_IDS.transformation, 'transformation');
     const result = await submitEnvelope(ctx, envelope, {

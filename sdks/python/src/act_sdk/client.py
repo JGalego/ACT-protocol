@@ -36,11 +36,16 @@ class ActClient:
         self,
         base_url: str,
         bearer_token: str | None = None,
+        tenant: str | None = None,
         max_retries: int = 2,
         retry_delay_seconds: float = 0.2,
     ) -> None:
         self._base_url = base_url.rstrip("/")
         self._bearer_token = bearer_token
+        # Sent as `x-act-tenant`. Only a server running the local development
+        # bearer scheme reads it; a production server takes the tenant from the
+        # verified token's claim and ignores it (ADR 0010).
+        self._tenant = tenant
         self._max_retries = max_retries
         self._retry_delay_seconds = retry_delay_seconds
 
@@ -127,6 +132,8 @@ class ActClient:
         headers = {"content-type": "application/json"}
         if self._bearer_token:
             headers["authorization"] = f"Bearer {self._bearer_token}"
+        if self._tenant:
+            headers["x-act-tenant"] = self._tenant
         if idempotency_key:
             headers["idempotency-key"] = idempotency_key
 

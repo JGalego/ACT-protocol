@@ -1,5 +1,5 @@
 import { generateId } from '@act/core';
-import type { StorageAdapter } from '@act/ledger';
+import type { MetaStore } from './tenancy.js';
 
 export interface PeerConfig {
   peerId: string;
@@ -28,14 +28,15 @@ export function toPublicPeer(peer: PeerConfig): PublicPeerConfig {
 const PREFIX = 'peer:';
 
 /**
- * Peer-ledger directory, persisted in the ledger's metadata store so it
- * survives restarts and is shared by every replica of one database.
+ * Peer-ledger directory, persisted in the tenant's slice of the metadata store
+ * so it survives restarts, is shared by every replica of one database, and is
+ * invisible to every other tenant (ADR 0010).
  * Registering a peer is an explicit trust decision by an operator; pulled
  * events still go through the full write path, including trust-policy
  * evaluation against the key registry.
  */
 export class PeerRegistry {
-  constructor(private readonly adapter: StorageAdapter) {}
+  constructor(private readonly adapter: MetaStore) {}
 
   async register(input: Omit<PeerConfig, 'peerId'>): Promise<PeerConfig> {
     const config: PeerConfig = { peerId: generateId(), ...input };

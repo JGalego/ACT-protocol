@@ -91,7 +91,7 @@ async function runSmokeSequence(): Promise<void> {
   const keyEvent = buildUnsignedEvent({
     eventType: 'genesis',
     actor: { actorId, keyId: keyPair.keyId },
-    tenant: 'integration-smoke',
+    tenant: 'default',
     subject: {
       kind: 'artifact',
       artifact_id: artifactId,

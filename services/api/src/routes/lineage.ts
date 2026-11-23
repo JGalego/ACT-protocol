@@ -1,11 +1,11 @@
 import type { FastifyPluginAsync } from 'fastify';
 import { checkLineageCompleteness } from '@act/verification';
-import type { LedgerContext } from '../ledger-context.js';
 import { notFound } from '../problem.js';
 import { parseIntParam } from './shared.js';
 
-const lineageRoutes: FastifyPluginAsync<{ ctx: LedgerContext }> = async (fastify, { ctx }) => {
+const lineageRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.get('/v1/lineage/:id', async (request) => {
+    const ctx = request.ctx;
     const { id } = request.params as { id: string };
     const { maxDepth } = request.query as { maxDepth?: string };
     if (!(await ctx.ledger.getEvent(id))) throw notFound(`No event found with id ${id}`);
@@ -18,6 +18,7 @@ const lineageRoutes: FastifyPluginAsync<{ ctx: LedgerContext }> = async (fastify
   });
 
   fastify.get('/v1/history/:id', async (request) => {
+    const ctx = request.ctx;
     const { id } = request.params as { id: string };
     const items = await ctx.ledger.listEventsForArtifact(id);
     return { artifactId: id, items };

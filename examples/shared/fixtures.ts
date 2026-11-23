@@ -13,6 +13,13 @@ import { generateKeyPair, signBytes, signEnvelope, type Signer } from '@act/cryp
 import { buildUnsignedEvent } from '@act/sdk';
 import { buildServer } from '@act/api';
 
+/**
+ * The tenant the fixture builders stamp on every event. An event must name the
+ * tenant whose ledger records it (ADR 0010), so an example that authenticates
+ * as another tenant sets this before building events.
+ */
+export const fixtureTenant = { current: 'default' };
+
 export interface Actor {
   actorId: string;
   signer: Signer;
@@ -98,7 +105,7 @@ export function buildGenesisArtifact(params: {
   const event = buildUnsignedEvent({
     eventType: 'genesis',
     actor: { actorId: params.actor.actorId, keyId: params.actor.signer.keyId },
-    tenant: 'example',
+    tenant: fixtureTenant.current,
     subject: {
       kind: 'artifact',
       artifact_id: artifact.artifact_id as string,
@@ -140,7 +147,7 @@ export function buildRevisionArtifact(params: {
   const event = buildUnsignedEvent({
     eventType: 'artifact_revised',
     actor: { actorId: params.actor.actorId, keyId: params.actor.signer.keyId },
-    tenant: 'example',
+    tenant: fixtureTenant.current,
     subject: {
       kind: 'artifact',
       artifact_id: params.artifactId,
@@ -174,7 +181,7 @@ export function buildKeyRegistrationEnvelope(actor: Actor) {
   const event = buildUnsignedEvent({
     eventType: 'genesis',
     actor: { actorId: actor.actorId, keyId: actor.signer.keyId },
-    tenant: 'example',
+    tenant: fixtureTenant.current,
     subject: {
       kind: 'artifact',
       artifact_id: keyArtifact.artifact_id as string,
@@ -200,7 +207,7 @@ export function buildActorRegistrationEnvelope(
   const event = buildUnsignedEvent({
     eventType: 'genesis',
     actor: { actorId: actor.actorId, keyId: actor.signer.keyId },
-    tenant: 'example',
+    tenant: fixtureTenant.current,
     subject: {
       kind: 'artifact',
       artifact_id: actor.actorId,
@@ -260,7 +267,7 @@ export function buildTransformationEnvelope(params: {
   const event = buildUnsignedEvent({
     eventType: 'transformation_recorded',
     actor: { actorId: params.actor.actorId, keyId: params.actor.signer.keyId },
-    tenant: 'example',
+    tenant: fixtureTenant.current,
     subject: { kind: 'transformation', artifact_id: params.subjectArtifactId },
     causalParents: params.causalParents,
     payload: transformation,
@@ -302,7 +309,7 @@ export function buildApprovalRequestEnvelope(params: {
   const event = buildUnsignedEvent({
     eventType: 'approval_requested',
     actor: { actorId: params.actor.actorId, keyId: params.actor.signer.keyId },
-    tenant: 'example',
+    tenant: fixtureTenant.current,
     subject: {
       kind: 'attestation',
       artifact_id: artifact.artifact_id as string,
@@ -353,7 +360,7 @@ export function buildApprovalDecisionEnvelope(params: {
   const event = buildUnsignedEvent({
     eventType: 'approval_decided',
     actor: { actorId: params.actor.actorId, keyId: params.actor.signer.keyId },
-    tenant: 'example',
+    tenant: fixtureTenant.current,
     subject: {
       kind: 'attestation',
       artifact_id: artifact.artifact_id as string,
@@ -394,7 +401,7 @@ export function buildChallengeEnvelope(params: {
   const event = buildUnsignedEvent({
     eventType: 'challenge_raised',
     actor: { actorId: params.actor.actorId, keyId: params.actor.signer.keyId },
-    tenant: 'example',
+    tenant: fixtureTenant.current,
     subject: {
       kind: 'attestation',
       artifact_id: artifact.artifact_id as string,
@@ -452,7 +459,7 @@ export function buildChallengeResolutionEnvelope(params: {
   const event = buildUnsignedEvent({
     eventType: 'challenge_resolved',
     actor: { actorId: params.actor.actorId, keyId: params.actor.signer.keyId },
-    tenant: 'example',
+    tenant: fixtureTenant.current,
     subject: {
       kind: 'attestation',
       artifact_id: artifact.artifact_id as string,
@@ -489,7 +496,7 @@ export function buildVerificationEnvelope(params: {
   const event = buildUnsignedEvent({
     eventType: 'verification_recorded',
     actor: { actorId: params.actor.actorId, keyId: params.actor.signer.keyId },
-    tenant: 'example',
+    tenant: fixtureTenant.current,
     subject: {
       kind: 'attestation',
       artifact_id: artifact.artifact_id as string,
@@ -547,7 +554,7 @@ export function buildPolicyEnvelope(params: {
   const event = buildUnsignedEvent({
     eventType: 'policy_published',
     actor: { actorId: params.actor.actorId, keyId: params.actor.signer.keyId },
-    tenant: 'example',
+    tenant: fixtureTenant.current,
     subject: {
       kind: 'policy',
       artifact_id: artifact.artifact_id as string,

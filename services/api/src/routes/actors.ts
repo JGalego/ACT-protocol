@@ -1,6 +1,5 @@
 import type { FastifyPluginAsync } from 'fastify';
 import { badRequest } from '../problem.js';
-import type { LedgerContext } from '../ledger-context.js';
 import { idempotencyKeyOf, parseSignedEnvelope, submitEnvelope } from './shared.js';
 
 /**
@@ -8,8 +7,9 @@ import { idempotencyKeyOf, parseSignedEnvelope, submitEnvelope } from './shared.
  * POST /v1/keys (that endpoint is this API's trust bootstrap); this keeps
  * exactly one code path responsible for proof-of-possession.
  */
-const actorRoutes: FastifyPluginAsync<{ ctx: LedgerContext }> = async (fastify, { ctx }) => {
+const actorRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.post('/v1/actors', async (request, reply) => {
+    const ctx = request.ctx;
     const envelope = parseSignedEnvelope(request.body);
     const event = envelope.payload as {
       actor: { actor_id: string; key_id: string };

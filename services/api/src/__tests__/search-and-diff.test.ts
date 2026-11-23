@@ -177,7 +177,7 @@ describe('GET /v1/artifacts/:id/diff', () => {
     const genesisEvent = buildUnsignedEvent({
       eventType: 'genesis',
       actor: { actorId: actor.actorId, keyId: actor.signer.keyId },
-      tenant: 'test-tenant',
+      tenant: 'default',
       subject: {
         kind: 'artifact',
         artifact_id: artifactId,
@@ -198,7 +198,7 @@ describe('GET /v1/artifacts/:id/diff', () => {
     const revisionEvent = buildUnsignedEvent({
       eventType: 'artifact_revised',
       actor: { actorId: actor.actorId, keyId: actor.signer.keyId },
-      tenant: 'test-tenant',
+      tenant: 'default',
       subject: {
         kind: 'artifact',
         artifact_id: artifactId,

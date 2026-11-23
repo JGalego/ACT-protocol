@@ -1,12 +1,12 @@
 import type { FastifyPluginAsync } from 'fastify';
-import type { LedgerContext } from '../ledger-context.js';
 import { parseIntParam } from './shared.js';
 
 const DEFAULT_LIMIT = 50;
 const MAX_LIMIT = 500;
 
-const eventRoutes: FastifyPluginAsync<{ ctx: LedgerContext }> = async (fastify, { ctx }) => {
+const eventRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.get('/v1/events', async (request) => {
+    const ctx = request.ctx;
     const { cursor, limit, eventType, subjectKind } = request.query as {
       cursor?: string;
       limit?: string;

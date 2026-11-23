@@ -55,8 +55,9 @@ async function fetchPeer(
  * pin and still goes through the full appendEvent write path. All of it is
  * administrator-only, and no response ever echoes a peer's bearer token.
  */
-const federationRoutes: FastifyPluginAsync<{ ctx: LedgerContext }> = async (fastify, { ctx }) => {
+const federationRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.post('/v1/federation/peers', async (request, reply) => {
+    const ctx = request.ctx;
     assertAdmin(ctx, request);
     const body = (request.body ?? {}) as Record<string, unknown>;
     const { url, label, bearerToken, ledgerId, ledgerKeyId, ledgerPublicKey } = body as {
@@ -94,11 +95,13 @@ const federationRoutes: FastifyPluginAsync<{ ctx: LedgerContext }> = async (fast
   });
 
   fastify.get('/v1/federation/peers', async (request) => {
+    const ctx = request.ctx;
     assertAdmin(ctx, request);
     return { items: (await ctx.peerRegistry.list()).map(toPublicPeer) };
   });
 
   fastify.delete('/v1/federation/peers/:peerId', async (request) => {
+    const ctx = request.ctx;
     assertAdmin(ctx, request);
     const { peerId } = request.params as { peerId: string };
     if (!(await ctx.peerRegistry.remove(peerId))) throw notFound(`No registered peer ${peerId}`);
@@ -106,6 +109,7 @@ const federationRoutes: FastifyPluginAsync<{ ctx: LedgerContext }> = async (fast
   });
 
   fastify.post('/v1/federation/pull', async (request) => {
+    const ctx = request.ctx;
     assertAdmin(ctx, request);
     const { peerId, artifactIds } = request.body as { peerId: string; artifactIds?: string[] };
     const peer = await ctx.peerRegistry.get(peerId);
@@ -135,6 +139,7 @@ const federationRoutes: FastifyPluginAsync<{ ctx: LedgerContext }> = async (fast
   });
 
   fastify.post('/v1/federation/push', async (request) => {
+    const ctx = request.ctx;
     assertAdmin(ctx, request);
     const { peerId, artifactIds } = request.body as { peerId: string; artifactIds?: string[] };
     const peer = await ctx.peerRegistry.get(peerId);

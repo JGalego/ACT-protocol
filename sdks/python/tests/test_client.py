@@ -110,6 +110,13 @@ def test_bearer_token_and_idempotency_key_are_sent_as_headers(server):
     assert body["signatures"][0]["key_id"] == "ed25519:abc"
 
 
+def test_tenant_is_sent_only_when_configured(server):
+    ActClient(server, tenant="acme").health()
+    assert _Handler.request_log[-1][2]["x-act-tenant"] == "acme"
+    ActClient(server).health()
+    assert "x-act-tenant" not in _Handler.request_log[-1][2]
+
+
 def test_get_with_query_params(server):
     client = ActClient(server)
     client.list_events(cursor="42", limit=10)

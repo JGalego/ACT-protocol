@@ -1,5 +1,4 @@
 import type { FastifyPluginAsync } from 'fastify';
-import type { LedgerContext } from '../ledger-context.js';
 import {
   parseSignedEnvelope,
   idempotencyKeyOf,
@@ -7,8 +6,9 @@ import {
   validateArtifactTypePayload,
 } from './shared.js';
 
-const policyRoutes: FastifyPluginAsync<{ ctx: LedgerContext }> = async (fastify, { ctx }) => {
+const policyRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.post('/v1/policies', async (request, reply) => {
+    const ctx = request.ctx;
     const envelope = parseSignedEnvelope(request.body);
     validateArtifactTypePayload(envelope.payload.payload, 'policy');
     const result = await submitEnvelope(ctx, envelope, {

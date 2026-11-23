@@ -1,6 +1,7 @@
 import fp from 'fastify-plugin';
 import type { FastifyPluginAsync } from 'fastify';
-import { unauthorized } from '../problem.js';
+import { badRequest, unauthorized } from '../problem.js';
+import { DEFAULT_TENANT, isValidTenantId } from '../tenancy.js';
 import { verifyOidcBearerToken, type OidcConfig } from '../oidc/jwt-verifier.js';
 
 declare module 'fastify' {
@@ -30,6 +31,17 @@ export interface AuthPluginOptions {
    * somehow set, so tests can build a devMode server without stripping this.
    */
   oidc?: OidcConfig | undefined;
+  /**
+   * When true, a caller whose credentials name no tenant is refused instead of
+   * being placed in the `default` tenant (ADR 0010). Recommended for any
+   * deployment that serves more than one tenant; on by default in production.
+   */
+  requireTenant?: boolean | undefined;
+}
+
+/** Routes reachable without credentials: probes, the schema catalogue and metrics. */
+export function isPublicRoute(url: string): boolean {
+  return url.startsWith('/v1/health') || url === '/v1/schemas' || url === '/v1/metrics';
 }
 
 /**
@@ -44,12 +56,7 @@ const authPlugin: FastifyPluginAsync<AuthPluginOptions> = async (fastify, option
   fastify.decorateRequest('callerActorId', '');
 
   fastify.addHook('onRequest', async (request) => {
-    if (
-      request.url.startsWith('/v1/health') ||
-      request.url === '/v1/schemas' ||
-      request.url === '/v1/metrics'
-    )
-      return;
+    if (isPublicRoute(request.url)) return;
 
     const header = request.headers.authorization;
     if (!header?.startsWith('Bearer ')) {
@@ -60,9 +67,32 @@ const authPlugin: FastifyPluginAsync<AuthPluginOptions> = async (fastify, option
       throw unauthorized('Empty bearer token');
     }
 
+    // The tenant comes from credentials (a verified claim, or the dev header),
+    // never from a request body, and is checked before it can name any storage.
+    const resolveTenant = (claimed: string | undefined, source: string): string => {
+      if (claimed === undefined || claimed === '') {
+        if (options.requireTenant) {
+          throw unauthorized(`This server requires every caller to name a tenant (${source})`);
+        }
+        return DEFAULT_TENANT;
+      }
+      if (!isValidTenantId(claimed)) {
+        throw badRequest(
+          'invalid_tenant',
+          'The tenant id is not valid',
+          'Tenant ids are 1-64 characters: letters, digits, ".", "_" and "-", starting with a letter or digit',
+        );
+      }
+      return claimed;
+    };
+
     if (options.devMode) {
       request.callerActorId = token;
-      request.tenantId = (request.headers['x-act-tenant'] as string | undefined) ?? 'default';
+      const header = request.headers['x-act-tenant'];
+      request.tenantId = resolveTenant(
+        Array.isArray(header) ? header[0] : header,
+        'x-act-tenant header',
+      );
       return;
     }
 
@@ -76,7 +106,7 @@ const authPlugin: FastifyPluginAsync<AuthPluginOptions> = async (fastify, option
         );
       }
       request.callerActorId = verified.actorId;
-      request.tenantId = verified.tenantId;
+      request.tenantId = resolveTenant(verified.tenantId, 'tenant claim');
       return;
     }
 

@@ -71,6 +71,38 @@ describe('production OIDC/JWT bearer-token validation', () => {
     expect(response.statusCode).toBe(200);
   });
 
+  it('keeps a tenant-less token out of every named tenant unless the server requires a tenant', async () => {
+    const strict = await buildServer({
+      devMode: false,
+      nodeEnv: 'test',
+      oidc: { issuer: provider.url, audience: AUDIENCE },
+      ledgerContext: await createLedgerContext(':memory:'),
+      requireTenant: true,
+    });
+    const without = await mintToken(provider, { sub: 'actor-oidc-6' });
+    const withClaim = await mintToken(provider, { sub: 'actor-oidc-6', tenant: 'acme-corp' });
+    const call = (token: string) =>
+      strict.inject({
+        method: 'GET',
+        url: '/v1/events',
+        headers: { authorization: `Bearer ${token}` },
+      });
+    expect((await call(without)).statusCode).toBe(401);
+    expect((await call(withClaim)).statusCode).toBe(200);
+    await strict.close();
+  });
+
+  it('rejects a token whose tenant claim is not a valid tenant id', async () => {
+    const token = await mintToken(provider, { sub: 'actor-oidc-7', tenant: '../other' });
+    const response = await server.inject({
+      method: 'GET',
+      url: '/v1/events',
+      headers: { authorization: `Bearer ${token}` },
+    });
+    expect(response.statusCode).toBe(400);
+    expect(response.json().code).toBe('invalid_tenant');
+  });
+
   it('rejects a token signed for a different audience', async () => {
     const token = await mintToken(provider, { sub: 'actor-oidc-3', aud: 'some-other-api' });
     const response = await server.inject({

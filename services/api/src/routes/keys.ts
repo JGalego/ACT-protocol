@@ -1,7 +1,6 @@
 import type { FastifyPluginAsync } from 'fastify';
 import type { SignedEnvelope } from '@act/crypto';
 import { ApiProblemError, forbidden } from '../problem.js';
-import type { LedgerContext } from '../ledger-context.js';
 import { evaluateKeyEvent } from '../key-registry.js';
 import {
   idempotencyKeyOf,
@@ -24,8 +23,9 @@ import {
  * `open` accepts any proof of possession, `admin` (the production default)
  * restricts registration to administrators.
  */
-const keyRoutes: FastifyPluginAsync<{ ctx: LedgerContext }> = async (fastify, { ctx }) => {
+const keyRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.post('/v1/keys', async (request, reply) => {
+    const ctx = request.ctx;
     const envelope: SignedEnvelope = parseSignedEnvelope(request.body);
     validateArtifactTypePayload(envelope.payload.payload, 'key');
 

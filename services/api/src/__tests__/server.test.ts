@@ -227,7 +227,7 @@ describe('ACT API service', () => {
     const event = buildUnsignedEvent({
       eventType: 'transformation_recorded',
       actor: { actorId: actor.actorId, keyId: actor.signer.keyId },
-      tenant: 'test-tenant',
+      tenant: 'default',
       subject: { kind: 'transformation' },
       causalParents: [
         { event_id: intentA.payloadDigest, relation: 'input' },

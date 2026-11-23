@@ -168,7 +168,7 @@ function buildIntent(w: World, spec: IntentSpec): { envelope: SignedEnvelope; ar
   const event = buildUnsignedEvent({
     eventType: 'genesis',
     actor: { actorId: claimed.actorId, keyId: claimed.signer.keyId },
-    tenant: 't',
+    tenant: 'default',
     subject: {
       kind: 'artifact',
       artifact_id: artifact.artifact_id as string,
@@ -270,7 +270,7 @@ async function actRawEvent(w: World, rand: Rand) {
   const event = buildUnsignedEvent({
     eventType: 'external_import',
     actor: { actorId: w.who[claimActor].actorId, keyId: w.who[claimKey].signer.keyId },
-    tenant: 't',
+    tenant: 'default',
     subject: { kind: 'artifact', artifact_id: generateId() },
     causalParents: [{ event_id: anchor, relation: 'input' }],
     payload: { source: 'model-based test', note: generateId() },
@@ -336,7 +336,7 @@ async function actRevoke(w: World, rand: Rand) {
   const event = buildUnsignedEvent({
     eventType: 'key_revoked',
     actor: { actorId: w.who[builder].actorId, keyId: w.who[builder].signer.keyId },
-    tenant: 't',
+    tenant: 'default',
     subject: {
       kind: 'artifact',
       artifact_id: artifact.artifact_id as string,

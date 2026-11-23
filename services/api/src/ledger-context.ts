@@ -4,6 +4,8 @@ import { generateId } from '@act/core';
 import type { AuthorityPolicyDocument } from '@act/policy';
 import { PeerRegistry } from './peer-registry.js';
 import { KeyRegistry } from './key-registry.js';
+import { ApiProblemError } from './problem.js';
+import { DEFAULT_TENANT, isValidTenantId, scopedMeta, type MetaStore } from './tenancy.js';
 
 export { KeyRegistry } from './key-registry.js';
 
@@ -24,7 +26,11 @@ export interface ServerPolicy {
   authority?: AuthorityConfig | undefined;
 }
 
+/** One tenant's ledger: its own id, signing key, receipt chain, key registry and peers (ADR 0010). */
 export interface LedgerContext {
+  tenantId: string;
+  /** The registry this tenant context came from; resolves other tenants over the same database. */
+  registry: TenantRegistry;
   ledger: Ledger;
   adapter: StorageAdapter;
   keyRegistry: KeyRegistry;
@@ -41,8 +47,12 @@ export interface CreateLedgerContextOptions {
   storage?: 'sqlite' | 'postgres';
   /** Required when storage === 'postgres'; defaults to process.env.ACT_DATABASE_URL. */
   connectionString?: string;
-  /** Base64 Ed25519 seed for the ledger's signing key; defaults to process.env.ACT_LEDGER_PRIVATE_KEY. */
+  /** Base64 Ed25519 seed for the default tenant's ledger signing key; defaults to process.env.ACT_LEDGER_PRIVATE_KEY. */
   ledgerPrivateKey?: string;
+  /** If set, only these tenants may exist; any other is refused. Falls back to ACT_TENANTS (comma-separated). */
+  allowedTenants?: string[];
+  /** Upper bound on tenants held in memory at once. Falls back to ACT_MAX_TENANTS; default 1000. */
+  maxTenants?: number;
 }
 
 interface StoredIdentity {
@@ -63,7 +73,7 @@ const IDENTITY_META_KEY = 'ledger_identity';
  * key out of the database entirely.
  */
 async function loadOrCreateIdentity(
-  adapter: StorageAdapter,
+  adapter: MetaStore,
   suppliedPrivateKey: string | undefined,
 ): Promise<{ ledgerId: string; signer: { keyId: string; publicKey: string; privateKey: string } }> {
   const read = async (): Promise<StoredIdentity | null> => {
@@ -100,37 +110,137 @@ async function loadOrCreateIdentity(
   return { ledgerId: stored.ledgerId, signer: pair };
 }
 
-/** Builds a fully wired ledger context over a migrated storage adapter, with the key registry replayed from the event log. */
+const DEFAULT_MAX_TENANTS = 1000;
+
+/**
+ * Hands out one `LedgerContext` per tenant over a single shared database.
+ * Contexts are created on first use and cached; each rebuilds its own key
+ * registry from its own log, so nothing a tenant did is visible to, or trusted
+ * by, another tenant.
+ */
+export class TenantRegistry {
+  /** Shared by every context; `buildServer` fills it in place once the operator's settings are known. */
+  readonly policy: ServerPolicy = {
+    devMode: false,
+    keyRegistration: 'admin',
+    allowPrivatePeers: false,
+  };
+  private readonly contexts = new Map<string, Promise<LedgerContext>>();
+
+  constructor(
+    readonly adapter: StorageAdapter,
+    private readonly options: {
+      ledgerPrivateKey?: string | undefined;
+      allowedTenants?: readonly string[] | undefined;
+      maxTenants?: number | undefined;
+    } = {},
+  ) {}
+
+  /** Cheap read proving the shared store is reachable (readiness probe). */
+  async ping(): Promise<void> {
+    await this.adapter.getMeta('ping');
+  }
+
+  /** Resolves a tenant's context. Refuses malformed or disallowed ids; cross-tenant access is not expressible. */
+  get(tenantId: string): Promise<LedgerContext> {
+    if (!isValidTenantId(tenantId)) {
+      return Promise.reject(
+        new ApiProblemError(
+          400,
+          'invalid_tenant',
+          'The tenant id is not valid',
+          'Tenant ids are 1-64 characters: letters, digits, ".", "_" and "-", starting with a letter or digit',
+        ),
+      );
+    }
+    const allowed = this.options.allowedTenants;
+    if (allowed && !allowed.includes(tenantId)) {
+      return Promise.reject(
+        new ApiProblemError(
+          403,
+          'tenant_not_allowed',
+          'This tenant is not provisioned on this server',
+        ),
+      );
+    }
+    const cached = this.contexts.get(tenantId);
+    if (cached) return cached;
+    if (this.contexts.size >= (this.options.maxTenants ?? DEFAULT_MAX_TENANTS)) {
+      return Promise.reject(
+        new ApiProblemError(
+          503,
+          'tenant_limit_reached',
+          'This server cannot take on another tenant right now',
+        ),
+      );
+    }
+    const created = this.create(tenantId);
+    this.contexts.set(tenantId, created);
+    // A failed start must not be remembered, or the tenant would be locked out until a restart.
+    created.catch(() => this.contexts.delete(tenantId));
+    return created;
+  }
+
+  private async create(tenantId: string): Promise<LedgerContext> {
+    const meta = scopedMeta(this.adapter, tenantId);
+    // The operator-supplied key is the default tenant's; every other tenant gets its own generated key.
+    const supplied = tenantId === DEFAULT_TENANT ? this.options.ledgerPrivateKey : undefined;
+    const { ledgerId, signer } = await loadOrCreateIdentity(meta, supplied);
+    const keyRegistry = new KeyRegistry();
+    const ledger = new Ledger({
+      ledgerId,
+      adapter: this.adapter,
+      signer,
+      trustPolicy: keyRegistry,
+      tenant: tenantId,
+    });
+    await keyRegistry.catchUp(ledger);
+    return {
+      tenantId,
+      registry: this,
+      ledger,
+      adapter: this.adapter,
+      keyRegistry,
+      peerRegistry: new PeerRegistry(meta),
+      ledgerId,
+      ledgerSigner: signer,
+      policy: this.policy,
+    };
+  }
+}
+
+/** Opens (and migrates) the shared database and returns the registry that serves every tenant from it. */
+export async function createTenantRegistry(
+  dbPath: string,
+  options: CreateLedgerContextOptions = {},
+): Promise<TenantRegistry> {
+  const adapter = options.adapter ?? (await openConfiguredAdapter(dbPath, options));
+  await adapter.migrate();
+  const allowedFromEnv = process.env.ACT_TENANTS?.split(',')
+    .map((t) => t.trim())
+    .filter(Boolean);
+  const maxFromEnv = process.env.ACT_MAX_TENANTS ? Number(process.env.ACT_MAX_TENANTS) : undefined;
+  if (maxFromEnv !== undefined && (!Number.isInteger(maxFromEnv) || maxFromEnv < 1)) {
+    throw new Error('ACT_MAX_TENANTS must be a positive integer');
+  }
+  const allowedTenants = options.allowedTenants ?? allowedFromEnv;
+  for (const tenant of allowedTenants ?? []) {
+    if (!isValidTenantId(tenant))
+      throw new Error(`ACT_TENANTS: ${JSON.stringify(tenant)} is not a valid tenant id`);
+  }
+  return new TenantRegistry(adapter, {
+    ledgerPrivateKey: options.ledgerPrivateKey ?? process.env.ACT_LEDGER_PRIVATE_KEY,
+    allowedTenants,
+    maxTenants: options.maxTenants ?? maxFromEnv,
+  });
+}
+
+/** The default tenant's context over a migrated database (single-tenant callers, tests, the migrate command). */
 export async function createLedgerContext(
   dbPath: string,
   options: CreateLedgerContextOptions = {},
 ): Promise<LedgerContext> {
-  const adapter = options.adapter ?? (await openConfiguredAdapter(dbPath, options));
-  await adapter.migrate();
-
-  const { ledgerId, signer: ledgerSigner } = await loadOrCreateIdentity(
-    adapter,
-    options.ledgerPrivateKey ?? process.env.ACT_LEDGER_PRIVATE_KEY,
-  );
-  const keyRegistry = new KeyRegistry();
-  const peerRegistry = new PeerRegistry(adapter);
-  const ledger = new Ledger({
-    ledgerId,
-    adapter,
-    signer: ledgerSigner,
-    trustPolicy: keyRegistry,
-  });
-  await keyRegistry.catchUp(ledger);
-  return {
-    ledger,
-    adapter,
-    keyRegistry,
-    peerRegistry,
-    ledgerId,
-    ledgerSigner,
-    // Restrictive until `buildServer` applies the operator's configuration.
-    policy: { devMode: false, keyRegistration: 'admin', allowPrivatePeers: false },
-  };
+  return (await createTenantRegistry(dbPath, options)).get(DEFAULT_TENANT);
 }
 
 async function openConfiguredAdapter(

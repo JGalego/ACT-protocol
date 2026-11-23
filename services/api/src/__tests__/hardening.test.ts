@@ -86,7 +86,7 @@ function intentSignedBy(claimed: TestActor, signer: TestActor, statement: string
   const event = buildUnsignedEvent({
     eventType: 'genesis',
     actor: { actorId: claimed.actorId, keyId: claimed.signer.keyId },
-    tenant: 'test-tenant',
+    tenant: 'default',
     subject: {
       kind: 'artifact',
       artifact_id: artifact.artifact_id as string,
@@ -114,7 +114,7 @@ function revisionOf(
   const event = buildUnsignedEvent({
     eventType,
     actor: { actorId: actor.actorId, keyId: actor.signer.keyId },
-    tenant: 'test-tenant',
+    tenant: 'default',
     subject: {
       kind: 'artifact',
       artifact_id: artifactId,
@@ -151,7 +151,7 @@ function keyStatusEvent(
   const event = buildUnsignedEvent({
     eventType,
     actor: { actorId: signer.actorId, keyId: signer.signer.keyId },
-    tenant: 'test-tenant',
+    tenant: 'default',
     subject: {
       kind: 'artifact',
       artifact_id: artifact.artifact_id as string,
@@ -320,7 +320,7 @@ describe('artifact and lineage integrity', () => {
     const event = buildUnsignedEvent({
       eventType: 'genesis',
       actor: { actorId: a.actorId, keyId: a.signer.keyId },
-      tenant: 't',
+      tenant: 'default',
       subject: {
         kind: 'artifact',
         artifact_id: artifact.artifact_id as string,
@@ -364,7 +364,7 @@ describe('artifact and lineage integrity', () => {
     const event = buildUnsignedEvent({
       eventType: 'genesis',
       actor: { actorId: mallory.actorId, keyId: mallory.signer.keyId },
-      tenant: 't',
+      tenant: 'default',
       subject: {
         kind: 'artifact',
         artifact_id: mine.artifactId,
@@ -411,7 +411,7 @@ describe('artifact and lineage integrity', () => {
         buildUnsignedEvent({
           eventType: 'genesis',
           actor: { actorId: a.actorId, keyId: a.signer.keyId },
-          tenant: 't',
+          tenant: 'default',
           subject: {
             kind: 'artifact',
             artifact_id: generateId(),
@@ -576,7 +576,7 @@ describe('approval lifecycle', () => {
     const event = buildUnsignedEvent({
       eventType: 'approval_decided',
       actor: { actorId: requester.actorId, keyId: requester.signer.keyId },
-      tenant: 't',
+      tenant: 'default',
       subject: {
         kind: 'attestation',
         artifact_id: artifact.artifact_id as string,
@@ -664,7 +664,7 @@ describe('effective-intent authority', () => {
         buildUnsignedEvent({
           eventType: 'intent_effective_selected',
           actor: { actorId: who.actorId, keyId: who.signer.keyId },
-          tenant: 't',
+          tenant: 'default',
           subject: {
             kind: 'artifact',
             artifact_id: root.artifactId,

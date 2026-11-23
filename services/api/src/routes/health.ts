@@ -1,7 +1,10 @@
 import type { FastifyPluginAsync } from 'fastify';
-import type { LedgerContext } from '../ledger-context.js';
+import type { TenantRegistry } from '../ledger-context.js';
 
-const healthRoutes: FastifyPluginAsync<{ ctx: LedgerContext }> = async (fastify, { ctx }) => {
+const healthRoutes: FastifyPluginAsync<{ registry: TenantRegistry }> = async (
+  fastify,
+  { registry },
+) => {
   fastify.get('/v1/health/live', async () => ({ status: 'ok' }));
 
   fastify.get('/v1/health/ready', async (_request, reply) => {
@@ -10,7 +13,7 @@ const healthRoutes: FastifyPluginAsync<{ ctx: LedgerContext }> = async (fastify,
       // hardcoded 200, so a Kubernetes readinessProbe (or Compose
       // depends_on healthcheck) genuinely reflects whether this instance
       // can reach its database, not just whether the process is running.
-      await ctx.ledger.listEvents(1, -1);
+      await registry.ping();
       return { status: 'ok' };
     } catch (err) {
       reply.code(503);
@@ -18,14 +21,17 @@ const healthRoutes: FastifyPluginAsync<{ ctx: LedgerContext }> = async (fastify,
     }
   });
 
-  // The ledger's public identity, so an operator can pin it out of band when
+  // The caller's tenant's ledger identity, so an operator can pin it out of band when
   // registering this ledger as a federation peer elsewhere.
-  fastify.get('/v1/ledger', async () => ({
-    ledgerId: ctx.ledgerId,
-    keyId: ctx.ledgerSigner.keyId,
-    publicKey: ctx.ledgerSigner.publicKey,
-    protocolVersion: 'act/1.0',
-  }));
+  fastify.get('/v1/ledger', async (request) => {
+    const ctx = request.ctx;
+    return {
+      ledgerId: ctx.ledgerId,
+      keyId: ctx.ledgerSigner.keyId,
+      publicKey: ctx.ledgerSigner.publicKey,
+      protocolVersion: 'act/1.0',
+    };
+  });
 
   fastify.get('/v1/metrics', async (_request, reply) => {
     const memory = process.memoryUsage();

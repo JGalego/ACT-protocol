@@ -77,7 +77,8 @@ export async function startDevOidcProvider(port = 0): Promise<DevOidcProvider> {
               return;
             }
             const token = await new SignJWT({
-              act_tenant: parsed.tenant ?? 'default',
+              // Omitted when the caller names no tenant, so a server can be tested against tokens without the claim.
+              ...(parsed.tenant === undefined ? {} : { act_tenant: parsed.tenant }),
               ...(parsed.claims ?? {}),
             })
               .setProtectedHeader({ alg: 'RS256', kid })

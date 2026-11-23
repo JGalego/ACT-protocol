@@ -4,12 +4,13 @@ import cors from '@fastify/cors';
 import rateLimit from '@fastify/rate-limit';
 import sensible from '@fastify/sensible';
 import {
-  createLedgerContext,
+  createTenantRegistry,
   type AuthorityConfig,
   type LedgerContext,
   type ServerPolicy,
 } from './ledger-context.js';
 import authPlugin from './plugins/auth.js';
+import tenantPlugin from './plugins/tenant.js';
 import type { OidcConfig } from './oidc/jwt-verifier.js';
 import errorHandlerPlugin from './plugins/error-handler.js';
 import healthRoutes from './routes/health.js';
@@ -33,7 +34,12 @@ export interface BuildServerOptions {
   devMode?: boolean;
   bodyLimitBytes?: number;
   rateLimitMax?: number;
+  /** A ready default-tenant context (tests, embedding); its registry serves every other tenant too. */
   ledgerContext?: LedgerContext;
+  /** Refuse callers whose credentials name no tenant instead of using `default`; falls back to ACT_REQUIRE_TENANT. Default: true in production. */
+  requireTenant?: boolean | undefined;
+  /** Only these tenants may exist; falls back to ACT_TENANTS (comma-separated). */
+  allowedTenants?: string[] | undefined;
   /** Overrides process.env.NODE_ENV for the production fail-closed check; exposed for tests. */
   nodeEnv?: string;
   /** Production OIDC/JWT validation config; falls back to ACT_OIDC_ISSUER/ACT_OIDC_AUDIENCE/ACT_OIDC_JWKS_URI. */
@@ -71,6 +77,17 @@ function resolveKeyRegistration(options: BuildServerOptions, devMode: boolean): 
     throw new Error(`ACT_KEY_REGISTRATION must be 'open' or 'admin', got '${value}'`);
   }
   return devMode ? 'open' : 'admin';
+}
+
+function resolveRequireTenant(options: BuildServerOptions, nodeEnv: string): boolean {
+  if (options.requireTenant !== undefined) return options.requireTenant;
+  const value = process.env.ACT_REQUIRE_TENANT;
+  if (value === 'true') return true;
+  if (value === 'false') return false;
+  if (value !== undefined) {
+    throw new Error(`ACT_REQUIRE_TENANT must be 'true' or 'false', got '${value}'`);
+  }
+  return nodeEnv === 'production';
 }
 
 function resolveOidcConfig(options: BuildServerOptions): OidcConfig | undefined {
@@ -131,11 +148,18 @@ export async function buildServer(options: BuildServerOptions = {}): Promise<Fas
   await fastify.register(cors, { origin: devMode });
   await fastify.register(rateLimit, { max: options.rateLimitMax ?? 200, timeWindow: '1 minute' });
   await fastify.register(errorHandlerPlugin);
-  await fastify.register(authPlugin, { devMode, oidc });
+  await fastify.register(authPlugin, {
+    devMode,
+    oidc,
+    requireTenant: resolveRequireTenant(options, nodeEnv),
+  });
 
-  const ctx =
-    options.ledgerContext ??
-    (await createLedgerContext(options.dbPath ?? process.env.ACT_DB_PATH ?? './data/act.db'));
+  const registry =
+    options.ledgerContext?.registry ??
+    (await createTenantRegistry(options.dbPath ?? process.env.ACT_DB_PATH ?? './data/act.db', {
+      ...(options.allowedTenants ? { allowedTenants: options.allowedTenants } : {}),
+    }));
+  await fastify.register(tenantPlugin, { registry });
 
   const policy: ServerPolicy = {
     devMode,
@@ -145,23 +169,24 @@ export async function buildServer(options: BuildServerOptions = {}): Promise<Fas
       options.allowPrivatePeers ?? (process.env.ACT_ALLOW_PRIVATE_PEERS === 'true' || devMode),
     authority: resolveAuthority(options),
   };
-  ctx.policy = policy;
+  // Shared by reference with every tenant context, present and future.
+  Object.assign(registry.policy, policy);
 
-  await fastify.register(healthRoutes, { ctx });
+  await fastify.register(healthRoutes, { registry });
   await fastify.register(schemaRoutes);
-  await fastify.register(keyRoutes, { ctx });
-  await fastify.register(actorRoutes, { ctx });
-  await fastify.register(intentRoutes, { ctx });
-  await fastify.register(transformationRoutes, { ctx });
-  await fastify.register(artifactRoutes, { ctx });
-  await fastify.register(approvalRoutes, { ctx });
-  await fastify.register(challengeRoutes, { ctx });
-  await fastify.register(verificationRoutes, { ctx });
-  await fastify.register(policyRoutes, { ctx });
-  await fastify.register(lineageRoutes, { ctx });
-  await fastify.register(eventRoutes, { ctx });
-  await fastify.register(bundleRoutes, { ctx });
-  await fastify.register(federationRoutes, { ctx });
+  await fastify.register(keyRoutes);
+  await fastify.register(actorRoutes);
+  await fastify.register(intentRoutes);
+  await fastify.register(transformationRoutes);
+  await fastify.register(artifactRoutes);
+  await fastify.register(approvalRoutes);
+  await fastify.register(challengeRoutes);
+  await fastify.register(verificationRoutes);
+  await fastify.register(policyRoutes);
+  await fastify.register(lineageRoutes);
+  await fastify.register(eventRoutes);
+  await fastify.register(bundleRoutes);
+  await fastify.register(federationRoutes);
 
   return fastify;
 }

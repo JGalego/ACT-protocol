@@ -1,5 +1,4 @@
 import type { FastifyPluginAsync } from 'fastify';
-import type { LedgerContext } from '../ledger-context.js';
 import {
   parseSignedEnvelope,
   idempotencyKeyOf,
@@ -12,8 +11,9 @@ const CHALLENGE_EVENT_TYPES = ['challenge_raised', 'challenge_resolved'];
 const DEFAULT_LIMIT = 50;
 const MAX_LIMIT = 500;
 
-const challengeRoutes: FastifyPluginAsync<{ ctx: LedgerContext }> = async (fastify, { ctx }) => {
+const challengeRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.post('/v1/challenges', async (request, reply) => {
+    const ctx = request.ctx;
     const envelope = parseSignedEnvelope(request.body);
     validateArtifactTypePayload(envelope.payload.payload, 'challenge');
     const result = await submitEnvelope(ctx, envelope, {
@@ -25,6 +25,7 @@ const challengeRoutes: FastifyPluginAsync<{ ctx: LedgerContext }> = async (fasti
   });
 
   fastify.get('/v1/challenges', async (request) => {
+    const ctx = request.ctx;
     const { cursor, limit } = request.query as { cursor?: string; limit?: string };
     const parsedLimit = parseIntParam('limit', limit, {
       fallback: DEFAULT_LIMIT,

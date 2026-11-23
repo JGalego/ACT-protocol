@@ -92,7 +92,7 @@ function buildApprovalDecisionEnvelopeWithFixedPolicy(
   const event = buildUnsignedEvent({
     eventType: 'approval_decided',
     actor: { actorId: actor.actorId, keyId: actor.signer.keyId },
-    tenant: 'test-tenant',
+    tenant: 'default',
     subject: {
       kind: 'attestation',
       artifact_id: artifact.artifact_id as string,
@@ -270,7 +270,7 @@ describe('federation: real peer-to-peer transport between two independently-host
         const event = buildUnsignedEvent({
           eventType: 'artifact_revised',
           actor: { actorId: actor.actorId, keyId: actor.signer.keyId },
-          tenant: 'test-tenant',
+          tenant: 'default',
           subject: {
             kind: 'artifact',
             artifact_id: artifact.artifact_id as string,

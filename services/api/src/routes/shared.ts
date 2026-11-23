@@ -4,6 +4,7 @@ import type { SignedEnvelope } from '@act/crypto';
 import { badRequest, forbidden } from '../problem.js';
 import type { LedgerContext } from '../ledger-context.js';
 import { enforceProtocolSemantics } from '../semantics.js';
+import { isAdministrator } from '../tenancy.js';
 
 export interface SubmitOptions {
   /** Restrict acceptance to these event_type values (e.g. ['genesis'] for POST /v1/intents). */
@@ -96,7 +97,9 @@ export function idempotencyKeyOf(request: FastifyRequest): string | undefined {
 
 export function isAdmin(ctx: LedgerContext, callerActorId: string): boolean {
   const { adminActorIds, devMode } = ctx.policy;
-  return adminActorIds === undefined ? devMode : adminActorIds.includes(callerActorId);
+  return adminActorIds === undefined
+    ? devMode
+    : isAdministrator(adminActorIds, ctx.tenantId, callerActorId);
 }
 
 export function assertAdmin(ctx: LedgerContext, request: FastifyRequest): void {

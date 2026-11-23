@@ -3,6 +3,24 @@ import { generateKeyPair, signBytes, signEnvelope, type Signer } from '@act/cryp
 import { buildUnsignedEvent } from '@act/sdk';
 import type { LedgerContext } from '../ledger-context.js';
 
+/**
+ * The tenant stamped on every event the builders below create. An event must
+ * name the tenant whose ledger records it (ADR 0010); tests that act as a
+ * tenant other than `default` build their envelopes inside `withTenant`.
+ */
+export const testTenant = { current: 'default' };
+
+/** Builds synchronously under `tenant`; every builder here is synchronous, so nothing can interleave. */
+export function withTenant<T>(tenant: string, build: () => T): T {
+  const previous = testTenant.current;
+  testTenant.current = tenant;
+  try {
+    return build();
+  } finally {
+    testTenant.current = previous;
+  }
+}
+
 export interface TestActor {
   actorId: string;
   signer: Signer;
@@ -76,7 +94,7 @@ export function buildKeyRegistrationEnvelope(actor: TestActor) {
   const event = buildUnsignedEvent({
     eventType: 'genesis',
     actor: { actorId: actor.actorId, keyId: actor.signer.keyId },
-    tenant: 'test-tenant',
+    tenant: testTenant.current,
     subject: {
       kind: 'artifact',
       artifact_id: keyArtifact.artifact_id as string,
@@ -98,7 +116,7 @@ export function buildActorRegistrationEnvelope(actor: TestActor, displayName: st
   const event = buildUnsignedEvent({
     eventType: 'genesis',
     actor: { actorId: actor.actorId, keyId: actor.signer.keyId },
-    tenant: 'test-tenant',
+    tenant: testTenant.current,
     subject: {
       kind: 'artifact',
       artifact_id: actor.actorId,
@@ -135,7 +153,7 @@ export function buildApprovalRequestEnvelope(
   const event = buildUnsignedEvent({
     eventType: 'approval_requested',
     actor: { actorId: actor.actorId, keyId: actor.signer.keyId },
-    tenant: 'test-tenant',
+    tenant: testTenant.current,
     subject: {
       kind: 'attestation',
       artifact_id: artifact.artifact_id as string,
@@ -180,7 +198,7 @@ export function buildApprovalDecisionEnvelope(
   const event = buildUnsignedEvent({
     eventType: 'approval_decided',
     actor: { actorId: actor.actorId, keyId: actor.signer.keyId },
-    tenant: 'test-tenant',
+    tenant: testTenant.current,
     subject: {
       kind: 'attestation',
       artifact_id: artifact.artifact_id as string,
@@ -209,7 +227,7 @@ export function buildChallengeEnvelope(actor: TestActor, disputedClaim: string) 
   const event = buildUnsignedEvent({
     eventType: 'challenge_raised',
     actor: { actorId: actor.actorId, keyId: actor.signer.keyId },
-    tenant: 'test-tenant',
+    tenant: testTenant.current,
     subject: {
       kind: 'attestation',
       artifact_id: artifact.artifact_id as string,
@@ -239,7 +257,7 @@ export function buildVerificationEnvelope(actor: TestActor, subjectDigest: strin
   const event = buildUnsignedEvent({
     eventType: 'verification_recorded',
     actor: { actorId: actor.actorId, keyId: actor.signer.keyId },
-    tenant: 'test-tenant',
+    tenant: testTenant.current,
     subject: {
       kind: 'attestation',
       artifact_id: artifact.artifact_id as string,
@@ -274,7 +292,7 @@ export function buildPolicyEnvelope(actor: TestActor, causalParentEventId: strin
   const event = buildUnsignedEvent({
     eventType: 'policy_published',
     actor: { actorId: actor.actorId, keyId: actor.signer.keyId },
-    tenant: 'test-tenant',
+    tenant: testTenant.current,
     subject: {
       kind: 'policy',
       artifact_id: artifact.artifact_id as string,
@@ -296,7 +314,7 @@ export function buildIntentEnvelope(actor: TestActor, statement: string) {
   const event = buildUnsignedEvent({
     eventType: 'genesis',
     actor: { actorId: actor.actorId, keyId: actor.signer.keyId },
-    tenant: 'test-tenant',
+    tenant: testTenant.current,
     subject: {
       kind: 'artifact',
       artifact_id: intentArtifact.artifact_id as string,

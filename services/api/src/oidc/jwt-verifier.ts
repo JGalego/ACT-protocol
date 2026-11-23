@@ -15,13 +15,14 @@ export interface OidcConfig {
   jwksUri?: string | undefined;
   /** Claim carrying the ACT actor id. Defaults to the standard `sub` claim. */
   actorIdClaim?: string | undefined;
-  /** Claim carrying the ACT tenant id. Defaults to `act_tenant`; falls back to `'default'` when absent. */
+  /** Claim carrying the ACT tenant id. Defaults to `act_tenant`. */
   tenantClaim?: string | undefined;
 }
 
 export interface VerifiedCaller {
   actorId: string;
-  tenantId: string;
+  /** Absent when the token carries no tenant claim; the caller decides whether that is acceptable. */
+  tenantId: string | undefined;
 }
 
 interface DiscoveryDocument {
@@ -96,7 +97,7 @@ export async function verifyOidcBearerToken(
   const tenantClaim = config.tenantClaim ?? 'act_tenant';
   const tenantClaimValue = payload[tenantClaim];
   const tenantId =
-    typeof tenantClaimValue === 'string' && tenantClaimValue ? tenantClaimValue : 'default';
+    typeof tenantClaimValue === 'string' && tenantClaimValue ? tenantClaimValue : undefined;
 
   return { actorId, tenantId };
 }

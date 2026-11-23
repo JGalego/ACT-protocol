@@ -12,11 +12,14 @@ import {
   makeListeningServer,
   postEnvelope,
   buildKeyRegistrationEnvelope,
+  fixtureTenant,
   buildActorRegistrationEnvelope,
   type Actor,
 } from '../shared/fixtures.js';
 
 const AUDIENCE = 'act-api';
+const TENANT = 'acme-corp';
+fixtureTenant.current = TENANT;
 
 /** The OIDC subject of the platform administrator who admits new keys (ACT_ADMIN_ACTORS). */
 const ADMIN_SUBJECT = 'platform-admin';
@@ -25,7 +28,7 @@ async function mintTokenFor(provider: DevOidcProvider, sub: string): Promise<str
   const response = await fetch(`${provider.url}/token`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ sub, aud: AUDIENCE, tenant: 'acme-corp' }),
+    body: JSON.stringify({ sub, aud: AUDIENCE, tenant: TENANT }),
   });
   const { access_token } = (await response.json()) as { access_token: string };
   return access_token;

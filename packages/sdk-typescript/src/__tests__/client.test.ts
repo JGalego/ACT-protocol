@@ -48,6 +48,14 @@ describe('ActClient', () => {
     expect(init.headers.authorization).toBe('Bearer tok-123');
   });
 
+  it('names the tenant in x-act-tenant only when one is configured', async () => {
+    const fetchImpl = vi.fn().mockImplementation(async () => jsonResponse(200, {}));
+    await new ActClient({ baseUrl: 'http://example.test', tenant: 'acme', fetchImpl }).health();
+    await new ActClient({ baseUrl: 'http://example.test', fetchImpl }).health();
+    expect(fetchImpl.mock.calls[0]![1].headers['x-act-tenant']).toBe('acme');
+    expect(fetchImpl.mock.calls[1]![1].headers['x-act-tenant']).toBeUndefined();
+  });
+
   it('throws ActApiError with problem details on a 4xx response', async () => {
     const fetchImpl = vi.fn().mockResolvedValue(
       jsonResponse(409, {

@@ -1,5 +1,4 @@
 import type { FastifyPluginAsync } from 'fastify';
-import type { LedgerContext } from '../ledger-context.js';
 import { badRequest, notFound } from '../problem.js';
 import { diffValues } from '../diff.js';
 import {
@@ -17,8 +16,9 @@ import {
  * Requirement, Assumption, Task, Decision, Revision, Evidence, and the
  * rest). The specific artifact_type schema is looked up dynamically.
  */
-const artifactRoutes: FastifyPluginAsync<{ ctx: LedgerContext }> = async (fastify, { ctx }) => {
+const artifactRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.post('/v1/artifacts', async (request, reply) => {
+    const ctx = request.ctx;
     const envelope = parseSignedEnvelope(request.body);
     const artifactPayload = envelope.payload.payload as { artifact_type?: string };
     if (artifactPayload?.artifact_type) {
@@ -49,6 +49,7 @@ const artifactRoutes: FastifyPluginAsync<{ ctx: LedgerContext }> = async (fastif
   });
 
   fastify.get('/v1/artifacts/:id', async (request) => {
+    const ctx = request.ctx;
     const { id } = request.params as { id: string };
     // Current state is computed from lineage, not from write order: two
     // revisions of the same parent are a branch and both stay visible until
@@ -67,12 +68,14 @@ const artifactRoutes: FastifyPluginAsync<{ ctx: LedgerContext }> = async (fastif
   });
 
   fastify.get('/v1/artifacts/:id/versions', async (request) => {
+    const ctx = request.ctx;
     const { id } = request.params as { id: string };
     const events = await ctx.ledger.listEventsForArtifact(id);
     return { items: events };
   });
 
   fastify.get('/v1/artifacts/:id/diff', async (request) => {
+    const ctx = request.ctx;
     const { id } = request.params as { id: string };
     const { from, to } = request.query as { from?: string; to?: string };
     if (!from || !to) {
