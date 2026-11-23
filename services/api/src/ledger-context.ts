@@ -38,6 +38,8 @@ export interface LedgerContext {
   adapter: StorageAdapter;
   keyRegistry: KeyRegistry;
   roleRegistry: RoleRegistry;
+  /** This tenant's slice of the shared metadata store (peers, witnesses, checkpoints). */
+  meta: MetaStore;
   peerRegistry: PeerRegistry;
   ledgerId: string;
   ledgerSigner: { keyId: string; publicKey: string; privateKey: string };
@@ -208,6 +210,7 @@ export class TenantRegistry {
       adapter: this.adapter,
       keyRegistry,
       roleRegistry,
+      meta,
       peerRegistry: new PeerRegistry(meta),
       ledgerId,
       ledgerSigner: signer,

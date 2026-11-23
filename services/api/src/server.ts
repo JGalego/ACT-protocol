@@ -18,6 +18,7 @@ import keyRoutes from './routes/keys.js';
 import actorRoutes from './routes/actors.js';
 import intentRoutes from './routes/intents.js';
 import assignmentRoutes from './routes/assignments.js';
+import checkpointRoutes from './routes/checkpoints.js';
 import transformationRoutes from './routes/transformations.js';
 import artifactRoutes from './routes/artifacts.js';
 import approvalRoutes from './routes/approvals.js';
@@ -189,6 +190,7 @@ export async function buildServer(options: BuildServerOptions = {}): Promise<Fas
   await fastify.register(actorRoutes);
   await fastify.register(intentRoutes);
   await fastify.register(assignmentRoutes);
+  await fastify.register(checkpointRoutes);
   await fastify.register(transformationRoutes);
   await fastify.register(artifactRoutes);
   await fastify.register(approvalRoutes);
