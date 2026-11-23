@@ -19,6 +19,7 @@ The models now state the adversary explicitly, and cover what actually failed:
 | Approval-lifecycle safety: authorization exactly when spec section 8.3 says | `ApprovalAuthorization` |
 | Effective-intent transition safety, including who may select | `IntentAuthority` |
 | Federation: no forged imports, accurate partial-history boundaries | `Federation` |
+| Tenant isolation: no cross-tenant read, oracle, trust, sequence or administrator leak | `TenantIsolation` |
 | Acyclic lineage (discipline of the cycle check) and the single-record state machines | `AcyclicLineage`, `ApprovalLifecycle`, `KeyLifecycle`, ... |
 
 ## Why Unit Tests Are Not a Substitute
