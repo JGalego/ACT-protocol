@@ -73,10 +73,13 @@ keyCmd
   .action((opts) => run(() => actionKeyList(process.cwd()), opts.json));
 keyCmd
   .command('trust <keyId> <publicKey>')
-  .description('Trust an externally-provided public key')
+  .description(
+    'Trust an externally-provided public key (keyId must be its fingerprint). Without --owner the key can verify bundles but cannot author events.',
+  )
+  .option('--owner <actorId>', 'the actor this key belongs to; required for it to author events')
   .option('--json', 'output JSON')
   .action((keyId, publicKey, opts) =>
-    run(() => actionKeyTrust(process.cwd(), keyId, publicKey), opts.json),
+    run(() => actionKeyTrust(process.cwd(), keyId, publicKey, opts.owner), opts.json),
   );
 
 const intentCmd = program.command('intent').description('Intent commands');

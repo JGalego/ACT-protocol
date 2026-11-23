@@ -1,6 +1,14 @@
 import { copyFileSync, existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { canonicalize, digestBytes, generateId, SCHEMA_IDS, validateAgainst } from '@act/core';
-import { signBytes, signEnvelope, verifyEnvelope } from '@act/crypto';
+import { signBytes, signEnvelope, type SignedEnvelope } from '@act/crypto';
+import {
+  computeKnownGaps,
+  gapsByReferencingEvent,
+  parseSelfRegisteredKey,
+  sourceReceiptProblem,
+  verifyBundleIntegrity,
+  type LedgerReceipt,
+} from '@act/ledger';
 import { verifyEventIntegrity, verifyReceiptChain } from '@act/verification';
 import { buildUnsignedEvent } from '@act/sdk';
 import { initWorkspace, loadWorkspace, trustKey, type Workspace } from './workspace.js';
@@ -114,9 +122,14 @@ export function actionKeyList(cwd: string): ActionResult {
   return { ok: true, data: workspacePublicKeys(workspace) };
 }
 
-export function actionKeyTrust(cwd: string, keyId: string, publicKey: string): ActionResult {
+export function actionKeyTrust(
+  cwd: string,
+  keyId: string,
+  publicKey: string,
+  ownerActorId?: string,
+): ActionResult {
   const workspace = loadWorkspace(cwd);
-  trustKey(workspace, keyId, publicKey);
+  trustKey(workspace, keyId, publicKey, ownerActorId);
   return { ok: true, data: { keyId } };
 }
 
@@ -210,10 +223,16 @@ export async function actionExport(
 ): Promise<ActionResult> {
   const workspace = loadWorkspace(cwd);
   const ledger = await openWorkspaceLedger(workspace);
-  const events =
-    artifactIds && artifactIds.length > 0
-      ? (await Promise.all(artifactIds.map((id) => ledger.listEventsForArtifact(id)))).flat()
-      : await ledger.listEvents(1_000_000);
+  const filtered = artifactIds !== undefined && artifactIds.length > 0;
+  const events = filtered
+    ? [
+        ...new Map(
+          (await Promise.all(artifactIds.map((id) => ledger.listEventsForArtifact(id))))
+            .flat()
+            .map((e) => [e.eventId, e]),
+        ).values(),
+      ].sort((a, b) => a.sequence - b.sequence)
+    : await ledger.listEvents(1_000_000);
 
   const bundleEvents = await Promise.all(
     events.map(async (e) => ({
@@ -221,11 +240,25 @@ export async function actionExport(
       source_receipt: await ledger.getReceipt(e.sequence),
     })),
   );
+  // Completeness is computed, not asserted: `complete` only when no included
+  // event names a parent the bundle leaves out.
+  const knownGaps = computeKnownGaps(
+    events.map((e) => ({
+      eventId: e.eventId,
+      parentEventIds: (
+        (e.envelope.payload as { causal_parents?: { event_id: string }[] }).causal_parents ?? []
+      ).map((p) => p.event_id),
+    })),
+  );
   const bundleBody = {
     source_ledger_id: workspace.config.ledgerId,
     exported_at: new Date().toISOString(),
     events: bundleEvents,
-    completeness: { scope: 'complete' as const, known_gaps: [] as unknown[] },
+    completeness: {
+      scope: filtered || knownGaps.length > 0 ? ('partial' as const) : ('complete' as const),
+      ...(filtered ? { description: 'Export restricted to the requested artifact ids' } : {}),
+      known_gaps: knownGaps,
+    },
   };
   const bundleId = digestBytes(canonicalize(bundleBody));
   const signature = signBytes(
@@ -243,6 +276,15 @@ export async function actionExport(
   return { ok: true, data: { outFile, eventCount: events.length } };
 }
 
+/**
+ * Imports a bundle (spec/federation.md section 3). The bundle must be signed by
+ * a key this workspace already trusts (`act key trust`), and its id must match
+ * its body; otherwise nothing in it is read. Each event's source receipt is then
+ * checked against that same key, a missing parent is tolerated only where the
+ * bundle declares the gap, and anything that fails is quarantined with a reason.
+ * A self-signed Key event inside a verified bundle may add a new key (with its
+ * owner), but can never replace a key already trusted.
+ */
 export async function actionImport(cwd: string, inFile: string): Promise<ActionResult> {
   const workspace = loadWorkspace(cwd);
   const ledger = await openWorkspaceLedger(workspace);
@@ -258,30 +300,54 @@ export async function actionImport(cwd: string, inFile: string): Promise<ActionR
     };
   }
 
+  const signerKeyId: string = bundle.signature.key_id;
+  const signerPublicKey = workspacePublicKeys(workspace)[signerKeyId];
+  if (!signerPublicKey) {
+    return {
+      ok: false,
+      data: {
+        error: `Bundle is signed by key ${signerKeyId}, which this workspace does not trust. Verify it out of band, then run: act key trust ${signerKeyId} <publicKey>`,
+      },
+    };
+  }
+  const check = verifyBundleIntegrity(bundle, { keyId: signerKeyId, publicKey: signerPublicKey });
+  if (!check.ok) return { ok: false, data: { error: check.message, code: check.code } };
+
+  const gaps = gapsByReferencingEvent(bundle.completeness.known_gaps);
   let accepted = 0;
   let duplicate = 0;
   const quarantined: string[] = [];
-  for (const item of bundle.events as { signed_envelope: any }[]) {
+  let previousReceipt: LedgerReceipt | null = null;
+  for (const item of bundle.events as {
+    signed_envelope: SignedEnvelope;
+    source_receipt: LedgerReceipt;
+  }[]) {
     try {
       const envelope = item.signed_envelope;
-      const keyPayload = envelope.payload?.payload;
-      if (keyPayload?.artifact_type === 'Key' && keyPayload.data?.public_key) {
-        const check = verifyEnvelope(envelope, {
-          [keyPayload.data.key_id]: keyPayload.data.public_key,
-        });
-        if (
-          check.digestValid &&
-          check.signatures.some((s) => s.key_id === keyPayload.data.key_id && s.valid)
-        ) {
-          trustKey(workspace, keyPayload.data.key_id, keyPayload.data.public_key);
-        }
+      const problem = sourceReceiptProblem(item.source_receipt, previousReceipt, envelope, {
+        ledgerId: bundle.source_ledger_id,
+        keyId: signerKeyId,
+        publicKey: signerPublicKey,
+      });
+      if (problem) throw new Error(problem);
+
+      const selfRegistered = parseSelfRegisteredKey(envelope);
+      if (selfRegistered) {
+        trustKey(
+          workspace,
+          selfRegistered.keyId,
+          selfRegistered.publicKey,
+          selfRegistered.ownerActorId,
+        );
       }
       const result = await ledger.appendEvent(envelope, {
         publicKeys: workspacePublicKeys(workspace),
-        allowPartialImport: true,
+        permittedMissingParentIds: gaps.get(envelope.payloadDigest) ?? [],
+        sourceReceipt: item.source_receipt,
       });
       if (result.duplicate) duplicate++;
       else accepted++;
+      previousReceipt = item.source_receipt;
     } catch (err) {
       await ledger.quarantine(
         err instanceof Error ? err.message : 'unknown import failure',

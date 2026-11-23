@@ -1,5 +1,5 @@
 import { Ledger, SqliteAdapter, type TrustPolicy } from '@act/ledger';
-import { loadTrustedKeys, type Workspace } from './workspace.js';
+import { loadKeyOwners, loadTrustedKeys, type Workspace } from './workspace.js';
 
 export async function openWorkspaceLedger(workspace: Workspace): Promise<Ledger> {
   const adapter = SqliteAdapter.open(workspace.dbPath);
@@ -8,8 +8,12 @@ export async function openWorkspaceLedger(workspace: Workspace): Promise<Ledger>
   // once at construction) so that a key trusted mid-import -- e.g. via a Key
   // artifact event's own proof-of-possession bootstrap -- is honored by the
   // very next event in the same import batch.
+  // An event is trusted only if its key is trusted AND that key belongs to the
+  // actor the event names; otherwise any trusted key could author events as anyone.
   const trustPolicy: TrustPolicy = {
-    isTrusted: (_actorId: string, keyId: string) => keyId in loadTrustedKeys(workspace),
+    isTrusted: (actorId: string, keyId: string) =>
+      keyId in loadTrustedKeys(workspace) && loadKeyOwners(workspace)[keyId] === actorId,
+    isKeyTrusted: (keyId: string) => keyId in loadTrustedKeys(workspace),
   };
   return new Ledger({
     ledgerId: workspace.config.ledgerId,

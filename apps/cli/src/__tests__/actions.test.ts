@@ -1,10 +1,11 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { canonicalize, digestBytes, generateId } from '@act/core';
 import { generateKeyPair, signBytes, signEnvelope } from '@act/crypto';
 import { buildUnsignedEvent } from '@act/sdk';
+import { GENESIS_RECEIPT_DIGEST, issueReceipt } from '@act/ledger';
 import {
   actionBackup,
   actionDoctor,
@@ -97,9 +98,31 @@ describe('actionKeyList / actionKeyTrust', () => {
 
   it('adds a trusted key', () => {
     actionInit(cwd);
-    actionKeyTrust(cwd, 'ed25519:' + 'a'.repeat(64), 'fakepublickey');
+    const other = generateKeyPair();
+    actionKeyTrust(cwd, other.keyId, other.publicKey);
     const keys = actionKeyList(cwd).data as Record<string, string>;
-    expect(keys['ed25519:' + 'a'.repeat(64)]).toBe('fakepublickey');
+    expect(keys[other.keyId]).toBe(other.publicKey);
+  });
+
+  it('refuses a key id that is not the fingerprint of its public key', () => {
+    actionInit(cwd);
+    const other = generateKeyPair();
+    expect(() => actionKeyTrust(cwd, 'ed25519:' + 'a'.repeat(64), other.publicKey)).toThrow(
+      /fingerprint/,
+    );
+  });
+
+  it('never silently replaces the public key or owner of an already-trusted key', () => {
+    const init = actionInit(cwd);
+    const { keyId, publicKey, actorId } = init.data as {
+      keyId: string;
+      publicKey: string;
+      actorId: string;
+    };
+    // Same key, same owner: idempotent.
+    actionKeyTrust(cwd, keyId, publicKey, actorId);
+    // A different owner for the same key is a conflict, not an update.
+    expect(() => actionKeyTrust(cwd, keyId, publicKey, generateId())).toThrow(/different actor/);
   });
 });
 
@@ -149,7 +172,11 @@ describe('actionLineage / actionHistory', () => {
 describe('actionExport / actionImport', () => {
   it('exports a bundle and imports it into a fresh workspace that trusts the source key', async () => {
     const init = actionInit(cwd);
-    const { keyId, publicKey } = init.data as { keyId: string; publicKey: string };
+    const { keyId, publicKey, actorId } = init.data as {
+      keyId: string;
+      publicKey: string;
+      actorId: string;
+    };
     await actionIntentCreate(cwd, 'Federated intent', 'test');
     const bundleFile = path.join(cwd, 'bundle.json');
     const exportResult = await actionExport(cwd, bundleFile);
@@ -162,7 +189,7 @@ describe('actionExport / actionImport', () => {
       // A fresh workspace only trusts its own key by default; importing
       // events from another workspace requires explicitly trusting its
       // key first (act key trust), mirroring real cross-workspace federation.
-      actionKeyTrust(secondCwd, keyId, publicKey);
+      actionKeyTrust(secondCwd, keyId, publicKey, actorId);
       const importResult = await actionImport(secondCwd, bundleFile);
       expect(importResult.ok).toBe(true);
       expect((importResult.data as { accepted: number }).accepted).toBe(1);
@@ -171,7 +198,7 @@ describe('actionExport / actionImport', () => {
     }
   });
 
-  it('quarantines an imported event whose signing key is not trusted', async () => {
+  it('refuses a bundle signed by a key the workspace does not trust', async () => {
     actionInit(cwd);
     await actionIntentCreate(cwd, 'Untrusted-origin intent', 'test');
     const bundleFile = path.join(cwd, 'bundle.json');
@@ -181,9 +208,55 @@ describe('actionExport / actionImport', () => {
     try {
       actionInit(secondCwd);
       const importResult = await actionImport(secondCwd, bundleFile);
+      expect(importResult.ok).toBe(false);
+      expect((importResult.data as { error: string }).error).toMatch(/does not trust/);
+    } finally {
+      rmSync(secondCwd, { recursive: true, force: true });
+    }
+  });
+
+  it('quarantines events from a key that may verify bundles but has no owner to author as', async () => {
+    const init = actionInit(cwd);
+    const { keyId, publicKey } = init.data as { keyId: string; publicKey: string };
+    await actionIntentCreate(cwd, 'Authored by an actor the importer does not know', 'test');
+    const bundleFile = path.join(cwd, 'bundle.json');
+    await actionExport(cwd, bundleFile);
+
+    const secondCwd = mkdtempSync(path.join(os.tmpdir(), 'act-cli-test-4-'));
+    try {
+      actionInit(secondCwd);
+      actionKeyTrust(secondCwd, keyId, publicKey); // no --owner
+      const importResult = await actionImport(secondCwd, bundleFile);
       expect(importResult.ok).toBe(true);
-      expect((importResult.data as { accepted: number; quarantined: string[] }).accepted).toBe(0);
-      expect((importResult.data as { quarantined: string[] }).quarantined.length).toBe(1);
+      const data = importResult.data as { accepted: number; quarantined: string[] };
+      expect(data.accepted).toBe(0);
+      expect(data.quarantined).toHaveLength(1);
+    } finally {
+      rmSync(secondCwd, { recursive: true, force: true });
+    }
+  });
+
+  it('rejects a bundle whose id or contents were tampered with after signing', async () => {
+    const init = actionInit(cwd);
+    const { keyId, publicKey, actorId } = init.data as {
+      keyId: string;
+      publicKey: string;
+      actorId: string;
+    };
+    await actionIntentCreate(cwd, 'Original', 'test');
+    const bundleFile = path.join(cwd, 'bundle.json');
+    await actionExport(cwd, bundleFile);
+    const bundle = JSON.parse(readFileSync(bundleFile, 'utf8'));
+    bundle.exported_at = '2031-01-01T00:00:00Z';
+    writeFileSync(bundleFile, JSON.stringify(bundle));
+
+    const secondCwd = mkdtempSync(path.join(os.tmpdir(), 'act-cli-test-5-'));
+    try {
+      actionInit(secondCwd);
+      actionKeyTrust(secondCwd, keyId, publicKey, actorId);
+      const importResult = await actionImport(secondCwd, bundleFile);
+      expect(importResult.ok).toBe(false);
+      expect((importResult.data as { code: string }).code).toBe('bundle_digest_mismatch');
     } finally {
       rmSync(secondCwd, { recursive: true, force: true });
     }
@@ -214,6 +287,8 @@ describe('actionExport / actionImport', () => {
     ]);
     expect(result.ok).toBe(true);
     expect((result.data as { eventCount: number }).eventCount).toBe(1);
+    const bundle = JSON.parse(readFileSync(outFile, 'utf8'));
+    expect(bundle.completeness.scope).toBe('partial');
   });
 
   it('bootstraps trust from a Key artifact event during import', async () => {
@@ -282,29 +357,43 @@ describe('actionExport / actionImport', () => {
     });
     const envelope = signEnvelope(event, [signer]);
 
+    // The exporting ledger signs the bundle and its receipts with a ledger key
+    // this workspace has been told to trust.
+    const ledgerKey = generateKeyPair();
+    const ledgerId = generateId();
+    actionKeyTrust(cwd, ledgerKey.keyId, ledgerKey.publicKey);
+    const receipt = issueReceipt(
+      {
+        ledger_id: ledgerId,
+        sequence: 0,
+        event_id: envelope.payloadDigest,
+        accepted_at: '2026-07-16T00:00:00Z',
+        previous_receipt_digest: GENESIS_RECEIPT_DIGEST,
+      },
+      ledgerKey,
+    );
+    const bundleBody = {
+      source_ledger_id: ledgerId,
+      exported_at: '2026-07-16T00:00:00Z',
+      events: [{ signed_envelope: envelope, source_receipt: receipt }],
+      completeness: { scope: 'complete', known_gaps: [] },
+    };
+    const bundleId = digestBytes(canonicalize(bundleBody));
     const bundleFile = path.join(cwd, 'key-bundle.json');
     writeFileSync(
       bundleFile,
       JSON.stringify({
-        bundle_id: `sha-256:${'7'.repeat(64)}`,
-        source_ledger_id: remoteActorId,
-        exported_at: '2026-07-16T00:00:00Z',
-        events: [
-          {
-            signed_envelope: envelope,
-            source_receipt: {
-              ledger_id: remoteActorId,
-              sequence: 0,
-              event_id: envelope.payloadDigest,
-              accepted_at: '2026-07-16T00:00:00Z',
-              previous_receipt_digest: `sha-256:${'0'.repeat(64)}`,
-              receipt_digest: `sha-256:${'1'.repeat(64)}`,
-              signature: { key_id: signer.keyId, algorithm: 'ed25519', signature: 'ZmFrZQ==' },
-            },
-          },
-        ],
-        completeness: { scope: 'complete', known_gaps: [] },
-        signature: { key_id: signer.keyId, algorithm: 'ed25519', signature: 'ZmFrZQ==' },
+        bundle_id: bundleId,
+        ...bundleBody,
+        signature: {
+          key_id: ledgerKey.keyId,
+          algorithm: 'ed25519',
+          signature: signBytes(
+            ledgerKey.privateKey,
+            ledgerKey.publicKey,
+            new TextEncoder().encode(bundleId),
+          ),
+        },
       }),
     );
 

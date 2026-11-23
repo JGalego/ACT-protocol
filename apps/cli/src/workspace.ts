@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { generateId } from '@act/core';
-import { generateKeyPair, type KeyPair } from '@act/crypto';
+import { generateKeyPair, keyIdMatchesPublicKey, type KeyPair } from '@act/crypto';
 
 export interface WorkspaceConfig {
   ledgerId: string;
@@ -17,6 +17,7 @@ export interface Workspace {
   configPath: string;
   keyPath: string;
   trustedKeysPath: string;
+  keyOwnersPath: string;
   config: WorkspaceConfig;
   privateKey: string;
 }
@@ -31,6 +32,7 @@ export function workspacePaths(cwd: string) {
     configPath: path.join(dir, 'config.json'),
     keyPath: path.join(dir, 'identity.key.json'),
     trustedKeysPath: path.join(dir, 'trusted-keys.json'),
+    keyOwnersPath: path.join(dir, 'key-owners.json'),
   };
 }
 
@@ -73,6 +75,8 @@ export function initWorkspace(cwd: string): Workspace {
     JSON.stringify({ [config.keyId]: config.publicKey }, null, 2),
   );
 
+  writeFileSync(paths.keyOwnersPath, JSON.stringify({ [config.keyId]: config.actorId }, null, 2));
+
   return { ...paths, config, privateKey: keyPair.privateKey };
 }
 
@@ -91,8 +95,40 @@ export function loadTrustedKeys(workspace: Workspace): Record<string, string> {
   return JSON.parse(readFileSync(workspace.trustedKeysPath, 'utf8')) as Record<string, string>;
 }
 
-export function trustKey(workspace: Workspace, keyId: string, publicKey: string): void {
+/** key_id -> the actor that owns it. A trusted key with no recorded owner can verify bundles but cannot author events. */
+export function loadKeyOwners(workspace: Workspace): Record<string, string> {
+  if (!existsSync(workspace.keyOwnersPath)) return {};
+  return JSON.parse(readFileSync(workspace.keyOwnersPath, 'utf8')) as Record<string, string>;
+}
+
+/**
+ * Trusts a public key. The key id must be the fingerprint of the public key,
+ * and trust is never silently replaced: re-trusting a key id with a different
+ * public key (or a different owner) is an error, not an update.
+ */
+export function trustKey(
+  workspace: Workspace,
+  keyId: string,
+  publicKey: string,
+  ownerActorId?: string,
+): void {
+  if (!keyIdMatchesPublicKey(keyId, publicKey)) {
+    throw new Error(
+      `key id ${keyId} is not the fingerprint of the given public key (expected ed25519:<sha-256 of the raw key>)`,
+    );
+  }
   const trusted = loadTrustedKeys(workspace);
+  if (trusted[keyId] !== undefined && trusted[keyId] !== publicKey) {
+    throw new Error(`key ${keyId} is already trusted with a different public key`);
+  }
+  const owners = loadKeyOwners(workspace);
+  if (ownerActorId !== undefined && owners[keyId] !== undefined && owners[keyId] !== ownerActorId) {
+    throw new Error(`key ${keyId} is already owned by a different actor`);
+  }
   trusted[keyId] = publicKey;
   writeFileSync(workspace.trustedKeysPath, JSON.stringify(trusted, null, 2));
+  if (ownerActorId !== undefined) {
+    owners[keyId] = ownerActorId;
+    writeFileSync(workspace.keyOwnersPath, JSON.stringify(owners, null, 2));
+  }
 }
