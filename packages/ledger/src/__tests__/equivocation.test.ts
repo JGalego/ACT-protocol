@@ -169,3 +169,31 @@ describe('detectEquivocation', () => {
     expect(detectEquivocation(events)).toEqual([]);
   });
 });
+
+describe('detectEquivocation robustness', () => {
+  it('skips a decision-typed event with a malformed body instead of aborting the scan', () => {
+    const good = (id: string, decision: string) =>
+      decisionEvent({
+        eventId: id,
+        keyId: 'k',
+        artifactId: 'a',
+        versionId: 'v',
+        policyId: 'p',
+        policyVersion: '1',
+        decision,
+      });
+    const malformed = {
+      ...good('bad', 'approved'),
+      envelope: {
+        payload: { actor: { actor_id: 'x', key_id: 'k' }, payload: { not: 'a decision' } },
+      },
+    } as unknown as StoredEvent;
+    const findings = detectEquivocation([
+      good('e1', 'approved'),
+      malformed,
+      good('e2', 'rejected'),
+    ]);
+    expect(findings).toHaveLength(1);
+    expect(findings[0]!.conflictingEventIds).toEqual(['e1', 'e2']);
+  });
+});

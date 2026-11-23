@@ -1,14 +1,19 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { generateId } from '@act/core';
-import { generateKeyPair } from '@act/crypto';
+import { generateKeyPair, signEnvelope } from '@act/crypto';
 import { Ledger } from '../../ledger.js';
 import type { StorageAdapter } from '../../storage-adapter.js';
 import { allowlistTrustPolicy } from '../../types.js';
 import {
+  ActorKeyNotSignerError,
+  ArtifactExistsError,
   CycleDetectedError,
   DigestMismatchError,
+  DuplicateParentError,
+  IdempotencyConflictError,
   InvalidSignatureError,
   MissingParentError,
+  MissingSignatureError,
   SchemaValidationError,
   UntrustedActorError,
 } from '../../errors.js';
@@ -125,36 +130,374 @@ export function registerLedgerSuite(
       expect(second.receipt.receipt_digest).toBe(first.receipt.receipt_digest);
     });
 
-    it('is idempotent via an explicit idempotency key, independent of event content', async () => {
+    it('treats a re-signed retry under the same idempotency key as a replay', async () => {
       const { ledger } = await setup([actor]);
       const key = `idem-${generateId()}`;
-      const envelope1 = signedEnvelope(
-        buildEvent({
+      const artifactId = generateId();
+      const build = (occurredAt: string) =>
+        signedEnvelope(
+          buildEvent({
+            actor,
+            eventType: 'genesis',
+            subject: { kind: 'artifact', artifact_id: artifactId },
+            occurredAt,
+          }),
           actor,
-          eventType: 'genesis',
-          subject: { kind: 'artifact', artifact_id: generateId() },
-        }),
-        actor,
-      );
-      const first = await ledger.appendEvent(envelope1, {
+        );
+      const first = await ledger.appendEvent(build('2026-07-16T00:00:00Z'), {
         publicKeys: publicKeysFor(actor),
         idempotencyKey: key,
       });
-      const envelope2 = signedEnvelope(
-        buildEvent({
-          actor,
-          eventType: 'genesis',
-          subject: { kind: 'artifact', artifact_id: generateId() },
-          occurredAt: '2026-07-17T00:00:00Z',
-        }),
-        actor,
-      );
-      const second = await ledger.appendEvent(envelope2, {
+      const second = await ledger.appendEvent(build('2026-07-17T00:00:00Z'), {
         publicKeys: publicKeysFor(actor),
         idempotencyKey: key,
       });
       expect(second.duplicate).toBe(true);
       expect(second.event.eventId).toBe(first.event.eventId);
+    });
+
+    it('rejects an idempotency key reused for a substantively different event', async () => {
+      const { ledger } = await setup([actor]);
+      const key = `idem-${generateId()}`;
+      const build = () =>
+        signedEnvelope(
+          buildEvent({
+            actor,
+            eventType: 'genesis',
+            subject: { kind: 'artifact', artifact_id: generateId() },
+          }),
+          actor,
+        );
+      await ledger.appendEvent(build(), { publicKeys: publicKeysFor(actor), idempotencyKey: key });
+      const different = build();
+      await expect(
+        ledger.appendEvent(different, { publicKeys: publicKeysFor(actor), idempotencyKey: key }),
+      ).rejects.toBeInstanceOf(IdempotencyConflictError);
+      expect(await ledger.getEvent(different.payloadDigest)).toBeNull();
+    });
+
+    it('rejects an event whose claimed actor key is not among its signers (impersonation)', async () => {
+      const mallory = makeActor();
+      const { ledger } = await setup([actor, mallory]);
+      // Event names `actor` as its author but is signed only by `mallory`.
+      const forged = signedEnvelope(
+        buildEvent({
+          actor,
+          eventType: 'genesis',
+          subject: { kind: 'artifact', artifact_id: generateId() },
+        }),
+        mallory,
+      );
+      await expect(
+        ledger.appendEvent(forged, { publicKeys: publicKeysFor(actor, mallory) }),
+      ).rejects.toBeInstanceOf(ActorKeyNotSignerError);
+    });
+
+    it('rejects an event with no signatures at all', async () => {
+      const { ledger } = await setup([actor]);
+      const unsigned = {
+        ...signedEnvelope(
+          buildEvent({
+            actor,
+            eventType: 'genesis',
+            subject: { kind: 'artifact', artifact_id: generateId() },
+          }),
+          actor,
+        ),
+        signatures: [],
+      };
+      await expect(
+        ledger.appendEvent(unsigned, { publicKeys: publicKeysFor(actor) }),
+      ).rejects.toBeInstanceOf(MissingSignatureError);
+    });
+
+    it('rejects an event co-signed by an untrusted key', async () => {
+      const stranger = makeActor();
+      const { ledger } = await setup([actor]);
+      const envelope = signEnvelope(
+        buildEvent({
+          actor,
+          eventType: 'genesis',
+          subject: { kind: 'artifact', artifact_id: generateId() },
+        }),
+        [actor.signer, stranger.signer],
+      );
+      await expect(
+        ledger.appendEvent(envelope, { publicKeys: publicKeysFor(actor, stranger) }),
+      ).rejects.toBeInstanceOf(UntrustedActorError);
+    });
+
+    it('rejects a genesis by a different actor for an artifact id that already exists', async () => {
+      const mallory = makeActor();
+      const { ledger } = await setup([actor, mallory]);
+      const artifactId = generateId();
+      const genesis = (who: typeof actor, versionId: string) =>
+        signedEnvelope(
+          buildEvent({
+            actor: who,
+            eventType: 'genesis',
+            subject: { kind: 'artifact', artifact_id: artifactId, version_id: versionId },
+          }),
+          who,
+        );
+      await ledger.appendEvent(genesis(actor, `sha-256:${'1'.repeat(64)}`), {
+        publicKeys: publicKeysFor(actor, mallory),
+      });
+      await expect(
+        ledger.appendEvent(genesis(mallory, `sha-256:${'2'.repeat(64)}`), {
+          publicKeys: publicKeysFor(actor, mallory),
+        }),
+      ).rejects.toBeInstanceOf(ArtifactExistsError);
+      expect((await ledger.getHead(artifactId))?.versionId).toBe(`sha-256:${'1'.repeat(64)}`);
+    });
+
+    it('lets the same actor record a second genesis, which surfaces as a second tip', async () => {
+      const { ledger } = await setup([actor]);
+      const artifactId = generateId();
+      const genesis = (versionId: string) =>
+        signedEnvelope(
+          buildEvent({
+            actor,
+            eventType: 'genesis',
+            subject: { kind: 'artifact', artifact_id: artifactId, version_id: versionId },
+          }),
+          actor,
+        );
+      await ledger.appendEvent(genesis(`sha-256:${'1'.repeat(64)}`), {
+        publicKeys: publicKeysFor(actor),
+      });
+      await ledger.appendEvent(genesis(`sha-256:${'2'.repeat(64)}`), {
+        publicKeys: publicKeysFor(actor),
+      });
+      expect(await ledger.getTips(artifactId)).toHaveLength(2);
+    });
+
+    it('rejects a parent listed twice instead of surfacing a database error', async () => {
+      const { ledger } = await setup([actor]);
+      const parent = await ledger.appendEvent(
+        signedEnvelope(
+          buildEvent({
+            actor,
+            eventType: 'genesis',
+            subject: { kind: 'artifact', artifact_id: generateId() },
+          }),
+          actor,
+        ),
+        { publicKeys: publicKeysFor(actor) },
+      );
+      const child = signedEnvelope(
+        buildEvent({
+          actor,
+          eventType: 'transformation_recorded',
+          subject: { kind: 'transformation' },
+          causalParents: [
+            { event_id: parent.event.eventId, relation: 'input' },
+            { event_id: parent.event.eventId, relation: 'revision-of' },
+          ],
+        }),
+        actor,
+      );
+      await expect(
+        ledger.appendEvent(child, { publicKeys: publicKeysFor(actor) }),
+      ).rejects.toBeInstanceOf(DuplicateParentError);
+    });
+
+    it('clears a missing-parent boundary once the parent is backfilled', async () => {
+      const { ledger } = await setup([actor]);
+      const artifactId = generateId();
+      const parentEnv = signedEnvelope(
+        buildEvent({
+          actor,
+          eventType: 'genesis',
+          subject: { kind: 'artifact', artifact_id: artifactId },
+        }),
+        actor,
+      );
+      const childEnv = signedEnvelope(
+        buildEvent({
+          actor,
+          eventType: 'artifact_revised',
+          subject: { kind: 'artifact', artifact_id: artifactId },
+          causalParents: [{ event_id: parentEnv.payloadDigest, relation: 'revision-of' }],
+        }),
+        actor,
+      );
+      await ledger.appendEvent(childEnv, {
+        publicKeys: publicKeysFor(actor),
+        allowPartialImport: true,
+      });
+      expect((await ledger.getLineage(childEnv.payloadDigest)).boundaries).toHaveLength(1);
+      await ledger.appendEvent(parentEnv, { publicKeys: publicKeysFor(actor) });
+      const lineage = await ledger.getLineage(childEnv.payloadDigest);
+      expect(lineage.boundaries).toHaveLength(0);
+      expect(lineage.ancestors.map((e) => e.eventId)).toEqual([parentEnv.payloadDigest]);
+    });
+
+    it('only tolerates missing parents that the caller explicitly permitted', async () => {
+      const { ledger } = await setup([actor]);
+      const declared = `sha-256:${'a'.repeat(64)}`;
+      const undeclared = `sha-256:${'b'.repeat(64)}`;
+      const build = (parents: string[]) =>
+        signedEnvelope(
+          buildEvent({
+            actor,
+            eventType: 'transformation_recorded',
+            subject: { kind: 'transformation' },
+            causalParents: parents.map((event_id) => ({ event_id })),
+          }),
+          actor,
+        );
+      await expect(
+        ledger.appendEvent(build([declared, undeclared]), {
+          publicKeys: publicKeysFor(actor),
+          permittedMissingParentIds: [declared],
+        }),
+      ).rejects.toBeInstanceOf(MissingParentError);
+      const ok = await ledger.appendEvent(build([declared]), {
+        publicKeys: publicKeysFor(actor),
+        permittedMissingParentIds: [declared],
+      });
+      expect(ok.duplicate).toBe(false);
+    });
+
+    it('serializes concurrent appends instead of failing with nested-transaction errors', async () => {
+      const { ledger } = await setup([actor]);
+      const envelopes = Array.from({ length: 8 }, () =>
+        signedEnvelope(
+          buildEvent({
+            actor,
+            eventType: 'genesis',
+            subject: { kind: 'artifact', artifact_id: generateId() },
+          }),
+          actor,
+        ),
+      );
+      const results = await Promise.all(
+        envelopes.map((e) => ledger.appendEvent(e, { publicKeys: publicKeysFor(actor) })),
+      );
+      expect(results.map((r) => r.receipt.sequence).sort((a, b) => a - b)).toEqual([
+        0, 1, 2, 3, 4, 5, 6, 7,
+      ]);
+    });
+
+    it('resolves concurrent submissions of the same event to one receipt', async () => {
+      const { ledger } = await setup([actor]);
+      const envelope = signedEnvelope(
+        buildEvent({
+          actor,
+          eventType: 'genesis',
+          subject: { kind: 'artifact', artifact_id: generateId() },
+        }),
+        actor,
+      );
+      const results = await Promise.all(
+        Array.from({ length: 4 }, () =>
+          ledger.appendEvent(envelope, { publicKeys: publicKeysFor(actor) }),
+        ),
+      );
+      expect(results.filter((r) => !r.duplicate)).toHaveLength(1);
+      expect(new Set(results.map((r) => r.receipt.receipt_digest)).size).toBe(1);
+    });
+
+    it('stores ledger metadata durably: set, overwrite, create-if-absent, list by prefix, delete', async () => {
+      const { adapter } = await setup([actor]);
+      expect(await adapter.getMeta('a:1')).toBeNull();
+      await adapter.setMeta('a:1', 'one');
+      await adapter.setMeta('a:1', 'uno');
+      expect(await adapter.getMeta('a:1')).toBe('uno');
+      expect(await adapter.setMetaIfAbsent('a:1', 'x')).toBe(false);
+      expect(await adapter.setMetaIfAbsent('a:2', 'two')).toBe(true);
+      await adapter.setMeta('b_1', 'other');
+      expect((await adapter.listMeta('a:')).map((r) => r.key)).toEqual(['a:1', 'a:2']);
+      // LIKE wildcards in the prefix are matched literally, not as patterns.
+      expect(await adapter.listMeta('%')).toEqual([]);
+      expect(await adapter.listMeta('b_')).toEqual([{ key: 'b_1', value: 'other' }]);
+      expect(await adapter.deleteMeta('a:1')).toBe(true);
+      expect(await adapter.deleteMeta('a:1')).toBe(false);
+    });
+
+    it('getEffectiveVersion reports the latest authority-selected version, or null', async () => {
+      const { ledger } = await setup([actor]);
+      const artifactId = generateId();
+      const root = signedEnvelope(
+        buildEvent({
+          actor,
+          eventType: 'genesis',
+          subject: {
+            kind: 'artifact',
+            artifact_id: artifactId,
+            version_id: `sha-256:${'1'.repeat(64)}`,
+          },
+        }),
+        actor,
+      );
+      await ledger.appendEvent(root, { publicKeys: publicKeysFor(actor) });
+      expect(await ledger.getEffectiveVersion(artifactId)).toBeNull();
+      const select = (n: string) =>
+        signedEnvelope(
+          buildEvent({
+            actor,
+            eventType: 'intent_effective_selected',
+            subject: {
+              kind: 'artifact',
+              artifact_id: artifactId,
+              version_id: `sha-256:${n.repeat(64)}`,
+            },
+            causalParents: [{ event_id: root.payloadDigest, relation: 'approval-of' }],
+          }),
+          actor,
+        );
+      await ledger.appendEvent(select('2'), { publicKeys: publicKeysFor(actor) });
+      expect(await ledger.getEffectiveVersion(artifactId)).toBe(`sha-256:${'2'.repeat(64)}`);
+      await ledger.appendEvent(select('3'), { publicKeys: publicKeysFor(actor) });
+      expect(await ledger.getEffectiveVersion(artifactId)).toBe(`sha-256:${'3'.repeat(64)}`);
+      // A selection is not a competing version.
+      expect((await ledger.getTips(artifactId)).map((e) => e.eventId)).toEqual([
+        root.payloadDigest,
+      ]);
+    });
+
+    it('getTips reports a single tip for a linear history and every branch tip for a fork', async () => {
+      const { ledger } = await setup([actor]);
+      const artifactId = generateId();
+      const root = signedEnvelope(
+        buildEvent({
+          actor,
+          eventType: 'genesis',
+          subject: {
+            kind: 'artifact',
+            artifact_id: artifactId,
+            version_id: `sha-256:${'1'.repeat(64)}`,
+          },
+        }),
+        actor,
+      );
+      await ledger.appendEvent(root, { publicKeys: publicKeysFor(actor) });
+      const revision = (n: string) =>
+        signedEnvelope(
+          buildEvent({
+            actor,
+            eventType: 'artifact_revised',
+            subject: {
+              kind: 'artifact',
+              artifact_id: artifactId,
+              version_id: `sha-256:${n.repeat(64)}`,
+            },
+            causalParents: [{ event_id: root.payloadDigest, relation: 'revision-of' }],
+          }),
+          actor,
+        );
+      expect((await ledger.getTips(artifactId)).map((e) => e.eventId)).toEqual([
+        root.payloadDigest,
+      ]);
+      const a = revision('2');
+      const b = revision('3');
+      await ledger.appendEvent(a, { publicKeys: publicKeysFor(actor) });
+      expect((await ledger.getTips(artifactId)).map((e) => e.eventId)).toEqual([a.payloadDigest]);
+      await ledger.appendEvent(b, { publicKeys: publicKeysFor(actor) });
+      expect((await ledger.getTips(artifactId)).map((e) => e.eventId).sort()).toEqual(
+        [a.payloadDigest, b.payloadDigest].sort(),
+      );
     });
 
     it('rejects an event with a missing causal parent by default', async () => {

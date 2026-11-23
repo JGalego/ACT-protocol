@@ -64,10 +64,36 @@ class SqliteTransaction implements StorageTransaction {
       )
       .run(row);
   }
+
+  async resolveMissingParent(parentEventId: string): Promise<void> {
+    this.db
+      .prepare('UPDATE causal_parents SET is_missing = 0 WHERE parent_event_id = ?')
+      .run(parentEventId);
+  }
+
+  async exec(sql: string): Promise<void> {
+    this.db.exec(sql);
+  }
+
+  async hasMigration(id: string): Promise<boolean> {
+    const row = this.db.prepare('SELECT 1 FROM schema_migrations WHERE id = ?').get(id) as unknown;
+    return row !== undefined;
+  }
+
+  async lockForMigration(): Promise<void> {
+    // BEGIN IMMEDIATE already holds SQLite's single write lock.
+  }
 }
 
 export class SqliteAdapter implements StorageAdapter {
   readonly dialect = 'sqlite' as const;
+  /**
+   * Tail of the transaction queue. better-sqlite3 has one connection, and a
+   * transaction here spans awaits, so two overlapping appends would otherwise
+   * issue BEGIN inside an open transaction. Transactions run strictly one at a
+   * time instead.
+   */
+  private txQueue: Promise<unknown> = Promise.resolve();
 
   constructor(private readonly db: SqliteDatabase) {}
 
@@ -91,32 +117,25 @@ export class SqliteAdapter implements StorageAdapter {
     this.db.close();
   }
 
-  async hasMigration(id: string): Promise<boolean> {
-    const row = this.db.prepare('SELECT 1 FROM schema_migrations WHERE id = ?').get(id) as unknown;
-    return row !== undefined;
-  }
-
   async exec(sql: string): Promise<void> {
     this.db.exec(sql);
   }
 
   async withTransaction<T>(fn: (tx: StorageTransaction) => Promise<T>): Promise<T> {
-    // better-sqlite3's `db.transaction(cb)` helper requires `cb` to be
-    // synchronous, which `fn` (an async function per the StorageAdapter
-    // contract, so PostgresAdapter can genuinely await network I/O inside
-    // it) is not. Driving BEGIN/COMMIT/ROLLBACK explicitly on the
-    // connection is correct here instead: better-sqlite3 holds a single
-    // connection, Node is single-threaded, and nothing else touches this
-    // handle while `fn` runs, so there is no interleaving to guard against.
-    this.db.exec('BEGIN IMMEDIATE');
-    try {
-      const result = await fn(new SqliteTransaction(this.db));
-      this.db.exec('COMMIT');
-      return result;
-    } catch (err) {
-      this.db.exec('ROLLBACK');
-      throw err;
-    }
+    const run = async (): Promise<T> => {
+      this.db.exec('BEGIN IMMEDIATE');
+      try {
+        const result = await fn(new SqliteTransaction(this.db));
+        this.db.exec('COMMIT');
+        return result;
+      } catch (err) {
+        this.db.exec('ROLLBACK');
+        throw err;
+      }
+    };
+    const next = this.txQueue.then(run, run);
+    this.txQueue = next.catch(() => undefined);
+    return next;
   }
 
   async getEvent(eventId: string): Promise<EventRow | null> {
@@ -233,5 +252,36 @@ export class SqliteAdapter implements StorageAdapter {
          ON CONFLICT(artifact_id) DO UPDATE SET version_id = excluded.version_id, event_id = excluded.event_id, updated_at = excluded.updated_at`,
       )
       .run(row);
+  }
+
+  async getMeta(key: string): Promise<string | null> {
+    const row = this.db.prepare('SELECT value FROM ledger_meta WHERE key = ?').get(key) as
+      { value: string } | undefined;
+    return row?.value ?? null;
+  }
+
+  async setMeta(key: string, value: string): Promise<void> {
+    this.db
+      .prepare(
+        'INSERT INTO ledger_meta (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value',
+      )
+      .run(key, value);
+  }
+
+  async setMetaIfAbsent(key: string, value: string): Promise<boolean> {
+    const result = this.db
+      .prepare('INSERT INTO ledger_meta (key, value) VALUES (?, ?) ON CONFLICT(key) DO NOTHING')
+      .run(key, value);
+    return result.changes > 0;
+  }
+
+  async deleteMeta(key: string): Promise<boolean> {
+    return this.db.prepare('DELETE FROM ledger_meta WHERE key = ?').run(key).changes > 0;
+  }
+
+  async listMeta(prefix: string): Promise<{ key: string; value: string }[]> {
+    return this.db
+      .prepare("SELECT key, value FROM ledger_meta WHERE key LIKE ? ESCAPE '\\' ORDER BY key")
+      .all(`${prefix.replace(/[\\%_]/g, '\\$&')}%`) as { key: string; value: string }[];
   }
 }

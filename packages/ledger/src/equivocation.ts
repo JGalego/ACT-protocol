@@ -71,6 +71,18 @@ interface DecisionEnvelopePayload {
   payload: { data: { decision: DecisionPayload } };
 }
 
+function isDecisionPayload(d: unknown): d is DecisionPayload {
+  if (typeof d !== 'object' || d === null) return false;
+  const x = d as Partial<DecisionPayload>;
+  return (
+    typeof x.decision === 'string' &&
+    typeof x.policy_id === 'string' &&
+    typeof x.policy_version === 'string' &&
+    typeof x.subject?.artifact_id === 'string' &&
+    typeof x.subject?.version_id === 'string'
+  );
+}
+
 /**
  * spec/federation.md section 6: the SAME actor/key signing conflicting
  * decisions over the identical (subject digest, policy version) tuple --
@@ -83,7 +95,10 @@ export function detectEquivocation(events: readonly StoredEvent[]): Equivocation
   for (const e of events) {
     if (!DECISION_BEARING_EVENT_TYPES.has(e.eventType)) continue;
     const payload = e.envelope.payload as unknown as DecisionEnvelopePayload;
-    const d = payload.payload.data.decision;
+    // A decision-typed event whose body is not a well-formed decision cannot
+    // equivocate about anything; it must not abort the scan for everyone else.
+    const d = payload?.payload?.data?.decision;
+    if (!isDecisionPayload(d)) continue;
     const key = [
       payload.actor.key_id,
       d.subject.artifact_id,

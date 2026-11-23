@@ -69,6 +69,14 @@ export interface StorageTransaction {
   insertCausalParent(row: CausalParentRow): Promise<void>;
   insertReceipt(row: ReceiptRow): Promise<void>;
   upsertHead(row: HeadRow): Promise<void>;
+  /** Clears the missing-parent flag on every edge that named `parentEventId`, now that it has arrived. */
+  resolveMissingParent(parentEventId: string): Promise<void>;
+  /** Raw statement execution inside this transaction; used only by the migration runner. */
+  exec(sql: string): Promise<void>;
+  /** Whether the migration with this id is already recorded, read inside this transaction. */
+  hasMigration(id: string): Promise<boolean>;
+  /** Takes a cross-process lock held until the transaction ends (no-op where the engine is single-writer). */
+  lockForMigration(): Promise<void>;
 }
 
 export interface StorageAdapter {
@@ -77,8 +85,6 @@ export interface StorageAdapter {
   /** Creates schema objects if absent and applies any pending migrations. Idempotent. */
   migrate(): Promise<void>;
   close(): Promise<void>;
-  /** Whether the migration with this id has already been recorded as applied. Used only by the migration runner. */
-  hasMigration(id: string): Promise<boolean>;
 
   /**
    * Runs `fn` inside one atomic transaction. On a detected write conflict
@@ -122,6 +128,14 @@ export interface StorageAdapter {
   clearProjections(): Promise<void>;
   upsertHead(row: HeadRow): Promise<void>;
 
-  /** Raw statement execution; used only by the migration runner. */
+  /** Raw statement execution outside any transaction. */
   exec(sql: string): Promise<void>;
+
+  /** Small durable key/value store for ledger-level metadata (identity, peers). Not part of the signed log. */
+  getMeta(key: string): Promise<string | null>;
+  setMeta(key: string, value: string): Promise<void>;
+  /** Atomically stores `value` only if `key` is unset; returns whether this call stored it. */
+  setMetaIfAbsent(key: string, value: string): Promise<boolean>;
+  deleteMeta(key: string): Promise<boolean>;
+  listMeta(prefix: string): Promise<{ key: string; value: string }[]>;
 }

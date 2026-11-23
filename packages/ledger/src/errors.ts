@@ -64,3 +64,45 @@ export class StorageConflictError extends LedgerError {
     );
   }
 }
+
+export class ActorKeyNotSignerError extends LedgerError {
+  constructor(actorKeyId: string) {
+    super(
+      `The event claims actor key ${actorKeyId}, but no valid signature from that key is attached; an event can only be attributed to a key that actually signed it`,
+      'actor_key_not_signer',
+    );
+  }
+}
+
+export class MissingSignatureError extends LedgerError {
+  constructor() {
+    super('An event must carry at least one signature', 'missing_signature');
+  }
+}
+
+export class DuplicateParentError extends LedgerError {
+  constructor(parentEventId: string) {
+    super(
+      `causal_parents names ${parentEventId} more than once; list each parent exactly once`,
+      'duplicate_parent',
+    );
+  }
+}
+
+export class IdempotencyConflictError extends LedgerError {
+  constructor(key: string, existingEventId: string) {
+    super(
+      `Idempotency key ${JSON.stringify(key)} was already used for a different event (${existingEventId})`,
+      'idempotency_conflict',
+    );
+  }
+}
+
+export class ArtifactExistsError extends LedgerError {
+  constructor(artifactId: string) {
+    super(
+      `Artifact ${artifactId} already has a genesis event; record a revision instead of a second root`,
+      'artifact_exists',
+    );
+  }
+}

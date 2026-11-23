@@ -15,14 +15,18 @@ export async function runMigrations(
   adapter: StorageAdapter,
   migrations: readonly Migration[],
 ): Promise<void> {
-  await adapter.exec(
-    'CREATE TABLE IF NOT EXISTS schema_migrations (id TEXT PRIMARY KEY, applied_at TEXT NOT NULL)',
-  );
   for (const migration of migrations) {
-    if (await adapter.hasMigration(migration.id)) continue;
-    await adapter.withTransaction(async () => {
-      await adapter.exec(migration.sql);
-      await adapter.exec(
+    // The applied-check runs inside the same transaction (and, on Postgres,
+    // under an advisory lock) so that replicas booting at once neither apply
+    // a migration twice nor observe it half-applied.
+    await adapter.withTransaction(async (tx) => {
+      await tx.lockForMigration();
+      await tx.exec(
+        'CREATE TABLE IF NOT EXISTS schema_migrations (id TEXT PRIMARY KEY, applied_at TEXT NOT NULL)',
+      );
+      if (await tx.hasMigration(migration.id)) return;
+      await tx.exec(migration.sql);
+      await tx.exec(
         `INSERT INTO schema_migrations (id, applied_at) VALUES ('${migration.id.replace(/'/g, "''")}', '${new Date().toISOString()}')`,
       );
     });
@@ -89,7 +93,18 @@ CREATE TABLE IF NOT EXISTS quarantine (
 // so a single shared dialect needs no per-engine branching here.
 export const POSTGRES_INIT_SQL = SQLITE_INIT_SQL;
 
-export const SQLITE_MIGRATIONS: readonly Migration[] = [{ id: '0001-init', sql: SQLITE_INIT_SQL }];
+const META_SQL = `
+CREATE TABLE IF NOT EXISTS ledger_meta (
+  key TEXT PRIMARY KEY,
+  value TEXT NOT NULL
+);
+`;
+
+export const SQLITE_MIGRATIONS: readonly Migration[] = [
+  { id: '0001-init', sql: SQLITE_INIT_SQL },
+  { id: '0002-ledger-meta', sql: META_SQL },
+];
 export const POSTGRES_MIGRATIONS: readonly Migration[] = [
   { id: '0001-init', sql: POSTGRES_INIT_SQL },
+  { id: '0002-ledger-meta', sql: META_SQL },
 ];

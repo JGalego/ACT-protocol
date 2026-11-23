@@ -38,6 +38,8 @@ describe('SqliteAdapter', () => {
     const adapter = SqliteAdapter.open(':memory:');
     await runMigrations(adapter, SQLITE_MIGRATIONS);
     await expect(runMigrations(adapter, SQLITE_MIGRATIONS)).resolves.toBeUndefined();
-    expect(await adapter.hasMigration('0001-init')).toBe(true);
+    expect(
+      adapter.raw().prepare('SELECT 1 FROM schema_migrations WHERE id = ?').get('0001-init'),
+    ).toBeDefined();
   });
 });

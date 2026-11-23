@@ -17,9 +17,18 @@ type PoolClient = pg.PoolClient;
 
 const MAX_TRANSACTION_ATTEMPTS = 8;
 
+/**
+ * Only conflicts that a retry can resolve: a serialization failure, or a
+ * unique violation on the receipt/event *sequence* (two appends computed the
+ * same next sequence). Any other unique violation -- notably a duplicate
+ * event id -- is a real, deterministic rejection, and retrying it just burns
+ * attempts before surfacing a misleading "storage conflict".
+ */
 function isRetryableConflict(err: unknown): boolean {
-  const code = (err as { code?: string } | undefined)?.code;
-  return code === '40001' /* serialization_failure */ || code === '23505'; /* unique_violation */
+  const { code, constraint } = (err ?? {}) as { code?: string; constraint?: string };
+  if (code === '40001') return true; // serialization_failure
+  if (code !== '23505') return false; // unique_violation
+  return constraint === 'receipts_pkey' || constraint === 'events_ledger_id_sequence_key';
 }
 
 /** Small randomized backoff so many simultaneously-retrying transactions don't keep re-colliding on the same recomputed sequence number in lockstep. */
@@ -101,6 +110,26 @@ class PostgresTransaction implements StorageTransaction {
       [row.artifact_id, row.version_id, row.event_id, row.updated_at],
     );
   }
+
+  async resolveMissingParent(parentEventId: string): Promise<void> {
+    await this.client.query('UPDATE causal_parents SET is_missing = 0 WHERE parent_event_id = $1', [
+      parentEventId,
+    ]);
+  }
+
+  async exec(sql: string): Promise<void> {
+    await this.client.query(sql);
+  }
+
+  async hasMigration(id: string): Promise<boolean> {
+    const result = await this.client.query('SELECT 1 FROM schema_migrations WHERE id = $1', [id]);
+    return (result.rowCount ?? 0) > 0;
+  }
+
+  async lockForMigration(): Promise<void> {
+    // Transaction-scoped advisory lock (key is an arbitrary constant): released at COMMIT/ROLLBACK.
+    await this.client.query('SELECT pg_advisory_xact_lock(7243901)');
+  }
 }
 
 /**
@@ -133,11 +162,6 @@ export class PostgresAdapter implements StorageAdapter {
 
   async close(): Promise<void> {
     await this.pool.end();
-  }
-
-  async hasMigration(id: string): Promise<boolean> {
-    const result = await this.pool.query('SELECT 1 FROM schema_migrations WHERE id = $1', [id]);
-    return (result.rowCount ?? 0) > 0;
   }
 
   async exec(sql: string): Promise<void> {
@@ -288,5 +312,38 @@ export class PostgresAdapter implements StorageAdapter {
        ON CONFLICT (artifact_id) DO UPDATE SET version_id = excluded.version_id, event_id = excluded.event_id, updated_at = excluded.updated_at`,
       [row.artifact_id, row.version_id, row.event_id, row.updated_at],
     );
+  }
+
+  async getMeta(key: string): Promise<string | null> {
+    const result = await this.pool.query('SELECT value FROM ledger_meta WHERE key = $1', [key]);
+    return (result.rows[0]?.value as string | undefined) ?? null;
+  }
+
+  async setMeta(key: string, value: string): Promise<void> {
+    await this.pool.query(
+      'INSERT INTO ledger_meta (key, value) VALUES ($1, $2) ON CONFLICT (key) DO UPDATE SET value = excluded.value',
+      [key, value],
+    );
+  }
+
+  async setMetaIfAbsent(key: string, value: string): Promise<boolean> {
+    const result = await this.pool.query(
+      'INSERT INTO ledger_meta (key, value) VALUES ($1, $2) ON CONFLICT (key) DO NOTHING',
+      [key, value],
+    );
+    return (result.rowCount ?? 0) > 0;
+  }
+
+  async deleteMeta(key: string): Promise<boolean> {
+    const result = await this.pool.query('DELETE FROM ledger_meta WHERE key = $1', [key]);
+    return (result.rowCount ?? 0) > 0;
+  }
+
+  async listMeta(prefix: string): Promise<{ key: string; value: string }[]> {
+    const result = await this.pool.query(
+      "SELECT key, value FROM ledger_meta WHERE key LIKE $1 ESCAPE '\\' ORDER BY key",
+      [`${prefix.replace(/[\\%_]/g, '\\$&')}%`],
+    );
+    return result.rows as { key: string; value: string }[];
   }
 }

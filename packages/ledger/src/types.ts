@@ -14,8 +14,18 @@ export interface StoredEvent {
 }
 
 export interface TrustPolicy {
-  /** Returns whether this ledger trusts the given actor/key to submit events at all. */
+  /**
+   * Returns whether this ledger trusts the given actor/key pairing to submit
+   * events at all. Implementations MUST check that `keyId` is bound to
+   * `actorId`, not merely that the key is known.
+   */
   isTrusted(actorId: string, keyId: string): boolean;
+  /**
+   * Whether a key may appear as a co-signer. Optional; when absent a co-signer
+   * is held to `isTrusted` with an empty actor id, so a policy that checks key
+   * ownership should implement this.
+   */
+  isKeyTrusted?(keyId: string): boolean;
 }
 
 /** A trust policy backed by an explicit allowlist. There is intentionally no "trust everyone" default. */
@@ -34,6 +44,18 @@ export interface AppendOptions {
    * (ACT-1.0.md section 5.4, section 14.3).
    */
   allowPartialImport?: boolean;
+  /**
+   * Narrower form of `allowPartialImport`: only these missing parent ids are
+   * tolerated (spec/federation.md section 3 step 5 -- a gap must be declared
+   * by the bundle). Takes precedence over `allowPartialImport` when set.
+   */
+  permittedMissingParentIds?: readonly string[];
+  /**
+   * Key ids to treat as trusted for this single append only. Used for
+   * self-registration, where the key being registered cannot be in the trust
+   * registry until the event that registers it has been accepted.
+   */
+  additionalTrustedKeyIds?: readonly string[];
   /** Idempotency key for duplicate-submission detection independent of event content. */
   idempotencyKey?: string;
   /** Federation import only: the exporting ledger's own receipt, preserved verbatim per spec/federation.md section 3. */

@@ -3,6 +3,7 @@ export * from './errors.js';
 export * from './cycle.js';
 export * from './equivocation.js';
 export * from './receipts.js';
+export * from './bundle.js';
 export * from './types.js';
 export * from './storage-adapter.js';
 export * from './migrations.js';

@@ -1,4 +1,4 @@
-import { SCHEMA_IDS, validateAgainst } from '@act/core';
+import { SCHEMA_IDS, canonicalize, validateAgainst } from '@act/core';
 import { verifyEnvelope, type SignedEnvelope } from '@act/crypto';
 import type {
   StorageAdapter,
@@ -16,10 +16,15 @@ import {
 } from './equivocation.js';
 import { GENESIS_RECEIPT_DIGEST, issueReceipt, type LedgerReceipt } from './receipts.js';
 import {
+  ActorKeyNotSignerError,
+  ArtifactExistsError,
   CycleDetectedError,
   DigestMismatchError,
+  DuplicateParentError,
+  IdempotencyConflictError,
   InvalidSignatureError,
   MissingParentError,
+  MissingSignatureError,
   SchemaValidationError,
   UntrustedActorError,
 } from './errors.js';
@@ -83,6 +88,12 @@ export class Ledger {
     if (!schemaResult.valid) {
       throw new SchemaValidationError(JSON.stringify(schemaResult.errors));
     }
+    // An event nobody signed is not an event (spec section 5.2). The envelope
+    // schema also requires this, but the ledger is callable directly, not only
+    // through a schema-validating API.
+    if (!Array.isArray(envelope.signatures) || envelope.signatures.length === 0) {
+      throw new MissingSignatureError();
+    }
 
     // Step 2: recompute identifiers and digests; step 3: verify signatures and key bindings.
     const verification = verifyEnvelope(envelope, options.publicKeys);
@@ -95,51 +106,50 @@ export class Ledger {
     }
     const eventId = envelope.payloadDigest;
 
-    // Duplicate check (by event id): idempotent no-op returning the existing receipt.
-    const existing = await this.adapter.getEvent(eventId);
-    if (existing) {
-      const receiptRow = await this.adapter.getReceiptByEventId(this.ledgerId, eventId);
-      if (!receiptRow) {
-        throw new Error(`Invariant violated: accepted event ${eventId} has no receipt`);
-      }
-      return {
-        event: rowToStoredEvent(existing),
-        receipt: receiptRowToReceipt(receiptRow),
-        duplicate: true,
-      };
+    // Attribution: the key the event claims as its author must be one of the
+    // keys that actually signed it. Without this, any trusted key could sign
+    // an event that names someone else as the actor (spec section 4.5 item 4).
+    const { actor_id: actorId, key_id: actorKeyId } = (
+      envelope.payload as { actor: { actor_id: string; key_id: string } }
+    ).actor;
+    const signerKeyIds = envelope.signatures.map((s) => s.key_id);
+    if (!signerKeyIds.includes(actorKeyId)) {
+      throw new ActorKeyNotSignerError(actorKeyId);
     }
 
-    // Duplicate check (by idempotency key, independent of event content).
+    // Duplicate check (by event id): idempotent no-op returning the existing receipt.
+    const duplicate = await this.existingResult(eventId);
+    if (duplicate) return duplicate;
+
+    // Idempotency key: the same key may only ever name the same event. Reusing
+    // it for different content is a client bug that must not silently hand
+    // back some other event's receipt.
     if (options.idempotencyKey) {
       const existingByKey = await this.adapter.findByIdempotencyKey(
         this.ledgerId,
         options.idempotencyKey,
       );
       if (existingByKey) {
-        const receiptRow = await this.adapter.getReceiptByEventId(
-          this.ledgerId,
-          existingByKey.event_id,
-        );
-        if (!receiptRow) {
-          throw new Error(
-            `Invariant violated: accepted event ${existingByKey.event_id} has no receipt`,
-          );
+        if (!isResignedRetry(existingByKey, envelope)) {
+          throw new IdempotencyConflictError(options.idempotencyKey, existingByKey.event_id);
         }
-        return {
-          event: rowToStoredEvent(existingByKey),
-          receipt: receiptRowToReceipt(receiptRow),
-          duplicate: true,
-        };
+        const replay = await this.existingResult(existingByKey.event_id);
+        if (replay) return replay;
       }
     }
 
-    // Step 4: evaluate trust policy.
-    const actorId = (envelope.payload as { actor: { actor_id: string; key_id: string } }).actor
-      .actor_id;
-    const actorKeyId = (envelope.payload as { actor: { actor_id: string; key_id: string } }).actor
-      .key_id;
-    if (!this.trustPolicy.isTrusted(actorId, actorKeyId)) {
+    // Step 4: evaluate trust policy -- the claimed actor/key pairing, and every
+    // co-signer's key (a revoked co-signer must not lend authority).
+    const bootstrap = new Set(options.additionalTrustedKeyIds ?? []);
+    if (!bootstrap.has(actorKeyId) && !this.trustPolicy.isTrusted(actorId, actorKeyId)) {
       throw new UntrustedActorError(actorId, actorKeyId);
+    }
+    for (const keyId of new Set(signerKeyIds)) {
+      if (keyId === actorKeyId || bootstrap.has(keyId)) continue;
+      const trusted = this.trustPolicy.isKeyTrusted
+        ? this.trustPolicy.isKeyTrusted(keyId)
+        : this.trustPolicy.isTrusted('', keyId);
+      if (!trusted) throw new UntrustedActorError('(co-signer)', keyId);
     }
 
     // Step 5: verify causal parents exist, or mark a permitted partial import.
@@ -147,98 +157,235 @@ export class Ledger {
       (envelope.payload as { causal_parents: { event_id: string; relation?: string }[] })
         .causal_parents ?? []
     ).map((p) => ({ event_id: p.event_id, relation: p.relation ?? 'input' }));
+    const seenParents = new Set<string>();
+    for (const parent of causalParents) {
+      if (seenParents.has(parent.event_id)) throw new DuplicateParentError(parent.event_id);
+      seenParents.add(parent.event_id);
+    }
     const missingParentIds: string[] = [];
     for (const parent of causalParents) {
       if (!(await this.adapter.getEvent(parent.event_id))) {
         missingParentIds.push(parent.event_id);
       }
     }
-    if (missingParentIds.length > 0 && !options.allowPartialImport) {
-      throw new MissingParentError(missingParentIds);
+    if (missingParentIds.length > 0) {
+      const permitted = options.permittedMissingParentIds
+        ? new Set(options.permittedMissingParentIds)
+        : options.allowPartialImport
+          ? null
+          : new Set<string>();
+      const forbidden = permitted ? missingParentIds.filter((id) => !permitted.has(id)) : [];
+      if (forbidden.length > 0) throw new MissingParentError(forbidden);
     }
 
-    // Step 6: reject cycles (over lineage-typed relations only).
+    // Step 6: reject cycles (over lineage-typed relations only). Only edges
+    // reachable forward from this event can close a cycle through it, so
+    // load just those instead of every edge in the ledger.
     const lineageParentIds = causalParents
       .filter((p) => LINEAGE_RELATIONS.has(p.relation))
       .map((p) => p.event_id);
-    const existingEdges = await this.buildForwardEdgeMap();
-    const cycle = detectCycle(existingEdges, eventId, lineageParentIds);
+    const descendantEdges = await this.collectDescendantEdges(eventId);
+    const cycle = detectCycle(descendantEdges, eventId, lineageParentIds);
     if (cycle) {
       throw new CycleDetectedError(cycle);
     }
 
-    // Steps 7-9: append event + receipt, update projections, all in one transaction.
+    // A genesis for an artifact id someone *else* already created would be a
+    // takeover of their lineage. The same actor creating a second root (e.g.
+    // registering the same identity on two ledgers) is a legitimate competing
+    // root: it is accepted and shows up as a second branch tip, never as a
+    // silent replacement.
     const subject = envelope.payload.subject as {
       kind?: string;
       artifact_id?: string;
       version_id?: string;
     };
+    if (
+      envelope.payload.event_type === 'genesis' &&
+      subject.kind === 'artifact' &&
+      subject.artifact_id
+    ) {
+      const existingRoots = (await this.listEventsForArtifact(subject.artifact_id)).filter(
+        (e) => e.eventType === 'genesis',
+      );
+      if (
+        existingRoots.some(
+          (e) => (e.envelope.payload as { actor: { actor_id: string } }).actor.actor_id !== actorId,
+        )
+      ) {
+        throw new ArtifactExistsError(subject.artifact_id);
+      }
+    }
+
+    // Steps 7-9: append event + receipt, update projections, all in one transaction.
     const acceptedAt = this.now();
 
-    const receipt = await this.adapter.withTransaction(async (tx) => {
-      const sequence = await tx.nextSequence(this.ledgerId);
-      const previousReceipt =
-        sequence === 0 ? null : await tx.getReceiptBySequence(this.ledgerId, sequence - 1);
-      const previousReceiptDigest =
-        sequence === 0 ? GENESIS_RECEIPT_DIGEST : previousReceipt!.receipt_digest;
-      const issued = issueReceipt(
-        {
+    let receipt: LedgerReceipt;
+    try {
+      receipt = await this.adapter.withTransaction(async (tx) => {
+        const sequence = await tx.nextSequence(this.ledgerId);
+        const previousReceipt =
+          sequence === 0 ? null : await tx.getReceiptBySequence(this.ledgerId, sequence - 1);
+        const previousReceiptDigest =
+          sequence === 0 ? GENESIS_RECEIPT_DIGEST : previousReceipt!.receipt_digest;
+        const issued = issueReceipt(
+          {
+            ledger_id: this.ledgerId,
+            sequence,
+            event_id: eventId,
+            accepted_at: acceptedAt,
+            previous_receipt_digest: previousReceiptDigest,
+          },
+          this.signer,
+        );
+
+        await tx.insertEvent({
+          event_id: eventId,
+          ledger_id: this.ledgerId,
+          sequence,
+          event_type: envelope.payload.event_type as string,
+          subject_kind: subject.kind ?? null,
+          subject_artifact_id: subject.artifact_id ?? null,
+          subject_version_id: subject.version_id ?? null,
+          envelope_json: JSON.stringify(envelope),
+          accepted_at: acceptedAt,
+          idempotency_key: options.idempotencyKey ?? null,
+        });
+
+        for (const parent of causalParents) {
+          await tx.insertCausalParent({
+            event_id: eventId,
+            parent_event_id: parent.event_id,
+            relation: parent.relation,
+            is_missing: missingParentIds.includes(parent.event_id) ? 1 : 0,
+          });
+        }
+        // This event may be the parent that earlier partial imports were
+        // missing: those boundaries are now resolved, not stale.
+        await tx.resolveMissingParent(eventId);
+
+        await tx.insertReceipt({
           ledger_id: this.ledgerId,
           sequence,
           event_id: eventId,
           accepted_at: acceptedAt,
           previous_receipt_digest: previousReceiptDigest,
-        },
-        this.signer,
-      );
-
-      await tx.insertEvent({
-        event_id: eventId,
-        ledger_id: this.ledgerId,
-        sequence,
-        event_type: envelope.payload.event_type as string,
-        subject_kind: subject.kind ?? null,
-        subject_artifact_id: subject.artifact_id ?? null,
-        subject_version_id: subject.version_id ?? null,
-        envelope_json: JSON.stringify(envelope),
-        accepted_at: acceptedAt,
-        idempotency_key: options.idempotencyKey ?? null,
-      });
-
-      for (const parent of causalParents) {
-        await tx.insertCausalParent({
-          event_id: eventId,
-          parent_event_id: parent.event_id,
-          relation: parent.relation,
-          is_missing: missingParentIds.includes(parent.event_id) ? 1 : 0,
+          receipt_digest: issued.receipt_digest,
+          signature_json: JSON.stringify(issued.signature),
+          source_receipt_json: options.sourceReceipt ? JSON.stringify(options.sourceReceipt) : null,
         });
-      }
 
-      await tx.insertReceipt({
-        ledger_id: this.ledgerId,
-        sequence,
-        event_id: eventId,
-        accepted_at: acceptedAt,
-        previous_receipt_digest: previousReceiptDigest,
-        receipt_digest: issued.receipt_digest,
-        signature_json: JSON.stringify(issued.signature),
-        source_receipt_json: options.sourceReceipt ? JSON.stringify(options.sourceReceipt) : null,
+        if (subject.artifact_id && subject.version_id) {
+          await tx.upsertHead({
+            artifact_id: subject.artifact_id,
+            version_id: subject.version_id,
+            event_id: eventId,
+            updated_at: acceptedAt,
+          });
+        }
+
+        return issued;
       });
-
-      if (subject.artifact_id && subject.version_id) {
-        await tx.upsertHead({
-          artifact_id: subject.artifact_id,
-          version_id: subject.version_id,
-          event_id: eventId,
-          updated_at: acceptedAt,
-        });
+    } catch (err) {
+      // A concurrent submission of the same event (or idempotency key) can win
+      // the race between the checks above and this transaction. Resolve it the
+      // same way the sequential case is resolved instead of surfacing a raw
+      // constraint violation.
+      const raced = await this.existingResult(eventId);
+      if (raced) return raced;
+      if (options.idempotencyKey) {
+        const byKey = await this.adapter.findByIdempotencyKey(
+          this.ledgerId,
+          options.idempotencyKey,
+        );
+        if (byKey) throw new IdempotencyConflictError(options.idempotencyKey, byKey.event_id);
       }
-
-      return issued;
-    });
+      throw err;
+    }
 
     const finalRow = await this.adapter.getEvent(eventId);
     return { event: rowToStoredEvent(finalRow!), receipt, duplicate: false };
+  }
+
+  private async existingResult(eventId: string): Promise<AppendResult | null> {
+    const existing = await this.adapter.getEvent(eventId);
+    if (!existing) return null;
+    const receiptRow = await this.adapter.getReceiptByEventId(this.ledgerId, eventId);
+    if (!receiptRow) {
+      throw new Error(`Invariant violated: accepted event ${eventId} has no receipt`);
+    }
+    return {
+      event: rowToStoredEvent(existing),
+      receipt: receiptRowToReceipt(receiptRow),
+      duplicate: true,
+    };
+  }
+
+  /** Lineage-typed (parent -> child) edges reachable forward from `eventId`, including edges to not-yet-arrived parents. */
+  private async collectDescendantEdges(eventId: string): Promise<Map<string, string[]>> {
+    const edges = new Map<string, string[]>();
+    const seen = new Set<string>([eventId]);
+    const queue = [eventId];
+    while (queue.length > 0) {
+      const id = queue.shift()!;
+      const children = (await this.adapter.getChildrenOf(id))
+        .filter((c) => LINEAGE_RELATIONS.has(c.relation))
+        .map((c) => c.event_id);
+      if (children.length > 0) edges.set(id, children);
+      for (const child of children) {
+        if (!seen.has(child)) {
+          seen.add(child);
+          queue.push(child);
+        }
+      }
+    }
+    return edges;
+  }
+
+  /**
+   * The version an authority policy most recently designated effective for
+   * this artifact (spec section 7.3), or null. Selection events are only
+   * accepted when authority-sanctioned, so the latest one is the baseline.
+   */
+  async getEffectiveVersion(artifactId: string): Promise<string | null> {
+    const events = await this.listEventsForArtifact(artifactId);
+    for (let i = events.length - 1; i >= 0; i--) {
+      if (events[i]!.eventType === 'intent_effective_selected') {
+        return events[i]!.subjectVersionId;
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Current tip(s) of an artifact's version lineage: versions no other version
+   * of the same artifact names as a lineage parent. Exactly one tip means a
+   * linear history; more than one is an unresolved branch, which spec section
+   * 7.3 requires to stay visible rather than be collapsed by write order.
+   */
+  async getTips(artifactId: string): Promise<StoredEvent[]> {
+    // Only events that create an artifact *version* are tips. A transformation
+    // that mentions the artifact, or a decision selecting a version as
+    // effective, is something that happened to a version, not a competing one.
+    const events = (await this.listEventsForArtifact(artifactId)).filter(
+      (e) =>
+        e.subjectKind === 'artifact' &&
+        e.subjectVersionId !== null &&
+        e.eventType !== 'intent_effective_selected',
+    );
+    const ids = new Set(events.map((e) => e.eventId));
+    const referenced = new Set<string>();
+    for (const e of events) {
+      const parents =
+        (e.envelope.payload as { causal_parents?: { event_id: string; relation?: string }[] })
+          .causal_parents ?? [];
+      for (const p of parents) {
+        if (LINEAGE_RELATIONS.has(p.relation ?? 'input') && ids.has(p.event_id)) {
+          referenced.add(p.event_id);
+        }
+      }
+    }
+    return events.filter((e) => !referenced.has(e.eventId));
   }
 
   async getEvent(eventId: string): Promise<StoredEvent | null> {
@@ -401,17 +548,27 @@ export class Ledger {
     const events = await this.listEvents(Number.MAX_SAFE_INTEGER, -1);
     return detectEquivocation(events);
   }
+}
 
-  private async buildForwardEdgeMap(): Promise<Map<string, string[]>> {
-    const rows = await this.adapter.getAllCausalParents();
-    const map = new Map<string, string[]>();
-    for (const row of rows) {
-      if (!LINEAGE_RELATIONS.has(row.relation) || row.is_missing) continue;
-      const list = map.get(row.parent_event_id) ?? [];
-      list.push(row.event_id);
-      map.set(row.parent_event_id, list);
-    }
-    return map;
+/**
+ * A retry that rebuilt and re-signed the same logical event differs from the
+ * original only in its actor-claimed `occurred_at` (and therefore its event id
+ * and signature). Anything else under the same idempotency key is a different
+ * request.
+ */
+function isResignedRetry(existing: EventRow, retry: SignedEnvelope): boolean {
+  try {
+    const original = (JSON.parse(existing.envelope_json) as SignedEnvelope).payload;
+    const stripClaimedTime = (payload: unknown) => {
+      const copy = { ...(payload as Record<string, unknown>) };
+      delete copy.occurred_at;
+      return copy;
+    };
+    const originalRest = stripClaimedTime(original);
+    const retryRest = stripClaimedTime(retry.payload);
+    return canonicalize(originalRest) === canonicalize(retryRest);
+  } catch {
+    return false;
   }
 }
 
