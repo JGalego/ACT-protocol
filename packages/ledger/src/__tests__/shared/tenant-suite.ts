@@ -169,6 +169,21 @@ export function registerTenantSuite(
       expect(await a.getHead(idB)).toBeNull();
     });
 
+    it('lists receipts and reports the head per ledger, ordered and paged', async () => {
+      const { a, b, actor } = await twoLedgers();
+      for (let i = 0; i < 4; i++) {
+        await a.appendEvent(genesis(actor, generateId()), { publicKeys: publicKeysFor(actor) });
+      }
+      await b.appendEvent(genesis(actor, generateId()), { publicKeys: publicKeysFor(actor) });
+      expect((await a.listReceipts(-1, 100)).map((r) => r.sequence)).toEqual([0, 1, 2, 3]);
+      expect((await a.listReceipts(1, 2)).map((r) => r.sequence)).toEqual([2, 3]);
+      expect((await a.getHeadReceipt())!.sequence).toBe(3);
+      expect((await b.getHeadReceipt())!.sequence).toBe(0);
+      expect((await b.listReceipts(-1, 100)).every((r) => r.ledger_id === b.ledgerId)).toBe(true);
+      const checkpoint = await a.checkpoint();
+      expect(checkpoint).toMatchObject({ ledger_id: a.ledgerId, size: 4 });
+    });
+
     it('finds an idempotency key only in the ledger that used it', async () => {
       const { a, b, actor } = await twoLedgers();
       await a.appendEvent(genesis(actor, generateId()), {

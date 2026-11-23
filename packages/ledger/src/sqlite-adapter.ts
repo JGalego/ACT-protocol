@@ -168,6 +168,25 @@ export class SqliteAdapter implements StorageAdapter {
     return row ?? null;
   }
 
+  async getHeadReceipt(ledgerId: string): Promise<ReceiptRow | null> {
+    const row = this.db
+      .prepare('SELECT * FROM receipts WHERE ledger_id = ? ORDER BY sequence DESC LIMIT 1')
+      .get(ledgerId) as ReceiptRow | undefined;
+    return row ?? null;
+  }
+
+  async listReceipts(
+    ledgerId: string,
+    afterSequence: number,
+    limit: number,
+  ): Promise<ReceiptRow[]> {
+    return this.db
+      .prepare(
+        'SELECT * FROM receipts WHERE ledger_id = ? AND sequence > ? ORDER BY sequence ASC LIMIT ?',
+      )
+      .all(ledgerId, afterSequence, limit) as ReceiptRow[];
+  }
+
   async getHead(ledgerId: string, artifactId: string): Promise<HeadRow | null> {
     const row = this.db
       .prepare('SELECT * FROM heads WHERE ledger_id = ? AND artifact_id = ?')

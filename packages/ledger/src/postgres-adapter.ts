@@ -227,6 +227,26 @@ export class PostgresAdapter implements StorageAdapter {
     return (result.rows[0] as ReceiptRow | undefined) ?? null;
   }
 
+  async getHeadReceipt(ledgerId: string): Promise<ReceiptRow | null> {
+    const result = await this.pool.query(
+      'SELECT * FROM receipts WHERE ledger_id = $1 ORDER BY sequence DESC LIMIT 1',
+      [ledgerId],
+    );
+    return (result.rows[0] as ReceiptRow | undefined) ?? null;
+  }
+
+  async listReceipts(
+    ledgerId: string,
+    afterSequence: number,
+    limit: number,
+  ): Promise<ReceiptRow[]> {
+    const result = await this.pool.query(
+      'SELECT * FROM receipts WHERE ledger_id = $1 AND sequence > $2 ORDER BY sequence ASC LIMIT $3',
+      [ledgerId, afterSequence, limit],
+    );
+    return result.rows as ReceiptRow[];
+  }
+
   async getHead(ledgerId: string, artifactId: string): Promise<HeadRow | null> {
     const result = await this.pool.query(
       'SELECT * FROM heads WHERE ledger_id = $1 AND artifact_id = $2',

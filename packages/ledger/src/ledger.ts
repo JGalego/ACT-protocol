@@ -15,6 +15,7 @@ import {
   type EquivocationFinding,
 } from './equivocation.js';
 import { GENESIS_RECEIPT_DIGEST, issueReceipt, type LedgerReceipt } from './receipts.js';
+import { statementFor, type Checkpoint } from './checkpoint.js';
 import {
   ActorKeyNotSignerError,
   ArtifactExistsError,
@@ -426,6 +427,24 @@ export class Ledger {
   async getEvent(eventId: string): Promise<StoredEvent | null> {
     const row = await this.adapter.getEvent(this.ledgerId, eventId);
     return row ? rowToStoredEvent(row) : null;
+  }
+
+  /** The ledger's last receipt, or null when empty. */
+  async getHeadReceipt(): Promise<LedgerReceipt | null> {
+    const row = await this.adapter.getHeadReceipt(this.ledgerId);
+    return row ? receiptRowToReceipt(row) : null;
+  }
+
+  /** Receipts after `afterSequence`, oldest first: the material for consistency and inclusion proofs. */
+  async listReceipts(afterSequence = -1, limit = 100): Promise<LedgerReceipt[]> {
+    const rows = await this.adapter.listReceipts(this.ledgerId, afterSequence, limit);
+    return rows.map(receiptRowToReceipt);
+  }
+
+  /** An unsigned checkpoint for the current head (ADR 0013); sign it with `signCheckpoint`. */
+  async checkpoint(): Promise<Checkpoint> {
+    const last = await this.getHeadReceipt();
+    return { ...statementFor(this.ledgerId, last), issued_at: this.now() };
   }
 
   async getReceipt(sequence: number): Promise<LedgerReceipt | null> {

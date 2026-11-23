@@ -106,6 +106,10 @@ export interface StorageAdapter {
   findByIdempotencyKey(ledgerId: string, key: string): Promise<EventRow | null>;
   getReceiptByEventId(ledgerId: string, eventId: string): Promise<ReceiptRow | null>;
   getReceiptBySequence(ledgerId: string, sequence: number): Promise<ReceiptRow | null>;
+  /** The ledger's last receipt, or null when it has none. */
+  getHeadReceipt(ledgerId: string): Promise<ReceiptRow | null>;
+  /** Receipts with sequence greater than `afterSequence`, oldest first. */
+  listReceipts(ledgerId: string, afterSequence: number, limit: number): Promise<ReceiptRow[]>;
   getHead(ledgerId: string, artifactId: string): Promise<HeadRow | null>;
   listEvents(ledgerId: string, limit: number, afterSequence: number): Promise<EventRow[]>;
   listEventsForArtifact(ledgerId: string, artifactId: string): Promise<EventRow[]>;
