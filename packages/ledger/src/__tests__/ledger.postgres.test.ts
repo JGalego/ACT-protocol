@@ -10,6 +10,7 @@ import {
 } from './adapters/postgres-test-helper.js';
 import { registerLedgerSuite } from './shared/ledger-suite.js';
 import { registerTenantSuite } from './shared/tenant-suite.js';
+import { registerAppendModelSuite } from './shared/append-model-suite.js';
 import { registerMigrationSuite } from './shared/migration-suite.js';
 import { POSTGRES_MIGRATIONS } from '../migrations.js';
 import type { StorageAdapter } from '../storage-adapter.js';
@@ -45,6 +46,10 @@ registerLedgerSuite('postgres', makePostgresAdapter, async (adapter: StorageAdap
 });
 
 registerTenantSuite('postgres', makePostgresAdapter, async (adapter: StorageAdapter) => {
+  await adapter.close();
+});
+
+registerAppendModelSuite('postgres', makePostgresAdapter, async (adapter: StorageAdapter) => {
   await adapter.close();
 });
 
