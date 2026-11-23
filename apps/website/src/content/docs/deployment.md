@@ -66,7 +66,7 @@ The `oidc-provider` service is a real, deterministic OIDC issuer, not a mock. Po
 | `ACT_TENANTS` | — | Comma-separated tenant ids that may exist; any other tenant is refused with `403 tenant_not_allowed`. Unset allows any valid tenant id |
 | `ACT_MAX_TENANTS` | `1000` | Upper bound on tenants held in memory at once; beyond it new tenants get `503 tenant_limit_reached` |
 | `ACT_ALLOW_PRIVATE_PEERS` | `false` (`true` in dev mode) | Permit federation peers on loopback/private/link-local addresses. Leave off in production: it is the SSRF guard |
-| `ACT_AUTHORITY_POLICY_FILE` | — | Path to a JSON file `{ "policy": <authority policy>, "actorRoles": { "<actor id>": ["role"] } }`. Without it no one may select or merge an effective intent (`authority_policy_required`) |
+| `ACT_AUTHORITY_POLICY_FILE` | — | Path to a JSON file `{ "policy": <authority policy> }`: which roles may select or merge an effective intent, and the quorum. Who holds a role is not configuration: it comes from signed accountability assignments (`POST /v1/assignments`, ADR 0011), and a file that still has `actorRoles` stops the server from starting. Without it no one may select or merge an effective intent (`authority_policy_required`) |
 
 A ledger's identity (its id and receipt-signing key) is created once and stored in its database, so every replica of one database shares it and a restart keeps it. Peers pin it out of band via `GET /v1/ledger`. Egress policy is the complete defense against SSRF through federation peers: the API re-resolves a peer's host before each call and refuses redirects, but a network policy limiting outbound traffic to known peers closes the remaining DNS-rebinding race.
 

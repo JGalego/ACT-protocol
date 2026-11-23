@@ -25,6 +25,8 @@ A project review found that the write path verified signatures and key trust but
 
 - Tenant isolation ([ADR 0010](docs/adr/0010-tenant-isolation.md)): each tenant is now its own ledger (own ledger id, signing key, receipt chain, key registry, peers, quarantine) in the shared database. The tenant comes only from the verified token claim; a signed event must state the caller's tenant; a cross-tenant reference behaves as a missing one, so duplicates, conflicts, sequence numbers and key trust reveal nothing. Previously every caller shared one ledger and `x-act-tenant` was parsed and ignored.
 
+- Roles for authority come from signed accountability assignments ([ADR 0011](docs/adr/0011-signed-accountability-assignments.md)): who holds which role is now recorded, attributable, versioned and revocable in the tenant's ledger, instead of asserted in a config file. A grant needs an administrator or an owner of that scope (never granting to themselves), roles are evaluated at ledger-observed time, and assignments imported from a peer confer no local role.
+
 ### Fixed
 
 - Key validity: a signature dated before the key existed, or evaluated against an unparseable timestamp, was reported valid (TypeScript and Python SDKs).
@@ -40,11 +42,13 @@ A project review found that the write path verified signatures and key trust but
 
 - **Breaking (API):** federation peers must be registered with `ledgerId`, `ledgerKeyId`, `ledgerPublicKey`; `GET /v1/federation/peers` no longer returns `bearerToken`; peer, import and quarantine endpoints require an administrator; production requires `ACT_ADMIN_ACTORS`; `GET /v1/artifacts/{id}` returns `currentVersionId: null` with `conflict: true` while branches are unresolved.
 - **Breaking (API):** an event's `tenant` must equal the caller's tenant (`default` when single-tenant; `not_applicable` is refused); production requires the tenant claim unless `ACT_REQUIRE_TENANT=false`; `StorageAdapter` methods take a ledger id; migration `0003-tenant-scoping` re-keys `events`, `causal_parents`, `heads` and `quarantine` by ledger id (existing data becomes the `default` tenant).
+- **Breaking (config):** `actorRoles` is removed from the `ACT_AUTHORITY_POLICY_FILE` document; a file that still has it stops the server from starting. Issue `accountability_assigned` events instead (an administrator issues the first ones).
 - Helm values `api.requireTenant`, `api.tenants`, `api.maxTenants`; `ACT_ADMIN_ACTORS` accepts `tenant::actor`.
 - Helm values `api.adminActors` (required), `api.keyRegistration`, `api.ledgerSigningKey`.
 
 ### Added
 
+- `POST /v1/assignments`, `GET /v1/assignments`, `GET /v1/assignments/{id}`.
 - `ACT_REQUIRE_TENANT`, `ACT_TENANTS`, `ACT_MAX_TENANTS`; a `tenant` option on both SDK clients.
 - `GET /v1/ledger`, `key_rotated` / `key_revoked` / `key_compromised` handling, `ACT_ADMIN_ACTORS`, `ACT_KEY_REGISTRATION`, `ACT_LEDGER_PRIVATE_KEY`, `ACT_ALLOW_PRIVATE_PEERS`, `ACT_AUTHORITY_POLICY_FILE`.
 

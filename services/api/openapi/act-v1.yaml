@@ -252,6 +252,52 @@ paths:
           schema: { type: integer, minimum: 1, maximum: 500 }
       responses:
         '200': { description: OK }
+  /assignments:
+    post:
+      operationId: recordAssignment
+      summary: Records an accountability assignment (a grant, or the next version that ends or revokes it)
+      description: >
+        A grant is accepted only from a tenant administrator, or from an active owner of that exact scope who is not granting to themselves (ADR 0011). A later version may be recorded by the issuer, an administrator, an owner of the scope, or the assignee (to end it). Ended and revoked assignments are final.
+      requestBody:
+        {
+          required: true,
+          content:
+            { application/json: { schema: { $ref: '#/components/schemas/SignedEnvelope' } } },
+        }
+      responses:
+        '201':
+          {
+            description: Created,
+            content:
+              { application/json: { schema: { $ref: '#/components/schemas/AppendResult' } } },
+          }
+        '400': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '409': { $ref: '#/components/responses/Problem' }
+    get:
+      operationId: listAssignments
+      summary: Lists this tenant's natively recorded assignments, with whether each confers its role now
+      parameters:
+        - name: actor
+          in: query
+          schema: { type: string }
+        - name: scope
+          in: query
+          schema: { type: string }
+        - name: active
+          in: query
+          description: When `true`, only assignments that confer their role at this moment
+          schema: { type: string, enum: ['true'] }
+      responses:
+        '200': { description: OK }
+  /assignments/{id}:
+    get:
+      operationId: getAssignment
+      summary: One assignment with its full version history
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      responses:
+        '200': { description: OK }
+        '404': { $ref: '#/components/responses/Problem' }
   /verifications:
     post:
       operationId: submitVerification

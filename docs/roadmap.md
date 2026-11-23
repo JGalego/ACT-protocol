@@ -25,7 +25,7 @@ This document is the single consolidated list of what `PROMPT.md` specifies that
 
 ## Trust and Authority (follow-ups to ADR 0009)
 
-- **Authority roles from signed assignments.** Roles for `intent_effective_selected` / `intent_merged` come from operator configuration (`ACT_AUTHORITY_POLICY_FILE`). Deriving them from Accountability Assignment events, issued by administrators, would put them in the auditable log.
+- **Authority roles from signed assignments (built).** Roles for `intent_effective_selected` / `intent_merged` come from `accountability_assigned` events in the tenant's ledger (ADR 0011). Not built: ledger-derived administrators (adding one is still configuration), multi-party approval of a grant, and a role-expiry reminder or notification.
 - **Approval validity and quorum as an API.** `@act/verification`'s `checkApprovalValidity` and `@act/policy`'s `evaluateQuorum` are not yet exposed through an endpoint; the write path enforces the lifecycle but a consumer must call the packages to decide whether an approval currently authorizes an action.
 - **Drift-assessment schema.** Spec section 7.3 requires a drift result to name its comparison target; there is no dedicated schema enforcing it yet.
 - **Tenant isolation (built).** Each tenant is its own ledger in a shared database (ADR 0010). Not built: per-tenant database or KMS-held signing keys for the non-default tenants, per-tenant rate limits and quotas, and tenant-aware metrics.
