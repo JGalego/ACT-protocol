@@ -29,6 +29,8 @@ A project review found that the write path verified signatures and key trust but
 
 - Federation import judges key trust at the source ledger's acceptance time ([ADR 0012](docs/adr/0012-trust-at-signing-time.md)): history signed while a key was valid stays importable after the key is retired locally, and nothing the source accepted after a local revocation is imported, whatever time its signer claims. Key history now carries the time each change was attested by the ledger that first accepted it.
 
+- Witnessed checkpoints ([ADR 0013](docs/adr/0013-witnessed-checkpoints.md)): a ledger can issue a signed commitment to its whole history that independent witnesses cosign only when it extends what they last saw, so an operator can no longer show different parties conflicting histories, or hide a tail, without it being detectable (and unendorsable with a witness quorum). Includes consistency and inclusion proofs and a reusable witness step.
+
 ### Fixed
 
 - Key validity: a signature dated before the key existed, or evaluated against an unparseable timestamp, was reported valid (TypeScript and Python SDKs).
@@ -50,6 +52,7 @@ A project review found that the write path verified signatures and key trust but
 
 ### Added
 
+- `GET /v1/checkpoint`, `GET /v1/receipts`, `POST/GET /v1/witnesses`, `DELETE /v1/witnesses/{keyId}`, `POST /v1/checkpoints/{size}/witness`; `signCheckpoint`, `verifyCheckpoint`, `verifyConsistency`, `verifyInclusion`, `witnessStep` in `@act/ledger`.
 - `POST /v1/assignments`, `GET /v1/assignments`, `GET /v1/assignments/{id}`.
 - `ACT_REQUIRE_TENANT`, `ACT_TENANTS`, `ACT_MAX_TENANTS`; a `tenant` option on both SDK clients.
 - `GET /v1/ledger`, `key_rotated` / `key_revoked` / `key_compromised` handling, `ACT_ADMIN_ACTORS`, `ACT_KEY_REGISTRATION`, `ACT_LEDGER_PRIVATE_KEY`, `ACT_ALLOW_PRIVATE_PEERS`, `ACT_AUTHORITY_POLICY_FILE`.

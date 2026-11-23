@@ -67,6 +67,10 @@ Every tenant is a separate ledger inside the one database: its own ledger id, re
 - To share history between tenants, administrators pin each other's ledgers as federation peers and exchange verified bundles, exactly as two separate deployments would. There is no implicit sharing.
 - Isolation is logical. Anyone with direct database access sees every tenant, and non-default tenants' signing keys are stored in the database. For stronger separation run a database per tenant (one server each).
 
+## Witnesses
+
+To protect against an operator showing different parties different histories, register independent witnesses per tenant (ADR 0013): an administrator calls `POST /v1/witnesses` with each witness's `key_id` (the fingerprint of its public key) and `public_key`. Each witness runs `witnessStep` from `@act/ledger` on a schedule: it fetches `GET /v1/checkpoint`, proves the history extends the last checkpoint it cosigned (receipts from `GET /v1/receipts`), and files its cosignature with `POST /v1/checkpoints/{size}/witness`. Consumers (auditors, peers) verify with `verifyCheckpoint` against their own witness set and a threshold `k`; with `W` witnesses, fewer than `2k - W` may be corrupt. A tenant with no registered witnesses has no more protection than before. Checkpoints are per tenant.
+
 ## Migrations and Seeding
 
 `createLedgerContext` (`services/api/src/ledger-context.ts`) applies pending migrations idempotently on every server boot, so no separate step is strictly required. `services/api/src/bin/migrate.ts` (`pnpm --filter @act/api run migrate`, compiled to `dist/bin/migrate.js`) exists as a standalone entrypoint so a Helm pre-install/pre-upgrade Job can apply migrations once before any API replica rolls out, rather than relying on whichever replica boots first (`deploy/helm/act/templates/migration-job.yaml`).

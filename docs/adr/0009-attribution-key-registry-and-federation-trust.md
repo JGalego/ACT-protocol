@@ -37,3 +37,4 @@ A review of the release candidate found that the write path verified that signat
 - An event signed by a key later revoked used to be refused at import because trust was evaluated at import time. ADR 0012 judges it at the source ledger's acceptance time instead, which is trustworthy because it comes from the verified source receipt.
 - Role assignments for authority evaluation were operator-asserted here; ADR 0011 derives them from signed accountability assignments instead.
 - Tenant isolation was a documented gap here; ADR 0010 closes it. The key registry, ledger identity and peers described above are now per tenant.
+- The operator remained a trust anchor (it could show different parties different histories). ADR 0013 adds witnessed checkpoints to detect that.

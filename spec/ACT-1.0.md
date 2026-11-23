@@ -171,6 +171,14 @@ A ledger's trust policy determines which actors/keys it accepts events from and 
 
 A ledger that serves more than one tenant MUST keep each tenant's events in a separate ledger: its own ledger id, receipt-signing key, receipt chain, trust state and peer registrations. Nothing recorded for one tenant may be read, used, or detected (through a duplicate, a conflict, a sequence gap, or a trust decision) from another. The tenant is established by authentication and never by the content of a request. An event recorded natively on a tenant's ledger MUST state that tenant in its `tenant` field (`not_applicable` is not permitted there); an event imported from a peer under §14 keeps the tenant of the ledger that authored it. A reference to something that exists only in another tenant's ledger MUST behave exactly as a reference to something that does not exist. Tenants exchange events only through federation (`spec/federation.md`). See ADR 0010.
 
+### 6.6 Checkpoints and Witnesses
+
+The receipt chain (§5.3) makes tampering evident only to someone who already holds a receipt. To let anyone detect an operator that shows different parties different histories, or hides a tail, a ledger MUST be able to issue a **checkpoint**: the ledger id, the number of receipts (`size`), and the digest of the last receipt (`head_digest`, the genesis constant for an empty ledger), signed by the ledger's receipt-signing key under the domain `ACT-CHECKPOINT-v1`. A ledger MUST NOT sign two checkpoints of the same `size` with different `head_digest` values.
+
+A **witness** is an independent party with its own key. Before cosigning a checkpoint it MUST verify, from the ledger's receipts, that the history extends the last checkpoint it cosigned for that ledger (from genesis on first sight): consecutive sequence numbers, each receipt's digest and ledger signature valid, each chaining to the previous, ending at the new `head_digest`. It signs the statement `{ledger_id, size, head_digest}` plus its own signing time under the domain `ACT-WITNESS-v1`, and MUST refuse a checkpoint that does not extend what it last cosigned. Two ledger-signed checkpoints of the same size with different heads are proof of equivocation.
+
+A consumer MUST NOT trust a checkpoint on the ledger's signature alone when it needs this protection: it endorses a checkpoint only with valid cosignatures from at least `k` of its own configured witnesses (it never takes the witness set from the ledger). With `W` witnesses of which fewer than `2k - W` are corrupt, two conflicting histories cannot both be endorsed. Proofs of consistency between checkpoints and of an event's inclusion are the receipts that link them. See ADR 0013.
+
 ## 7. Artifacts, Transformations, and Intent
 
 ### 7.1 Node Classes and Lineage

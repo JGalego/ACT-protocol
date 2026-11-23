@@ -252,6 +252,70 @@ paths:
           schema: { type: integer, minimum: 1, maximum: 500 }
       responses:
         '200': { description: OK }
+  /checkpoint:
+    get:
+      operationId: getCheckpoint
+      summary: The ledger-signed checkpoint for the current head, with every witness cosignature collected for it
+      description: >
+        A checkpoint is the ledger id, the number of receipts, and the digest of the last receipt,
+        signed by the tenant ledger's key (ADR 0013). It is signed once per size. The ledger refuses
+        (409 checkpoint_conflict) to sign a second history for a size it already signed. Consumers
+        endorse it only with cosignatures from their own witness set.
+      responses:
+        '200': { description: OK }
+        '409': { $ref: '#/components/responses/Problem' }
+  /receipts:
+    get:
+      operationId: listReceipts
+      summary: Receipts after a sequence, oldest first: the material for consistency and inclusion proofs
+      parameters:
+        - name: after
+          in: query
+          schema: { type: integer, minimum: -1 }
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 500 }
+      responses:
+        '200': { description: OK }
+  /witnesses:
+    post:
+      operationId: registerWitness
+      summary: Registers a witness (administrator only); key_id must be the fingerprint of public_key
+      responses:
+        '201': { description: Created }
+        '400': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+    get:
+      operationId: listWitnesses
+      summary: Lists this tenant's registered witnesses
+      responses:
+        '200': { description: OK }
+  /witnesses/{keyId}:
+    delete:
+      operationId: removeWitness
+      summary: Removes a witness (administrator only)
+      parameters:
+        - name: keyId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: OK }
+        '404': { $ref: '#/components/responses/Problem' }
+  /checkpoints/{size}/witness:
+    post:
+      operationId: cosignCheckpoint
+      summary: Files a witness cosignature; accepted only from a registered witness with a signature covering that checkpoint
+      parameters:
+        - name: size
+          in: path
+          required: true
+          schema: { type: integer, minimum: 0 }
+      responses:
+        '201': { description: Created }
+        '400': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
   /assignments:
     post:
       operationId: recordAssignment
