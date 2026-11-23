@@ -60,6 +60,10 @@ services:
       # The OIDC subject allowed to admit keys, manage peers and import bundles.
       # Mint its token from the dev provider with {"sub":"platform-admin"}.
       ACT_ADMIN_ACTORS: platform-admin
+      # Single-tenant demo: tokens from the dev provider carry no tenant claim,
+      # so they land in the `default` tenant. Set true (and mint tokens with a
+      # "tenant") for a multi-tenant deployment (ADR 0010).
+      ACT_REQUIRE_TENANT: 'false'
     ports:
       - '4000:4000'
     healthcheck:

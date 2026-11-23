@@ -25,13 +25,27 @@ api:
   # Actor ids (OIDC `sub` claims) allowed to administer this ledger: admit
   # keys, manage federation peers, import bundles. REQUIRED -- the API
   # refuses to start in production without at least one (ACT_ADMIN_ACTORS).
+  # An entry `tenant::actor` administers only that tenant; a bare `actor`
+  # administers whichever tenant their token names.
   adminActors: []
+
+  # Tenancy (ADR 0010). Every tenant gets its own ledger in the shared
+  # database; the tenant is the OIDC token's `act_tenant` claim.
+  # requireTenant: refuse tokens that carry no tenant claim instead of using
+  # the `default` tenant (set false only for a single-tenant deployment whose
+  # IdP does not issue the claim).
+  requireTenant: true
+  # Optional allow-list of tenants that may exist (ACT_TENANTS); empty = any.
+  tenants: []
+  # Upper bound on tenants held in memory at once (ACT_MAX_TENANTS).
+  maxTenants: 1000
 
   # Who may register signing keys: `admin` (default; only adminActors) or
   # `open` (any caller who proves possession of the key). See ADR 0009.
   keyRegistration: admin
 
-  # The ledger's receipt-signing key. By default it is generated once and
+  # The default tenant's receipt-signing key (other tenants always get a
+  # generated key stored in the database). By default it is generated once and
   # stored in the database. To keep the private key out of the database, put
   # its base64 Ed25519 seed in a Secret and reference it here
   # (ACT_LEDGER_PRIVATE_KEY).

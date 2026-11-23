@@ -11,3 +11,8 @@ data:
   ACT_OIDC_AUDIENCE: {{ required "api.oidc.audience is required in production" .Values.api.oidc.audience | quote }}
   ACT_ADMIN_ACTORS: {{ required "api.adminActors needs at least one administrator (OIDC subject)" (join "," .Values.api.adminActors) | quote }}
   ACT_KEY_REGISTRATION: {{ .Values.api.keyRegistration | quote }}
+  ACT_REQUIRE_TENANT: {{ .Values.api.requireTenant | toString | quote }}
+  ACT_MAX_TENANTS: {{ .Values.api.maxTenants | toString | quote }}
+  {{- if .Values.api.tenants }}
+  ACT_TENANTS: {{ join "," .Values.api.tenants | quote }}
+  {{- end }}
