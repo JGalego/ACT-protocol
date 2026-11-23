@@ -22,7 +22,13 @@ function text(value: unknown, fallback: string): string {
   return typeof value === 'string' && value.trim() ? value : fallback;
 }
 
-function eventKind(eventType: string, artifactType: string): EventKind {
+/** Artifact types arrive PascalCase from the API ('SourceCode'); this module compares kebab-case slugs ('source-code'). */
+function artifactSlug(artifactType: string): string {
+  return artifactType.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase();
+}
+
+function eventKind(eventType: string, rawArtifactType: string): EventKind {
+  const artifactType = artifactSlug(rawArtifactType);
   if (eventType.includes('approval')) return 'approval';
   if (eventType.includes('challenge')) return 'challenge';
   if (eventType.includes('verification')) return 'verification';
@@ -36,9 +42,14 @@ function eventKind(eventType: string, artifactType: string): EventKind {
   return 'event';
 }
 
-function eventStatus(kind: EventKind, eventType: string): EventStatus {
+function eventStatus(kind: EventKind, eventType: string, decision?: string): EventStatus {
   if (eventType.includes('revoked') || eventType.includes('challenge')) return 'challenged';
-  if (eventType.includes('approved') || eventType === 'approval_decided') return 'approved';
+  if (eventType === 'approval_decided') {
+    // A decision event records a verdict; only an actual approval is "approved".
+    if (decision === 'approved') return 'approved';
+    return decision === undefined ? 'recorded' : 'challenged';
+  }
+  if (eventType.includes('approved')) return 'approved';
   if (kind === 'verification' || kind === 'test') return 'passed';
   if (kind === 'observation') return 'observed';
   if (kind === 'proposal') return 'proposed';
@@ -85,7 +96,11 @@ function toExplorerEvent(stored: StoredEventWire, index: number): ExplorerEvent 
     sequence: stored.sequence,
     eventType: stored.eventType,
     kind,
-    status: eventStatus(kind, stored.eventType),
+    status: eventStatus(
+      kind,
+      stored.eventType,
+      text(record(data.decision).decision, '') || undefined,
+    ),
     title: titleFor(stored.eventType, data, artifactType),
     summary: text(data.description ?? data.rationale ?? data.scope, 'Recorded ACT ledger event.'),
     timestamp: new Date(stored.acceptedAt).toLocaleTimeString([], { hour12: false }),

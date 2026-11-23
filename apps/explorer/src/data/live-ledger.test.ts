@@ -55,6 +55,52 @@ describe('live ledger adapter', () => {
     expect(scenario.stages[0]?.focusEventId).toBe(scenario.events[0]?.id);
   });
 
+  it('maps API-style PascalCase artifact types and does not show a rejection as approved', async () => {
+    const stored = (n: number, eventType: string, artifactType: string, data: object) => ({
+      eventId: `sha-256:${String(n).repeat(64)}`,
+      sequence: n,
+      eventType,
+      acceptedAt: '2026-07-17T09:00:00.000Z',
+      envelope: {
+        payload: {
+          actor: { actor_id: 'actor:a', key_id: 'ed25519:k' },
+          subject: { kind: 'artifact', artifact_type: artifactType },
+          causal_parents: [],
+          payload: { data },
+        },
+        signatures: [{ key_id: 'ed25519:k', algorithm: 'ed25519', signature: 'x' }],
+      },
+    });
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          items: [
+            stored(1, 'genesis', 'Intent', { statement: 'An intent' }),
+            stored(2, 'genesis', 'SourceCode', { language: 'ts' }),
+            stored(3, 'approval_decided', 'ApprovalDecision', {
+              decision: { decision: 'approved' },
+            }),
+            stored(4, 'approval_decided', 'ApprovalDecision', {
+              decision: { decision: 'rejected' },
+            }),
+            stored(5, 'approval_decided', 'ApprovalDecision', {
+              decision: { decision: 'changes_requested' },
+            }),
+          ],
+          nextCursor: null,
+        }),
+        { status: 200 },
+      ),
+    );
+
+    const { events } = await loadLiveScenario('http://localhost:4000', 'x');
+    expect(events[0]).toMatchObject({ kind: 'intent' });
+    expect(events[1]).toMatchObject({ kind: 'implementation' });
+    expect(events[2]).toMatchObject({ kind: 'approval', status: 'approved' });
+    expect(events[3]).toMatchObject({ kind: 'approval', status: 'challenged' });
+    expect(events[4]).toMatchObject({ kind: 'approval', status: 'challenged' });
+  });
+
   it('explains an empty ledger instead of rendering a blank graph', async () => {
     vi.spyOn(globalThis, 'fetch').mockResolvedValue(
       new Response(JSON.stringify({ items: [], nextCursor: null }), { status: 200 }),
