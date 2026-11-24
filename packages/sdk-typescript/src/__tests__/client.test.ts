@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { ActApiError, ActClient } from '../client.js';
 
-function jsonResponse(status: number, body: unknown): Response {
+function jsonResponse(status: number, body: unknown) {
   return new Response(JSON.stringify(body), {
     status,
     headers: { 'content-type': 'application/json' },
