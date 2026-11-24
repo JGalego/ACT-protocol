@@ -32,14 +32,14 @@
     "@act/core": "workspace:*",
     "@act/crypto": "workspace:*",
     "@act/sdk": "workspace:*",
-    "@apidevtools/json-schema-ref-parser": "^11.7.3",
-    "@typescript-eslint/eslint-plugin": "^8.18.0",
-    "@typescript-eslint/parser": "^8.18.0",
-    "eslint": "^9.17.0",
-    "eslint-config-prettier": "^9.1.0",
-    "json-schema-to-typescript": "^15.0.3",
-    "prettier": "^3.4.2",
-    "tsx": "^4.19.2",
-    "typescript": "^5.7.2"
+    "@apidevtools/json-schema-ref-parser": "^11.9.3",
+    "@typescript-eslint/eslint-plugin": "^8.74.0",
+    "@typescript-eslint/parser": "^8.74.0",
+    "eslint": "^9.39.5",
+    "eslint-config-prettier": "^9.1.2",
+    "json-schema-to-typescript": "^15.0.4",
+    "prettier": "^3.10.1",
+    "tsx": "^4.23.15",
+    "typescript": "^5.9.3"
   }
 }

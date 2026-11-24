@@ -13,6 +13,18 @@ This was not the starting state. `pnpm audit` initially reported 5 advisories ag
 2. Added a `pnpm-workspace.yaml` dependency override (`overrides: { vite: "6.4.3" }`) to force the transitive `vite` dependency past the remaining path-traversal/UNC advisories while staying on the major version supported by the Explorer's React plugin.
 3. Re-ran every package's full test suite after each change (221 unit/integration tests across `packages/core`, `packages/crypto`, `packages/ledger`, `packages/policy`, `packages/verification`, `packages/sdk-typescript`, `services/api`, `apps/cli`, and `apps/explorer`, plus 6 real-browser Explorer tests) to confirm the dependency changes introduced no regressions before accepting them.
 
+## November 2026 Refresh
+
+New advisories were published against the website's Astro/Starlight tree and several transitive dependencies (`fastify`, `find-my-way`, `fast-uri`, `brace-expansion`, `js-yaml`, `sharp`, `vite`, `tinypool`, and others), and the CI `audit` job began failing. Resolved by:
+
+1. `pnpm update -r`, which moved every workspace dependency to the newest release within its existing semver range (including `fastify` >= 5.12.8, the one affected package that ships at runtime, and `astro` 7.4.x).
+2. Raising the `vite` overrides to 6.4.6 (and covering `vite-node>vite`, which the earlier scoped overrides missed), and bumping the Explorer's exact `vite` pin to match.
+3. Adding a `vitest>tinypool` override (2.1.2). Every tinypool 1.x carries a critical worker-options prototype-pollution advisory and `vitest@3` pins `^1`. This is dev tooling only.
+
+`pnpm audit --audit-level=high` now passes. What remains is moderate/low and dev-only: vitest 3's own `vitest`/`@vitest/mocker` advisories (fixed only in vitest >= 4.1.11, a major upgrade that would also need the coverage floors re-validated), `glob`/`minimatch` under `@vitest/coverage-v8`, and `katex` under `mermaid`.
+
+`astro` 7.4 requires Node >= 22.23.4; CI's `node-version: '22'` resolves to a compatible release.
+
 ## How to Reproduce
 
 ```bash

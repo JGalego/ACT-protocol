@@ -15,5 +15,9 @@ overrides:
   # past known moderate/high advisories (GHSA-v6wh-96g9-6wx3 and related);
   # see docs/dependency-audit.md. Scoped to vitest's own vite dependency so it
   # doesn't downgrade the vite ^8 that apps/website's astro depends on directly.
-  'vitest>vite': '6.4.3'
-  '@vitest/coverage-v8>vite': '6.4.3'
+  'vitest>vite': '6.4.6'
+  '@vitest/coverage-v8>vite': '6.4.6'
+  'vite-node>vite': '6.4.6'
+  # vitest 3 pins tinypool ^1; every 1.x is affected by the worker-options
+  # prototype-pollution advisory (critical, dev-tooling only), fixed in 2.1.2.
+  'vitest>tinypool': '2.1.2'
