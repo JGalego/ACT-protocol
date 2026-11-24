@@ -6,9 +6,13 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "sync-spec": "node scripts/sync-spec.mjs",
+    "predev": "node scripts/sync-spec.mjs",
     "dev": "astro dev",
+    "prebuild": "node scripts/sync-spec.mjs",
     "build": "astro build",
     "preview": "astro preview",
+    "pretypecheck": "node scripts/sync-spec.mjs",
     "typecheck": "astro check",
     "clean": "rm -rf dist .astro"
   },

@@ -6,6 +6,7 @@ on:
     paths:
       - apps/website/**
       - apps/explorer/**
+      - spec/**
       - .github/workflows/deploy-website.yml
   workflow_dispatch:
 

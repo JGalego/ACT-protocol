@@ -3,20 +3,20 @@ title: Specification
 description: An overview of the normative ACT 1.0 specification, covering node classes, the transformation contract, intent authority, and the companion documents.
 ---
 
-The normative specification lives in [`spec/ACT-1.0.md`](https://github.com/JGalego/ACT-protocol/blob/main/spec/ACT-1.0.md) on GitHub, alongside four companion documents. This page is a map of that content, not a replacement for it. Where the two disagree, the spec wins.
+The normative specification is rendered in full on this site: [ACT 1.0](/specification/act-1-0/), alongside four companion documents. This page is a map of that content, not a replacement for it. Where the two disagree, the spec wins.
 
 ## The normative document
 
-[`spec/ACT-1.0.md`](https://github.com/JGalego/ACT-protocol/blob/main/spec/ACT-1.0.md) covers, in order: notational conventions, terminology, identities and versions, canonicalization and signatures, the event envelope and ledger receipts, ledger and storage semantics, artifacts/transformations/intent, approval and accountability, confidence, uncertainty, evidence/verification/challenges, policy evaluation, the formal model, federation, privacy, versioning/extension/conformance, and security/privacy considerations.
+[ACT 1.0](/specification/act-1-0/) covers, in order: notational conventions, terminology, identities and versions, canonicalization and signatures, the event envelope and ledger receipts, ledger and storage semantics, artifacts/transformations/intent, approval and accountability, confidence, uncertainty, evidence/verification/challenges, policy evaluation, the formal model, federation, privacy, versioning/extension/conformance, and security/privacy considerations.
 
 ## Companion documents
 
 | Document | Covers |
 | --- | --- |
-| [`spec/semantic-model.md`](https://github.com/JGalego/ACT-protocol/blob/main/spec/semantic-model.md) | The entities `ACT-1.0.md` references (Intent, Interpretation, Artifact, Transformation, Revision, Evidence, Approval, Authorization, Accountability Assignment, Confidence Assessment, …) and the relations between them. |
-| [`spec/state-machines.md`](https://github.com/JGalego/ACT-protocol/blob/main/spec/state-machines.md) | Every lifecycle (artifact version, approval, challenge, effective intent) as an explicit state machine. Every transition is one new signed Event, never a mutation of an existing record. |
-| [`spec/federation.md`](https://github.com/JGalego/ACT-protocol/blob/main/spec/federation.md) | Peer-to-peer federation between independently operated ledgers: bundle format, trust policy, causal order via `causal_parents` (never wall-clock time). |
-| [`spec/conformance.md`](https://github.com/JGalego/ACT-protocol/blob/main/spec/conformance.md) | The Core, Cryptographic Integrity, Secure Service, Federation, SDK, and Explorer conformance profiles, and the fixture categories a claimant must pass to certify each. |
+| [`spec/semantic-model.md`](/specification/semantic-model/) | The entities `ACT-1.0.md` references (Intent, Interpretation, Artifact, Transformation, Revision, Evidence, Approval, Authorization, Accountability Assignment, Confidence Assessment, …) and the relations between them. |
+| [`spec/state-machines.md`](/specification/state-machines/) | Every lifecycle (artifact version, approval, challenge, effective intent) as an explicit state machine. Every transition is one new signed Event, never a mutation of an existing record. |
+| [`spec/federation.md`](/specification/federation/) | Peer-to-peer federation between independently operated ledgers: bundle format, trust policy, causal order via `causal_parents` (never wall-clock time). |
+| [`spec/conformance.md`](/specification/conformance/) | The Core, Cryptographic Integrity, Secure Service, Federation, SDK, and Explorer conformance profiles, and the fixture categories a claimant must pass to certify each. |
 
 ## Node classes and lineage
 

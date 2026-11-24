@@ -51,7 +51,18 @@ export default defineConfig({
         {
           label: 'Reference',
           items: [
-            { label: 'Specification', slug: 'specification' },
+            {
+              label: 'Specification',
+              collapsed: true,
+              items: [
+                { label: 'Overview', slug: 'specification' },
+                { label: 'ACT 1.0', slug: 'specification/act-1-0' },
+                { label: 'Semantic Model', slug: 'specification/semantic-model' },
+                { label: 'State Machines', slug: 'specification/state-machines' },
+                { label: 'Federation', slug: 'specification/federation' },
+                { label: 'Conformance', slug: 'specification/conformance' },
+              ],
+            },
             { label: 'API Reference', slug: 'api-reference' },
             { label: 'Design Decisions', slug: 'design-decisions' },
             { label: 'Roadmap', slug: 'roadmap' },
