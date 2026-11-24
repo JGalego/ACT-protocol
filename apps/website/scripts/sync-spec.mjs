@@ -15,11 +15,37 @@ const repo = 'https://github.com/JGalego/ACT-protocol';
 
 /** source file -> served slug under /specification/ */
 const pages = [
-  { src: 'ACT-1.0.md', slug: 'act-1-0', label: 'ACT 1.0', description: 'The normative ACT 1.0 specification: identities, canonicalization, events, ledger, transformations, approvals, policy, federation, and conformance.' },
-  { src: 'semantic-model.md', slug: 'semantic-model', label: 'Semantic Model', description: 'The entities ACT 1.0 references and the relations between them.' },
-  { src: 'state-machines.md', slug: 'state-machines', label: 'State Machines', description: 'Every ACT lifecycle expressed as an explicit state machine.' },
-  { src: 'federation.md', slug: 'federation', label: 'Federation', description: 'Peer-to-peer federation between independently operated ACT ledgers.' },
-  { src: 'conformance.md', slug: 'conformance', label: 'Conformance', description: 'The ACT conformance profiles and the fixtures a claimant must pass.' },
+  {
+    src: 'ACT-1.0.md',
+    slug: 'act-1-0',
+    label: 'ACT 1.0',
+    description:
+      'The normative ACT 1.0 specification: identities, canonicalization, events, ledger, transformations, approvals, policy, federation, and conformance.',
+  },
+  {
+    src: 'semantic-model.md',
+    slug: 'semantic-model',
+    label: 'Semantic Model',
+    description: 'The entities ACT 1.0 references and the relations between them.',
+  },
+  {
+    src: 'state-machines.md',
+    slug: 'state-machines',
+    label: 'State Machines',
+    description: 'Every ACT lifecycle expressed as an explicit state machine.',
+  },
+  {
+    src: 'federation.md',
+    slug: 'federation',
+    label: 'Federation',
+    description: 'Peer-to-peer federation between independently operated ACT ledgers.',
+  },
+  {
+    src: 'conformance.md',
+    slug: 'conformance',
+    label: 'Conformance',
+    description: 'The ACT conformance profiles and the fixtures a claimant must pass.',
+  },
 ];
 
 const slugBySource = new Map(pages.map((p) => [`spec/${p.src}`, `/specification/${p.slug}/`]));
