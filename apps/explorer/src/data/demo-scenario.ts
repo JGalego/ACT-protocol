@@ -404,7 +404,8 @@ const events: ExplorerEvent[] = [
     position: { x: 510, y: 330 },
     digestCharacter: 'a',
     semanticChange: 'Observed outcome',
-    rationale: 'Runtime evidence closes the loop between intent and measured outcome.',
+    rationale:
+      'The pilot observation compares response time and retained message content with the intent.',
     assumptions: ['Pilot traffic is representative of ordinary support volume.'],
     uncertainties: ['Long-term multilingual performance still requires monitoring.'],
     evidence: [
@@ -436,7 +437,7 @@ const events: ExplorerEvent[] = [
 export const demoScenario: ExplorerScenario = {
   id: 'support-intent-drift',
   name: 'Support triage with an intent challenge',
-  description: 'A complete accountable transformation, including a drift finding and resolution.',
+  description: 'Support triage with a challenge over message retention.',
   source: 'demonstration',
   sourceDetail: 'Deterministic demonstration ledger; identities and digests are non-production.',
   events,
@@ -445,9 +446,9 @@ export const demoScenario: ExplorerScenario = {
       id: 'intent',
       label: 'Intent',
       eyebrow: 'Human intent recorded',
-      title: 'The constraint begins with the intent',
+      title: 'Intent and privacy constraint',
       description:
-        'Maya records both the desired outcome and a hard privacy boundary. ACT preserves this as an immutable baseline instead of relying on memory.',
+        'Maya records the support goal and requires deletion of customer messages after resolution. The signed intent remains the baseline.',
       focusEventId: 'intent-support',
       visibleThrough: 1,
       callout: {
@@ -461,7 +462,7 @@ export const demoScenario: ExplorerScenario = {
       id: 'proposal',
       label: 'Proposal',
       eyebrow: 'AI proposal attributed',
-      title: 'An AI proposes a path, not a decision',
+      title: 'AI-assisted triage proposal',
       description:
         'The planner suggests assisted triage and drafts. Its assumptions and benchmark evidence remain attached to the proposal.',
       focusEventId: 'proposal-ai-triage',
@@ -477,9 +478,9 @@ export const demoScenario: ExplorerScenario = {
       id: 'transform',
       label: 'Transform',
       eyebrow: 'Meaning transformed',
-      title: 'A hidden assumption enters the chain',
+      title: 'Requirements add a retention cache',
       description:
-        'Turning the proposal into requirements introduces a 30-day cache. ACT records the assumption even though its conflict has not yet been recognized.',
+        'The requirements introduce a 30-day message cache. The transformation records this assumption before the privacy conflict is detected.',
       focusEventId: 'transformation-requirements',
       visibleThrough: 3,
       callout: {
@@ -493,9 +494,9 @@ export const demoScenario: ExplorerScenario = {
       id: 'approve',
       label: 'Approve',
       eyebrow: 'Scoped authorization',
-      title: 'Approval authorizes an exact version',
+      title: 'Pilot approval bound to a version',
       description:
-        'Maya signs a limited pilot approval against the requirement digest. The approval is attributable, scoped, and expiring; it does not erase other obligations.',
+        'Maya signs a pilot approval bound to the requirement digest, with a case limit and expiry.',
       focusEventId: 'approval-v1',
       visibleThrough: 4,
       callout: {
@@ -509,9 +510,9 @@ export const demoScenario: ExplorerScenario = {
       id: 'implement',
       label: 'Build',
       eyebrow: 'Implementation linked',
-      title: 'Code traces to inputs and authority',
+      title: 'Implementation lineage',
       description:
-        'The builder implements the approved requirements exactly. Both the requirement and authorization appear as typed lineage edges.',
+        'The builder implements the approved requirements. Typed lineage edges link the implementation to its requirement and approval.',
       focusEventId: 'implementation-v1',
       visibleThrough: 5,
       callout: {
@@ -525,9 +526,9 @@ export const demoScenario: ExplorerScenario = {
       id: 'test',
       label: 'Test',
       eyebrow: 'Behavior verified',
-      title: 'Passing tests are necessary, not sufficient',
+      title: 'Behavior tests pass',
       description:
-        'Every implementation test passes. The report proves conformance to the requirements, but it makes no claim that those requirements preserve the root intent.',
+        'Tests pass against the implementation requirements. The report does not assess whether those requirements preserve the root intent.',
       focusEventId: 'test-v1',
       visibleThrough: 6,
       callout: {
@@ -541,9 +542,9 @@ export const demoScenario: ExplorerScenario = {
       id: 'verify',
       label: 'Verify',
       eyebrow: 'Semantic verification',
-      title: 'The baseline exposes intent drift',
+      title: 'Retention conflicts with the intent',
       description:
-        'An independent verifier compares the implementation chain with the root intent. Technical confidence remains high while semantic confidence falls sharply.',
+        'The verifier finds that retaining messages after resolution violates the root intent. Implementation confidence remains high; semantic confidence falls.',
       focusEventId: 'semantic-verification',
       visibleThrough: 7,
       callout: {
@@ -557,9 +558,9 @@ export const demoScenario: ExplorerScenario = {
       id: 'challenge',
       label: 'Challenge',
       eyebrow: 'Human challenge opened',
-      title: 'A challenge blocks release without rewriting history',
+      title: 'Privacy challenge blocks release',
       description:
-        'Maya challenges the approved version. The approval remains part of history, while policy prevents the disputed release from proceeding.',
+        'Maya challenges the approved version. Its approval stays in the ledger while policy blocks the disputed release.',
       focusEventId: 'challenge-retention',
       visibleThrough: 8,
       callout: {
@@ -573,9 +574,9 @@ export const demoScenario: ExplorerScenario = {
       id: 'revise',
       label: 'Revise',
       eyebrow: 'Constraint restored',
-      title: 'The chain records its correction',
+      title: 'Revision restores the retention constraint',
       description:
-        'The implementation is revised to use ephemeral processing. New evidence proves deletion at case resolution and the semantic comparison passes.',
+        'The implementation is revised to use ephemeral processing. Deletion evidence is recorded and the semantic comparison passes.',
       focusEventId: 'revision-ephemeral',
       visibleThrough: 9,
       callout: {
@@ -589,9 +590,9 @@ export const demoScenario: ExplorerScenario = {
       id: 'observe',
       label: 'Observe',
       eyebrow: 'Outcome observed',
-      title: 'Runtime evidence closes the loop',
+      title: 'Pilot response time and retention results',
       description:
-        'The pilot improves response time without residual message content. ACT retains the full path from intent through correction to observed outcome.',
+        'The pilot records faster responses and no residual message content. The observation links to the implementation revision.',
       focusEventId: 'release-observation',
       visibleThrough: 10,
       callout: {

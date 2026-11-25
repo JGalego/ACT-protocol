@@ -17,7 +17,6 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks: {
-          graph: ['cytoscape'],
           icons: ['lucide-react'],
           react: ['react', 'react-dom'],
         },
