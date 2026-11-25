@@ -3,7 +3,7 @@ title: Specification
 description: An overview of the normative ACT 1.0 specification, covering node classes, the transformation contract, intent authority, and the companion documents.
 ---
 
-The normative specification is rendered in full on this site: [ACT 1.0](/specification/act-1-0/), alongside four companion documents. This page is a map of that content, not a replacement for it. Where the two disagree, the spec wins.
+Read [ACT 1.0](/specification/act-1-0/) and the companion documents below for normative requirements.
 
 ## The normative document
 
@@ -20,7 +20,7 @@ The normative specification is rendered in full on this site: [ACT 1.0](/specifi
 
 ## Node classes and lineage
 
-The semantic graph has five signed node classes: **Artifact**, **Transformation**, **Attestation**, **Policy**, and **Evidence**. **Events** sit alongside them as the append-only record of changes to the other four. Lineage between nodes is represented as typed, many-to-many edges pointing from a new node to the existing node(s) it depends on. Signed records never contain mutable `children` or "current state" arrays; descendants and current heads are always computed projections, never signed facts.
+The semantic graph's signed node classes are **Artifact**, **Transformation**, **Attestation**, **Policy**, and **Evidence**. **Events** are append-only records of changes to these nodes. Lineage between nodes is represented as typed, many-to-many edges pointing from a new node to the existing node(s) it depends on. Signed records never contain mutable `children` or "current state" arrays; descendants and current heads are always computed projections, never signed facts.
 
 ```mermaid
 flowchart LR
@@ -59,7 +59,7 @@ A classification is an **attributed claim**, identifying the actor who made it, 
 
 ## Intent authority and revision
 
-A conforming implementation distinguishes three states an Intent can be in:
+Intent authority distinguishes:
 
 - **root intent**: the immutable Genesis-event-originated Intent artifact version that begins an intent lineage.
 - **proposed intent**: an Intent artifact version submitted but not yet selected as effective by the applicable authority policy.
@@ -67,4 +67,4 @@ A conforming implementation distinguishes three states an Intent can be in:
 
 ## Versioning
 
-Four version identifiers change independently: `protocol_version` (this specification's version, e.g. `act/1.0`), schema version (per-`$id` version segment under `schemas/`), API version (the `/v1` path prefix), and implementation version (the semantic version of a specific SDK, service, or CLI build). See [`docs/versioning.md`](https://github.com/JGalego/ACT-protocol/blob/main/docs/versioning.md) on GitHub for the full compatibility and extension rules.
+Version identifiers change independently: `protocol_version` (this specification's version, e.g. `act/1.0`), schema version (per-`$id` version segment under `schemas/`), API version (the `/v1` path prefix), and implementation version (the semantic version of a specific SDK, service, or CLI build). See [`docs/versioning.md`](https://github.com/JGalego/ACT-protocol/blob/main/docs/versioning.md) on GitHub for compatibility and extension rules.

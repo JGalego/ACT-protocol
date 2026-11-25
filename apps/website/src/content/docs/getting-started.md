@@ -18,20 +18,20 @@ cd act-protocol
 pnpm install
 ```
 
-The artifact-type schemas and their TypeScript types are already generated and committed. You only need this if you change a schema and want to regenerate them yourself.
+The generated artifact schemas and TypeScript types are committed. Regenerate them after changing their sources:
 
 ```bash
 pnpm run generate:artifact-types
 pnpm run generate:types
 ```
 
-Then run every offline quality gate at once: formatting, linting, strict type checking, schema fixture validation, and the full test suite.
+Run the offline checks: formatting, linting, type checking, schema fixtures, and tests.
 
 ```bash
 make verify
 ```
 
-Working on a single package instead? Every package under `packages/`, `services/`, and `apps/` builds and tests independently, so `pnpm --filter @act/ledger run test` finishes in a fraction of the time `make verify` takes.
+Packages build and test independently. For a targeted test run, use a filter such as `pnpm --filter @act/ledger run test`.
 
 ## Run the animated protocol demonstration
 
@@ -40,11 +40,11 @@ pnpm run dev:explorer
 # -> ACT Explorer at http://localhost:4173
 ```
 
-The seeded walkthrough animates a complete accountable chain: human intent, an AI proposal, a requirements transformation, a scoped approval, implementation, tests, a semantic drift finding, a human challenge, a revision, and a runtime observation. Use play/pause, step controls, arrow keys, or the timeline scrubber. Select any record to inspect its rationale, assumptions, uncertainty, evidence, lineage, confidence, and envelope content. The **Data source** control can also load ordered signed envelopes from a running ACT `/v1/events` endpoint. Seeded identities and digests are visibly marked as non-production demonstration data.
+The walkthrough follows human intent through an AI proposal, requirements, approval, implementation, tests, a drift finding, a challenge, a revision, and a runtime observation. Use playback, step controls, arrow keys, or the timeline scrubber; select a record to inspect its rationale, assumptions, uncertainty, evidence, lineage, confidence, and envelope. The **Data source** control loads ordered signed envelopes from an ACT `/v1/events` endpoint. Seeded identities and digests are marked as non-production demonstration data.
 
-:::tip[Five more scenarios beyond the Explorer]
+:::tip[API examples]
 
-`pnpm --filter @act/examples run test` runs five more seeded, assertion-backed walkthroughs alongside this one, including enterprise quorum approval, competing AI proposals, and cross-ledger federation. See [Examples](/examples/) for what each one proves.
+`pnpm --filter @act/examples run test` runs API scenarios covering enterprise quorum approval, competing AI proposals, and cross-ledger federation. See [Examples](/examples/).
 
 :::
 
@@ -68,16 +68,16 @@ node <path-to-repo>/apps/cli/dist/bin/act.js intent create "Ship the thing" --js
 node <path-to-repo>/apps/cli/dist/bin/act.js verify --json
 ```
 
-Once published, this will just be `npm install -g @act/cli && act init`.
+After publication: `npm install -g @act/cli && act init`.
 
 ## Building against ACT from your own code
 
-Reach for [`@act/sdk`](/sdks/) in TypeScript or [`act-sdk`](/sdks/) in Python rather than hand-building signed envelopes yourself. Both handle canonicalization, digesting, and Ed25519 signing, and both are checked against the same conformance vectors, so an event built with one is indistinguishable from an event built with the other by the time it reaches the API.
+Use [`@act/sdk`](/sdks/) in TypeScript or [`act-sdk`](/sdks/) in Python to canonicalize, digest, sign, and submit events. Both are checked against shared conformance vectors.
 
 ## Next steps
 
-- [Architecture](/architecture/) walks through how a transformation actually flows through the protocol.
+- [Architecture](/architecture/) describes the event write path.
 - [Specification](/specification/) covers the normative node classes, semantic-change taxonomy, and intent authority model.
 - [API Reference](/api-reference/) lists every `/v1` operation the reference service implements.
-- [Examples](/examples/) has six more seeded end-to-end scenarios. [Deployment](/deployment/) runs the full stack via Docker Compose or Helm.
+- [Examples](/examples/) covers the API scenarios and Explorer walkthrough. [Deployment](/deployment/) describes Docker Compose and Helm.
 - [Design Decisions](/design-decisions/) covers the history behind ACT's less obvious implementation choices.

@@ -1,43 +1,43 @@
 ---
 title: Examples
-description: Six executable, seeded examples covering the full ACT protocol lifecycle, each running against a real API instance.
+description: An animated Explorer walkthrough and executable API scenarios.
 ---
 
-Each scenario below runs end-to-end against a real, in-memory `services/api` instance, never mocked. Every one includes signed fixtures, policies, assumptions, evidence, and approvals, plus at least one revision where that applies, real verification output, and assertions that prove the expected outcome actually happened.
+The Explorer supplies the animated walkthrough. API scenarios under `examples/` submit signed envelopes to in-memory SQLite-backed service instances and check policies, approvals, revisions, evidence, and verification results.
 
 | # | Example | Distinctive feature |
 | --- | --- | --- |
 | 1 | A single human collaborating with an AI coding assistant | The animated support-triage walkthrough. See the [live Explorer](/explorer/) |
-| 2 | Product team: intent → requirements → implementation → tests → approval | A real revision after a failed test run |
+| 2 | Product team: intent → requirements → implementation → tests → approval | A revision after a failed test run |
 | 3 | AI-agent group producing competing proposals and a reviewed merge | Both proposals stay on the ledger; only the chosen one is carried forward |
-| 4 | Enterprise: OIDC identities, quorum approval, restricted evidence, audit export | Real production OIDC/JWT auth, not the local dev bearer scheme, with a real `@act/policy` quorum evaluation |
-| 5 | Open-source collaboration with external contributions and signed bundle federation | Two independent `services/api` instances doing a real peer-to-peer federation pull |
-| 6 | Safety-critical workflow with separation of duties, formal evidence, and an unresolved challenge | A release-readiness check that reads real, immutable, append-only ledger state |
+| 4 | Enterprise: OIDC identities, quorum approval, restricted evidence, audit export | JWT verification and `@act/policy` quorum evaluation |
+| 5 | Open-source collaboration with external contributions and signed bundle federation | Independent API instances exchanging a bundle over HTTP |
+| 6 | Safety-critical workflow with separation of duties, formal evidence, and an unresolved challenge | A release-readiness check using the latest recorded challenge status |
 
 ## Running them
 
 ```bash
-# All six
+# API scenarios
 pnpm --filter @act/examples run test
 
 # Just one
 pnpm --filter @act/examples exec vitest run product-team-workflow
 ```
 
-:::tip[Reading these before writing your own integration]
+:::tip[Writing an integration]
 
-Each example lives under `examples/<name>/` as a single, readable Vitest spec. Start from whichever one's shape is closest to what you're building, rather than re-deriving the request sequence from `spec/ACT-1.0.md` by hand.
+Each API example is a Vitest spec under `examples/<name>/`. Use the closest scenario as a reference for request order and payloads. Run the Explorer separately with `pnpm run dev:explorer`.
 
 :::
 
-## What each one proves
+## Scenario coverage
 
-- **Product team workflow**: intent through requirements, implementation, tests, and a policy-required approval, with one real revision after the implementation's first test run fails.
-- **Competing AI proposals**: two independent AI agents each propose a different approach to the same intent, and a human reviewer records a Decision selecting one. The rejected proposal isn't deleted. It stays on the ledger, attributed and inspectable.
-- **Enterprise OIDC quorum**: actors authenticate via real JWTs issued by the deterministic dev OIDC provider rather than the local dev bearer scheme, and an approval requires a genuine multi-approver quorum evaluated by `@act/policy`, not a hand-checked count.
-- **Open-source federation**: an external contributor works entirely on their own independently-hosted ledger, never sharing a database with upstream. The maintainer's ledger pulls the contribution over real HTTP and re-verifies it against local trust policy before accepting it.
-- **Safety-critical challenge**: separation of duties, formal verification evidence, and a Challenge that's raised but not yet resolved by the time a release-readiness check runs. This proves the check reads real, current ledger state rather than an assumed-clean history.
+- **Product team workflow**: a failed test leads to a Task revision, followed by a passing test and policy-required approval.
+- **Competing AI proposals**: a human Decision selects one proposal; both remain on the ledger.
+- **Enterprise OIDC quorum**: JWTs from the local OIDC provider exercise the production verifier. `@act/policy` checks quorum and separation of duties.
+- **Open-source federation**: the maintainer pulls a contribution from an independent ledger over HTTP and verifies it against local trust policy.
+- **Safety-critical challenge**: a recorded challenge blocks the example's readiness check until a resolution is recorded. The formal evidence is illustrative; the test checks how ACT records and uses it.
 
 ## Shared fixtures
 
-[`examples/shared/fixtures.ts`](https://github.com/JGalego/ACT-protocol/blob/main/examples/shared/fixtures.ts) generalizes the envelope-building helpers proven in `services/api`'s own test suite across every artifact type an example needs: Intent, Requirement, Task, Test, AIProposal, Decision, Evidence, Policy, ApprovalRequest, ApprovalDecision, Challenge, VerificationReport, and Transformation, plus real HTTP server helpers. Every payload shape matches a real schema, and where one exists, the real positive fixture under `schemas/**/fixtures/positive/`. Nothing here is hand-derived without a schema-shaped source of truth.
+[`examples/shared/fixtures.ts`](https://github.com/JGalego/ACT-protocol/blob/main/examples/shared/fixtures.ts) provides artifact and envelope builders plus HTTP server helpers. Payloads follow the schemas and their positive fixtures.

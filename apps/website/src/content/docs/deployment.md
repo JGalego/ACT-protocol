@@ -1,12 +1,12 @@
 ---
 title: Deployment
-description: Running ACT as a full local stack via Docker Compose, or in Kubernetes via the Helm chart.
+description: Running ACT with Docker Compose or Kubernetes.
 ---
 
-Two deployment shapes exist under `deploy/`, both built from the same hardened, non-root, multi-stage Dockerfiles (`deploy/docker/api.Dockerfile`, `deploy/docker/explorer.Dockerfile`):
+Deployment options under `deploy/` use the API and Explorer's non-root, multi-stage Dockerfiles:
 
-- **`deploy/compose/`**: a full local/demo stack via Docker Compose.
-- **`deploy/helm/act/`**: a Helm chart for a production-shaped Kubernetes deployment.
+- **`deploy/compose/`**: a local/demo stack using Docker Compose.
+- **`deploy/helm/act/`**: a Kubernetes Helm chart.
 
 ## Local stack topology
 
@@ -31,7 +31,7 @@ flowchart LR
     Otel -->|scrapes GET /v1/metrics| API
 ```
 
-Everything here is for local and demo use: fixed development-only credentials, and the OIDC provider mints tokens on request with no real login flow.
+The Compose stack is for local/demo use. It has fixed development credentials, and the OIDC provider issues tokens on request without authenticating users.
 
 | Service | Purpose |
 | --- | --- |
@@ -39,11 +39,11 @@ Everything here is for local and demo use: fixed development-only credentials, a
 | `oidc-provider` | A deterministic, offline OIDC issuer (discovery, JWKS, token endpoint) that exercises the API's production OIDC/JWT path without a paid identity provider |
 | `api` | `services/api`, `ACT_STORAGE=postgres`, pointed at both of the above |
 | `explorer` | The static Vite build of `apps/explorer`, served by nginx |
-| `otel-collector` | Scrapes the API's real `GET /v1/metrics` (Prometheus text format) and logs what it collected. A genuinely functioning pipeline, not a placeholder |
+| `otel-collector` | Scrapes `GET /v1/metrics` (Prometheus text format) and logs samples through the `debug` exporter |
 
-:::tip[Exercising OIDC without a paid identity provider]
+:::note[Development OIDC provider]
 
-The `oidc-provider` service is a real, deterministic OIDC issuer, not a mock. Point `ACT_OIDC_ISSUER` at it and the API's production JWT-validation path runs exactly as it would against Okta, Auth0, or Entra ID.
+Point `ACT_OIDC_ISSUER` at `oidc-provider` to test discovery, JWKS retrieval, and JWT validation locally. It exercises the production verifier but does not provide a login flow.
 
 :::
 
@@ -68,9 +68,9 @@ The `oidc-provider` service is a real, deterministic OIDC issuer, not a mock. Po
 | `ACT_ALLOW_PRIVATE_PEERS` | `false` (`true` in dev mode) | Permit federation peers on loopback/private/link-local addresses. Leave off in production: it is the SSRF guard |
 | `ACT_AUTHORITY_POLICY_FILE` | — | Path to a JSON file `{ "policy": <authority policy> }`: which roles may select or merge an effective intent, and the quorum. Who holds a role is not configuration: it comes from signed accountability assignments (`POST /v1/assignments`, ADR 0011), and a file that still has `actorRoles` stops the server from starting. Without it no one may select or merge an effective intent (`authority_policy_required`) |
 
-A ledger's identity (its id and receipt-signing key) is created once and stored in its database, so every replica of one database shares it and a restart keeps it. Peers pin it out of band via `GET /v1/ledger`. Egress policy is the complete defense against SSRF through federation peers: the API re-resolves a peer's host before each call and refuses redirects, but a network policy limiting outbound traffic to known peers closes the remaining DNS-rebinding race.
+A ledger's id and receipt-signing key are stored in its database and shared by replicas. Peers pin that identity out of band via `GET /v1/ledger`. The API resolves peer hosts before each call and refuses redirects, but a DNS-rebinding race remains; restrict outbound traffic to known peers at the network layer.
 
-`NODE_ENV=production` fails closed at startup unless exactly one of `ACT_DEV_MODE=true` (never in production) or both OIDC variables are set. See `services/api/src/server.ts`.
+Production requires OIDC configuration and at least one administrator. `ACT_DEV_MODE=true` is rejected in production. See `services/api/src/server.ts`.
 
 ## Tenants
 
@@ -97,7 +97,7 @@ helm install act deploy/helm/act \
   --set existingSecret=act-db-credentials
 ```
 
-Secure defaults come out of the box: non-root, read-only root filesystem, dropped capabilities, a `NetworkPolicy`, a `PodDisruptionBudget`, a pre-install migration Job, and an `existingSecret` pattern for the database connection string. No connection string ever lives in a `values.yaml` or a ConfigMap.
+The chart defaults to non-root containers, a read-only root filesystem, dropped capabilities, `NetworkPolicy`, and `PodDisruptionBudget`. It includes a migration Job and supports existing database Secret references for production credentials.
 
 ## Verifying without a Docker daemon or live cluster
 
@@ -105,10 +105,10 @@ Secure defaults come out of the box: non-root, read-only root filesystem, droppe
 make verify-deploy
 ```
 
-This statically validates everything above: `helm lint` and `helm template`, plus `kubeconform` schema validation and `hadolint` Dockerfile linting, all without needing Docker or Kubernetes. CI's `deploy-lint` job additionally runs a real `docker compose ... config` check.
+This runs `helm lint` and `helm template`, plus `kubeconform` and `hadolint` when installed. CI installs those tools and also checks Compose configuration with `docker compose ... config`.
 
-:::note[Why this repo's own sandbox can't run it end-to-end]
+:::note[Validation limits]
 
-This development environment has no usable Docker daemon (WSL2 without the Docker Desktop integration enabled), so the Compose stack and Dockerfiles are statically validated here but not actually built or run in this specific sandbox. CI's `deploy-lint` job, and `make verify-integration`'s real dockerized PostgreSQL run, are the actual proof. See `scripts/integration-smoke.ts` for the exact HTTP smoke sequence it exercises against a real, containerized `services/api`.
+During development, static checks passed and the HTTP smoke sequence ran against embedded PostgreSQL. That did not validate container builds or a complete Compose deployment. `make verify-integration` requires Docker and runs `scripts/integration-smoke.ts` against the built API with PostgreSQL.
 
 :::

@@ -1,19 +1,17 @@
 ---
 title: Architecture
-description: How the ACT reference implementation is laid out, and how a transformation actually flows through it.
+description: Repository layout, event submission, approval, verification, and federation.
 ---
 
-The best way to understand ACT is to follow one transformation from the moment a client signs it to the moment an independent verifier checks it. That's exactly what the [live ACT Explorer](/explorer/) animates end to end, so it's worth keeping open alongside this page.
+The [ACT Explorer](/explorer/) animates event submission, approval, verification, and a challenged revision. This page describes the packages and write path behind those operations.
 
 ## Repository layout
-
-Before tracing that path, here's where everything lives:
 
 ```text
 spec/            Normative ACT 1.0 specification (protocol, semantic model,
                   state machines, federation, conformance profiles)
 schemas/          JSON Schema 2020-12 for every wire format: events, the
-                  DSSE signed envelope, ledger receipts, all 28 artifact
+                  DSSE signed envelope, ledger receipts, artifact
                   types, policies, approvals, challenges, federation bundles,
                   with positive and negative fixtures for each
 packages/
@@ -25,11 +23,11 @@ packages/
                   quarantine
   policy/         Deterministic approval-requirement and authority-selection
                   evaluation, quorum, separation of duties
-  verification/   Integrity/lineage/approval checks; all three required
+  verification/   Integrity/lineage/approval checks; required
                   semantic assessors (structural, AI, human)
-  sdk-typescript/ Ergonomic, retrying HTTP client and event builder
+  sdk-typescript/ Retrying HTTP client and event builder
 services/
-  api/            Fastify HTTP service implementing a working /v1 slice,
+  api/            Fastify HTTP service implementing a /v1 subset,
                   with an OpenAPI 3.1 contract and RFC 9457 errors
 apps/
   cli/            The `act` command-line tool, operating against a local
@@ -41,17 +39,17 @@ docs/             Guides, threat model, versioning, roadmap, ADRs
 
 Every package builds independently (`pnpm --filter <name> run build`) and ships its own test suite. `packages/core`, `packages/crypto`, `packages/ledger`, `packages/policy`, and `packages/verification` hold at least 90% branch coverage; everything else holds at least 80%.
 
-## Following a transformation through the system
+## Transformation flow
 
-It starts with a client, either the CLI or anything built on `packages/sdk-typescript`, building an unsigned event and signing it with an Ed25519 key held locally. The signed envelope goes to `services/api`. The server itself never signs anything on a caller's behalf; it only ever verifies what arrives.
+The CLI or TypeScript SDK builds an unsigned event and signs it with a locally held Ed25519 key. The signed envelope goes to `services/api`; event signing remains client-side.
 
-That verification is where the real gatekeeping happens. `services/api` validates the envelope's schema, recomputes its digest, checks every attached signature, evaluates trust policy, confirms the causal parents are known, and rejects the write outright if it would create a lineage cycle. Only once all of that passes does it append the event and issue a hash-chained receipt through `packages/ledger`. That's the full nine-step write path from `spec/ACT-1.0.md` section 6.1, traced below.
+The API validates the schema, recomputes digests, checks signatures and key bindings, evaluates trust and authorization policy, and checks causal parents and lineage. Accepted events receive a hash-chained receipt through `packages/ledger`. `spec/ACT-1.0.md` section 6.1 defines the atomic write path shown below.
 
-A receipt being issued isn't the end of the story, though. `packages/verification` can independently re-check integrity, lineage completeness, and approval validity at any later point, and what it produces is an explained, attributable finding rather than a single collapsed "valid" boolean. Whether a transformation needed approval in the first place, and under what quorum, was never a flag someone flipped by hand either. `packages/policy` decides that purely as a function of the current policy version and the request itself.
+`packages/verification` independently checks integrity, lineage completeness, and approval validity, returning separate, attributable findings. `packages/policy` derives approval requirements and quorum from the current policy version and the request.
 
-`services/api/src/__tests__/server.test.ts` is the canonical worked example, and it runs against the real handlers with no mocks: registering a key and an actor, submitting an Intent, recording a two-input Transformation, running a full cycle from approval request through decision, challenge, and verification, and finally exporting and importing a signed bundle into a second, independent ledger.
+`services/api/src/__tests__/server.test.ts` exercises key and actor registration, a two-input transformation, approvals, challenges, verification, and bundle transfer between two ledgers using the API handlers and in-memory SQLite.
 
-### Submitting a signed event: the nine-step write path
+### Submitting a signed event: the atomic write path
 
 Every write, whether it's an Intent, a Transformation, an Approval, a Challenge, a Verification, or a Policy, goes through this same atomic path. If any of the first six steps fails, no receipt is issued and no projection is updated.
 
@@ -84,9 +82,9 @@ sequenceDiagram
     API-->>Client: 201 Created + receipt
 ```
 
-### What happens after: approval, challenge, and verification
+### Approval, challenge, and verification
 
-Getting a transformation onto the ledger is only the start of its life. Whether it needs approval, and under what quorum, stays a policy evaluation rather than a mutable flag on the record. Any accepted event can later be challenged by any party, and any event can be independently re-verified at any time, which is what the sequence below traces.
+Approval requirements and quorum are policy evaluations. Accepted events can be challenged and independently re-verified.
 
 ```mermaid
 sequenceDiagram
@@ -124,9 +122,9 @@ sequenceDiagram
     API-->>Verifier: GET /v1/verifications/{eventId}: explained, attributable findings
 ```
 
-### Sharing history across ledgers: federated bundle transfer
+### Federated bundle transfer
 
-Ledgers never share a database with each other. When one operator wants to give another their history, that handoff is always an explicit, signed bundle transfer, and the importing ledger re-verifies everything against its own trust policy rather than trusting the exporter. An event that fails a check doesn't just vanish, either. It's quarantined: kept on record and flagged, never silently dropped.
+Independent ledgers exchange history through signed bundles. The importing ledger verifies the bundle and its events against local trust policy. Events that fail validation are quarantined with rejection reasons and excluded from accepted history.
 
 ```mermaid
 sequenceDiagram

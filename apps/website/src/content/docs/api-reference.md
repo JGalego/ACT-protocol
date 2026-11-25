@@ -3,18 +3,17 @@ title: API Reference
 description: The /v1 operations implemented by the reference ACT API service, and how they're authenticated.
 ---
 
-The authoritative machine-readable contract is [`services/api/openapi/act-v1.yaml`](https://github.com/JGalego/ACT-protocol/blob/main/services/api/openapi/act-v1.yaml) (OpenAPI 3.1). This page is a human-oriented index linking each operation to its handler; if the two disagree, the OpenAPI document and the handler code are authoritative.
+[`services/api/openapi/act-v1.yaml`](https://github.com/JGalego/ACT-protocol/blob/main/services/api/openapi/act-v1.yaml) is the OpenAPI 3.1 contract. The table below maps operations to handlers; the contract and handler code take precedence over this index.
 
-Every write honours an `Idempotency-Key` header: a retry that re-signs the same event replays the original receipt, while the same key on a different event is `409 idempotency_conflict`.
+Event writes honour an `Idempotency-Key` header: a retry that re-signs the same event replays the original receipt, while the same key on a different event is `409 idempotency_conflict`.
 
-Request bodies for every write endpoint are DSSE-compatible signed event envelopes (`schemas/envelope/signed-envelope.schema.json` wrapping `schemas/event/unsigned-event.schema.json`), constructed and signed client-side. See `packages/sdk-typescript`'s `buildUnsignedEvent` and `@act/crypto`'s `signEnvelope`. The server never signs on a caller's behalf.
+Event-submission endpoints accept client-signed DSSE envelopes (`schemas/envelope/signed-envelope.schema.json` wrapping `schemas/event/unsigned-event.schema.json`). Use `buildUnsignedEvent` from `packages/sdk-typescript` and `signEnvelope` from `@act/crypto`.
 
 **Tenants.** Every authenticated request acts on exactly one tenant's ledger, named by the verified token's `act_tenant` claim (development scheme: the `x-act-tenant` header; no tenant means `default` unless `ACT_REQUIRE_TENANT` is on, the production default, which refuses the request with `401`). A malformed tenant id is `400 invalid_tenant`, one outside `ACT_TENANTS` is `403 tenant_not_allowed`, and `ACT_MAX_TENANTS` bounds how many exist (`503 tenant_limit_reached`). A signed event must state the caller's tenant in its `tenant` field (`403 tenant_mismatch`; `not_applicable` is refused), except events arriving in a federation bundle, which keep their authoring ledger's tenant. Reading, diffing, tracing or referencing anything that exists only in another tenant behaves exactly as if it did not exist (`404`, or `missing_parent`). `GET /v1/ledger`, peers, the quarantine list, bundle export and every list endpoint are per tenant (ADR 0010).
 
 | Operation | Handler | Auth/trust notes |
 | --- | --- | --- |
 | `GET /v1/health/live`, `/ready` | `services/api/src/routes/health.ts` | No authentication required |
-| `GET /v1/ledger` | `services/api/src/routes/health.ts` | This ledger's public identity (id, receipt-signing key); what a peer operator pins out of band |
 | `GET /v1/ledger` | `services/api/src/routes/health.ts` | This ledger's public identity (id, receipt-signing key); what a peer operator pins out of band |
 | `GET /v1/schemas` | `services/api/src/routes/schemas.ts` | No authentication required |
 | `POST /v1/keys` | `services/api/src/routes/keys.ts` | Trust bootstrap: the key id must be the fingerprint of the public key, the actor must own the key, and the key must sign its own registration (ADR 0006, ADR 0009). Administrator-only when `ACT_KEY_REGISTRATION=admin` (production default). Also accepts `key_rotated` / `key_revoked` / `key_compromised` events from a trusted key of the same owner |
@@ -30,15 +29,15 @@ Request bodies for every write endpoint are DSSE-compatible signed event envelop
 | `POST /v1/policies` | `services/api/src/routes/policies.ts` | ditto |
 | `GET /v1/lineage/{id}`, `GET /v1/history/{id}` | `services/api/src/routes/lineage.ts` | Read-only; returns explained findings (missing-parent boundaries, truncation) alongside the raw traversal, via `packages/verification`'s `checkLineageCompleteness` |
 | `GET /v1/artifacts/{id}/diff?from=&to=` | `services/api/src/routes/artifacts.ts` | Read-only; structural diff between two artifact versions |
-| `GET /v1/events?eventType=&subjectKind=&cursor=&limit=` | `services/api/src/routes/events.ts` | `limit` (1-500) and `cursor` are validated strictly (`400 invalid_query_param`). Cursor-paginated (`cursor` = last sequence number); filters run against real storage-layer queries, not an in-memory scan |
+| `GET /v1/events?eventType=&subjectKind=&cursor=&limit=` | `services/api/src/routes/events.ts` | `limit` (1-500) and `cursor` are validated strictly (`400 invalid_query_param`). Cursor-paginated (`cursor` = last sequence number); filters run at the storage layer before pagination |
 | `GET /v1/challenges?cursor=&limit=` | `services/api/src/routes/challenges.ts` | Cursor-paginated, pre-filtered to challenge event types |
 | `GET /v1/metrics` | `services/api/src/routes/health.ts` | Prometheus text format; scraped by the OpenTelemetry Collector in `deploy/compose/` |
 | `POST /v1/bundles/export`, `POST /v1/bundles/import`, `GET /v1/quarantine` | `services/api/src/routes/bundles.ts` | Export computes `completeness` and lists its `known_gaps`. Import and quarantine listing are administrator-only; import verifies the bundle id, its signature against the peer's pinned key, and every source receipt before reading an event, tolerates a missing parent only where the bundle declares the gap, and quarantines (never drops) anything that fails |
 | `POST /v1/federation/peers`, `GET /v1/federation/peers`, `DELETE /v1/federation/peers/{id}` | `services/api/src/routes/federation.ts` | Administrator-only. Registering a peer is an explicit trust decision that pins its ledger id and signing key; the URL is checked against loopback/private/link-local targets; bearer tokens are stored but never returned |
-| `POST /v1/federation/pull`, `POST /v1/federation/push` | `services/api/src/routes/federation.ts` | Real network transport. Fetches or sends a signed bundle to a registered peer over HTTP and re-verifies it against local trust policy on receipt; see [Deployment](/deployment/) |
+| `POST /v1/federation/pull`, `POST /v1/federation/push` | `services/api/src/routes/federation.ts` | Fetches or sends a signed bundle to a registered peer over HTTP and verifies it against local trust policy on receipt; see [Deployment](/deployment/) |
 
 All error responses are RFC 9457 Problem Details (`services/api/src/problem.ts`, `services/api/src/plugins/error-handler.ts`) with a stable `code` field. See the `LEDGER_ERROR_STATUS` map for ledger-originated codes (`schema_invalid`, `digest_mismatch`, `invalid_signature`, `actor_key_not_signer`, `untrusted_actor`, `missing_signature`, `missing_parent`, `duplicate_parent`, `cycle_detected`, `artifact_exists`, `idempotency_conflict`) and `services/api/src/problem.ts` for API-originated ones.
 
 ## End-to-end example
 
-[`services/api/src/__tests__/server.test.ts`](https://github.com/JGalego/ACT-protocol/blob/main/services/api/src/__tests__/server.test.ts) is the canonical worked example. It registers a key and actor, submits an Intent, records a two-input Transformation, runs a full approval-request/decision/challenge/verification/policy cycle, paginates events, and exports and imports a bundle into a second independent ledger, all against the real handlers, not mocks.
+[`services/api/src/__tests__/server.test.ts`](https://github.com/JGalego/ACT-protocol/blob/main/services/api/src/__tests__/server.test.ts) exercises registration, a two-input transformation, approvals, challenges, verification, policy publication, pagination, and bundle transfer between two ledgers using the API handlers and in-memory SQLite.

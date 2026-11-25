@@ -3,14 +3,14 @@ title: SDKs
 description: Building, signing, and submitting ACT events from TypeScript or Python.
 ---
 
-Two SDKs exist today, at the same abstraction level, both checked against the same frozen conformance vectors so they're provably interoperable rather than just individually correct.
+The TypeScript and Python SDKs provide matching functionality. Their tests use shared conformance vectors and verify signatures produced by the other SDK.
 
 | Language | Package | Install |
 | --- | --- | --- |
 | TypeScript | `packages/sdk-typescript` (`@act/sdk`) | `pnpm add @act/sdk` (workspace) |
 | Python | [`sdks/python`](https://github.com/JGalego/ACT-protocol/tree/main/sdks/python) (`act-sdk`) | `pip install -e ".[dev]"` |
 
-Both cover the same four layers:
+The SDKs cover matching layers:
 
 | Layer | TypeScript | Python | Contents |
 | --- | --- | --- | --- |
@@ -31,24 +31,24 @@ flowchart LR
     D --> E["201 Created + hash-chained receipt"]
 ```
 
-## Proving cross-language interoperability
+## Cross-language interoperability
 
 `conformance/vectors/generate-vectors.ts` freezes expected canonical bytes, digests, DSSE pre-authentication-encoding bytes, and signatures, ported directly from `packages/core`'s and `packages/crypto`'s own test suites. Every SDK's test suite loads and reproduces the exact same vectors:
 
 - TypeScript: `conformance/vectors/vectors.test.ts`
 - Python: `sdks/python/tests/test_vectors.py`
 
-Ed25519 signatures are deterministic per RFC 8032, so a passing `test_signatures` in the Python suite is a genuine cross-language proof. The same keypair and message produce the identical signature bytes the TypeScript implementation produced when the vectors were generated, not just "both look plausible."
+Ed25519 signatures are deterministic per RFC 8032: the same keypair and message produce identical signature bytes. Python's `test_signatures` checks that equality. Separate fixtures under `conformance/interop/` check signature verification in both directions.
 
 :::tip[Porting a new SDK]
 
-`conformance/vectors/` is the natural starting point for a future Go or Rust SDK (see the [Roadmap](/roadmap/)). Reproduce those vectors byte-for-byte before writing anything else, the same way `sdks/python` did.
+Start with `conformance/vectors/` and use `sdks/python` as a porting reference. A new SDK must reproduce the vectors and pass bidirectional signature checks. See the [Roadmap](/roadmap/).
 
 :::
 
-## Two RFC 8785 edge cases worth knowing about
+## RFC 8785 porting requirements
 
-If you're implementing a new SDK yourself, these are the two places a naive port silently diverges from the spec:
+Native JSON serialization may differ from RFC 8785 in number formatting and key ordering:
 
 - **Number formatting.** RFC 8785 requires JSON numbers to match ECMAScript's `Number::toString`, which is _not_ what most languages' native float formatting produces. Python's SDK reuses `repr()` only to get the shortest round-tripping decimal digits, then re-formats them with ECMA-262's exact fixed/exponential-notation thresholds. See `act_sdk.core.canonical`'s module docstring for the edge cases: negative zero, the 2^53 precision-loss boundary, subnormals.
 - **Key ordering.** RFC 8785 §3.2.3 requires object keys sorted by UTF-16 code unit sequence, not a language's default code-point ordering. Python's SDK sorts by each key's UTF-16BE encoding rather than the raw string, so a key containing a character outside the Basic Multilingual Plane sorts identically across every ACT implementation.
