@@ -1,0 +1,99 @@
+---
+import { LinkButton } from '@astrojs/starlight/components';
+import Chain from './Chain.astro';
+
+const { data } = Astro.locals.starlightRoute.entry;
+const { title = data.title, tagline, actions = [] } = data.hero || {};
+---
+
+<div class="act-hero">
+  <div class="intro">
+    <a class="eyebrow" href="/roadmap/">
+      <span class="dot" aria-hidden="true"></span>
+      1.0 release candidate
+      <span aria-hidden="true">→</span>
+    </a>
+    <h1 id="_top" data-page-title set:html={title} />
+    {tagline && <p class="tagline" set:html={tagline} />}
+    {
+      actions.length > 0 && (
+        <div class="actions">
+          {actions.map(({ attrs: { class: className, ...attrs } = {}, icon, link: href, text, variant }) => (
+            <LinkButton {href} {variant} icon={icon?.name} class:list={[className]} {...attrs}>
+              {text}
+            </LinkButton>
+          ))}
+        </div>
+      )
+    }
+  </div>
+  <Chain />
+</div>
+
+<style>
+  .act-hero {
+    display: grid;
+    gap: clamp(2.5rem, 6vw, 4rem);
+    padding-block: clamp(1.5rem, 6vmin, 4rem) 1rem;
+  }
+  .intro {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.25rem;
+    text-align: center;
+  }
+  .eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+    padding: 0.3rem 0.85rem;
+    border: 1px solid var(--sl-color-hairline);
+    border-radius: 999px;
+    color: var(--sl-color-gray-2);
+    font-size: var(--sl-text-sm);
+    text-decoration: none;
+    transition: border-color 150ms;
+  }
+  .eyebrow:hover {
+    border-color: #6366f1;
+    color: var(--sl-color-white);
+  }
+  .dot {
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 50%;
+    background: #34d399;
+    box-shadow: 0 0 0 3px color-mix(in srgb, #34d399 30%, transparent);
+  }
+  h1 {
+    margin: 0;
+    font-size: clamp(2.25rem, 0.5rem + 5.2vw, 4.5rem);
+    font-weight: 700;
+    line-height: 1.04;
+    letter-spacing: -0.03em;
+    text-wrap: balance;
+    color: var(--sl-color-white);
+  }
+  h1 :global(em) {
+    font-style: normal;
+    color: var(--act-blue);
+  }
+  .tagline {
+    margin: 0;
+    font-size: clamp(var(--sl-text-lg), 0.9rem + 1vw, var(--sl-text-2xl));
+    line-height: 1.35;
+    color: var(--sl-color-gray-2);
+  }
+  /* Break only between the two phrases, never inside one. */
+  .tagline :global(span) {
+    white-space: nowrap;
+  }
+  .actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.75rem 1.5rem;
+    margin-top: 0.5rem;
+  }
+</style>

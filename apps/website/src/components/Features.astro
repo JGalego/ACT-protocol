@@ -1,0 +1,918 @@
+---
+// Feature explorer: a tab list plus one stage that shows each feature working.
+// Without JavaScript every panel renders stacked with its own heading.
+const features = [
+  { title: 'Recorded rationale', desc: 'Transformations include rationale and assumptions.' },
+  { title: 'Policy-driven approval', desc: 'Quorum rules, evaluated deterministically.' },
+  { title: 'Federated', desc: 'Independent ledgers share signed bundles.' },
+  { title: 'Integration', desc: 'Agents and CI/CD systems produce and consume ACT records.' },
+];
+---
+
+<div class="features not-content" data-features>
+  <div class="tabs" role="tablist" aria-label="Protocol features">
+    {
+      features.map((f, i) => (
+        <button
+          type="button"
+          role="tab"
+          class="tab"
+          id={`feat-tab-${i}`}
+          aria-controls={`feat-panel-${i}`}
+          aria-selected={i === 0 ? 'true' : 'false'}
+          tabindex={i === 0 ? 0 : -1}
+        >
+          <span class="n">{`0${i + 1}`}</span>
+          <span class="t">{f.title}</span>
+          <span class="bar" aria-hidden="true" />
+        </button>
+      ))
+    }
+  </div>
+
+  <div class="stage">
+    <!-- 1 · Recorded rationale -->
+    <section class="panel is-active" role="tabpanel" id="feat-panel-0" aria-labelledby="feat-tab-0">
+      <h3>{features[0]!.title}</h3>
+      <p class="desc">{features[0]!.desc}</p>
+      <div class="viz v-rationale">
+        <div class="diff mono">
+          <div class="del"><span>−</span> Triage all support tickets</div>
+          <div class="add"><span>+</span> Triage English-language tickets</div>
+        </div>
+        <dl class="claim mono">
+          <div style="--k:0"><dt>mode</dt><dd>discovery</dd></div>
+          <div style="--k:1"><dt>classification</dt><dd><b class="tag">constraint-refinement</b></dd></div>
+          <div style="--k:2"><dt>assumptions</dt><dd>Most tickets arrive in English</dd></div>
+          <div style="--k:3"><dt>rationale</dt><dd>Other languages route to their own queue</dd></div>
+          <div style="--k:4">
+            <dt>confidence</dt>
+            <dd><span class="meter"><i></i></span> 72</dd>
+          </div>
+        </dl>
+      </div>
+    </section>
+
+    <!-- 2 · Policy-driven approval -->
+    <section class="panel" role="tabpanel" id="feat-panel-1" aria-labelledby="feat-tab-1">
+      <h3>{features[1]!.title}</h3>
+      <p class="desc">{features[1]!.desc}</p>
+      <div class="viz v-policy">
+        <div class="rule mono">
+          <div><span class="k">when</span> classification = <b class="tag">semantic-modification</b></div>
+          <div><span class="k">require</span> approval · quorum 2 · separation_of_duties</div>
+        </div>
+        <div class="people">
+          <div class="p author">
+            <span class="av">A</span><span class="nm">author</span><span class="st">can’t approve own change</span>
+          </div>
+          <div class="p r1">
+            <span class="av">R1</span><span class="nm">reviewer</span><span class="st">✓ approved</span>
+          </div>
+          <div class="p r2">
+            <span class="av">R2</span><span class="nm">reviewer</span><span class="st">✓ approved</span>
+          </div>
+        </div>
+        <div class="verdict mono">
+          <span class="cnt c0">0 / 2 approvals</span>
+          <span class="cnt c1">1 / 2 approvals</span>
+          <span class="cnt c2">2 / 2 · authorized</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3 · Federated -->
+    <section class="panel" role="tabpanel" id="feat-panel-2" aria-labelledby="feat-tab-2">
+      <h3>{features[2]!.title}</h3>
+      <p class="desc">{features[2]!.desc}</p>
+      <div class="viz v-fed">
+        <div class="ledger">
+          <span class="lbl mono">Ledger A</span>
+          <i></i><i></i><i></i>
+        </div>
+        <div class="wire">
+          <span class="packet mono">signed bundle</span>
+        </div>
+        <div class="ledger b">
+          <span class="lbl mono">Ledger B</span>
+          <i></i><i></i><i class="new"></i>
+          <div class="checks mono">
+            <span>✓ bundle signature</span>
+            <span>✓ trust policy</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4 · Integration -->
+    <section class="panel" role="tabpanel" id="feat-panel-3" aria-labelledby="feat-tab-3">
+      <h3>{features[3]!.title}</h3>
+      <p class="desc">{features[3]!.desc}</p>
+      <div class="viz v-pipe">
+        <ol class="mono">
+          <li style="--k:0"><code>buildUnsignedEvent()</code><span>client</span></li>
+          <li style="--k:1"><code>signEnvelope()</code><span>client · your key</span></li>
+          <li style="--k:2"><code>POST /v1/intents</code><span>API</span></li>
+          <li style="--k:3" class="end"><code>201 Created</code><span>hash-chained receipt</span></li>
+        </ol>
+        <p class="foot">
+          <span class="lang mono">TypeScript</span><span class="lang mono">Python</span>
+          The server never signs on your behalf.
+        </p>
+      </div>
+    </section>
+  </div>
+</div>
+
+<script>
+  const root = document.querySelector<HTMLElement>('[data-features]');
+  if (root) {
+    const tabs = Array.from(root.querySelectorAll<HTMLButtonElement>('.tab'));
+    const panels = Array.from(root.querySelectorAll<HTMLElement>('.panel'));
+    const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const DUR = 7000;
+    let cur = 0;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    let interacted = false;
+    let visible = false;
+
+    root.classList.add('js');
+    root.style.setProperty('--dur', `${DUR}ms`);
+
+    const select = (i: number) => {
+      cur = i;
+      tabs.forEach((t, k) => {
+        t.setAttribute('aria-selected', String(k === i));
+        t.tabIndex = k === i ? 0 : -1;
+      });
+      panels.forEach((p, k) => p.classList.toggle('is-active', k === i));
+    };
+
+    const restartBar = () => {
+      root.classList.remove('auto');
+      void root.offsetWidth; // restart the CSS progress animation
+      if (!interacted && !reduced) root.classList.add('auto');
+    };
+
+    const schedule = () => {
+      clearTimeout(timer);
+      restartBar();
+      if (interacted || reduced || !visible) return;
+      timer = setTimeout(() => {
+        select((cur + 1) % tabs.length);
+        schedule();
+      }, DUR);
+    };
+
+    const choose = (i: number, focus = false) => {
+      interacted = true;
+      clearTimeout(timer);
+      root.classList.remove('auto');
+      select(i);
+      if (focus) tabs[i]!.focus();
+    };
+
+    tabs.forEach((t, i) => {
+      t.addEventListener('click', () => choose(i));
+      t.addEventListener('mouseenter', () => choose(i));
+      t.addEventListener('keydown', (e) => {
+        const n = tabs.length;
+        const next =
+          e.key === 'ArrowDown' || e.key === 'ArrowRight'
+            ? (i + 1) % n
+            : e.key === 'ArrowUp' || e.key === 'ArrowLeft'
+              ? (i - 1 + n) % n
+              : e.key === 'Home'
+                ? 0
+                : e.key === 'End'
+                  ? n - 1
+                  : -1;
+        if (next >= 0) {
+          e.preventDefault();
+          choose(next, true);
+        }
+      });
+    });
+
+    // Auto-advance only while the section is on screen and untouched.
+    new IntersectionObserver(
+      ([entry]) => {
+        visible = !!entry?.isIntersecting;
+        if (visible) schedule();
+        else clearTimeout(timer);
+      },
+      { threshold: 0.4 },
+    ).observe(root);
+  }
+</script>
+
+<style>
+  .features {
+    --ok: var(--act-emerald);
+    display: grid;
+    gap: 1.5rem;
+  }
+
+  /* ───── tab list ───── */
+  .tabs {
+    display: none;
+  }
+  .js .tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  .tab {
+    position: relative;
+    display: flex;
+    align-items: baseline;
+    gap: 0.75rem;
+    margin: 0;
+    padding: 0.5rem 1rem;
+    border: 1px solid var(--sl-color-hairline);
+    border-radius: 999px;
+    background: transparent;
+    color: var(--sl-color-gray-3);
+    font: inherit;
+    font-size: var(--sl-text-sm);
+    text-align: start;
+    cursor: pointer;
+    transition:
+      color 160ms,
+      border-color 160ms,
+      background 160ms;
+  }
+  .tab .n,
+  .tab .bar {
+    display: none;
+  }
+  .tab:hover {
+    color: var(--sl-color-white);
+  }
+  .tab[aria-selected='true'] {
+    color: var(--sl-color-white);
+    border-color: var(--act-indigo);
+    background: var(--sl-color-accent-low);
+  }
+  .tab:focus-visible {
+    outline: 2px solid var(--act-indigo);
+    outline-offset: 3px;
+  }
+
+  /* ───── stage ───── */
+  .stage {
+    position: relative;
+    display: grid;
+    gap: 2rem;
+    padding: clamp(1.25rem, 3vw, 2rem);
+    border: 1px solid var(--sl-color-hairline);
+    border-radius: 1.5rem;
+    overflow: hidden;
+    background:
+      radial-gradient(28rem 16rem at 100% 0, rgb(99 102 241 / 0.18), transparent 70%),
+      radial-gradient(circle at 1px 1px, color-mix(in srgb, var(--sl-color-gray-4) 35%, transparent) 1px, transparent 0)
+        0 0 / 22px 22px,
+      var(--sl-color-bg-nav);
+  }
+  .js .stage {
+    display: grid;
+    min-height: 24rem;
+  }
+  .panel h3 {
+    margin: 0 0 0.35rem;
+    font-size: var(--sl-text-xl);
+    color: var(--sl-color-white);
+  }
+  .js .panel h3 {
+    display: none;
+  }
+  .js .panel {
+    grid-area: 1 / 1;
+    display: flex;
+    flex-direction: column;
+    visibility: hidden;
+  }
+  .js .panel.is-active {
+    visibility: visible;
+  }
+  /* Only the active panel animates, so a tab replays its demo when selected. */
+  .panel:not(.is-active) :global(*) {
+    animation: none !important;
+  }
+  .desc {
+    margin: 0 0 1.5rem;
+    color: var(--sl-color-gray-2);
+    font-size: var(--sl-text-lg);
+    line-height: 1.4;
+  }
+  .viz {
+    flex: 1;
+    display: grid;
+    align-content: center;
+    gap: 1rem;
+    width: min(100%, 34rem);
+    margin-inline: auto;
+  }
+  .mono {
+    font-family: var(--act-mono);
+  }
+  .tag {
+    padding: 0.05rem 0.45rem;
+    border-radius: 0.35rem;
+    background: color-mix(in srgb, var(--act-indigo) 22%, transparent);
+    color: var(--act-blue);
+    font-weight: 500;
+  }
+  .k {
+    color: var(--sl-color-gray-4);
+    margin-inline-end: 0.35rem;
+  }
+
+  /* shared entrance for the visuals */
+  @keyframes rise {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+  }
+
+  /* ───── 1 · rationale ───── */
+  .diff {
+    border: 1px solid var(--sl-color-hairline);
+    border-radius: 0.75rem;
+    overflow: hidden;
+    font-size: 0.8rem;
+  }
+  .diff > div {
+    padding: 0.45rem 0.85rem;
+    animation: rise 500ms ease backwards;
+  }
+  .diff span {
+    display: inline-block;
+    width: 1.1rem;
+  }
+  .del {
+    background: color-mix(in srgb, #f87171 12%, transparent);
+    color: color-mix(in srgb, #f87171 85%, var(--sl-color-white));
+    text-decoration: line-through;
+    text-decoration-color: color-mix(in srgb, #f87171 50%, transparent);
+  }
+  .add {
+    background: color-mix(in srgb, var(--ok) 12%, transparent);
+    color: var(--ok);
+    animation-delay: 200ms !important;
+  }
+  .claim {
+    display: grid;
+    gap: 0.3rem;
+    margin: 0;
+    padding: 0.9rem 1rem;
+    border: 1px dashed var(--sl-color-gray-5);
+    border-radius: 0.75rem;
+    font-size: 0.78rem;
+  }
+  .claim > div {
+    display: grid;
+    grid-template-columns: 7.5rem 1fr;
+    gap: 0.75rem;
+    margin: 0;
+    animation: rise 450ms ease backwards;
+    animation-delay: calc(var(--k) * 260ms + 700ms);
+  }
+  .claim dt {
+    color: var(--sl-color-gray-4);
+  }
+  .claim dd {
+    margin: 0;
+    color: var(--sl-color-gray-1);
+  }
+  .meter {
+    display: inline-block;
+    width: 5rem;
+    height: 0.4rem;
+    margin-inline-end: 0.5rem;
+    vertical-align: middle;
+    border-radius: 999px;
+    background: var(--sl-color-gray-5);
+    overflow: hidden;
+  }
+  .meter i {
+    display: block;
+    width: 72%;
+    height: 100%;
+    background: var(--act-indigo);
+    transform-origin: left;
+    animation: grow 900ms ease backwards;
+    animation-delay: 1.8s;
+  }
+  @keyframes grow {
+    from {
+      transform: scaleX(0);
+    }
+  }
+
+  /* ───── 2 · policy ───── */
+  .rule {
+    display: grid;
+    gap: 0.2rem;
+    padding: 0.8rem 1rem;
+    border: 1px solid var(--sl-color-hairline);
+    border-radius: 0.75rem;
+    background: color-mix(in srgb, var(--sl-color-black) 45%, transparent);
+    font-size: 0.78rem;
+    color: var(--sl-color-gray-2);
+  }
+  .people {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.6rem;
+  }
+  .p {
+    display: grid;
+    justify-items: center;
+    gap: 0.25rem;
+    padding: 0.8rem 0.4rem;
+    border: 1px solid var(--sl-color-hairline);
+    border-radius: 0.75rem;
+    text-align: center;
+  }
+  .av {
+    display: grid;
+    place-items: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #6366f1, #4338ca);
+    color: #fff;
+    font-family: var(--act-mono);
+    font-size: 0.72rem;
+    font-weight: 600;
+  }
+  .nm {
+    color: var(--sl-color-gray-2);
+    font-size: var(--sl-text-sm);
+  }
+  .st {
+    min-height: 2.4em;
+    color: var(--ok);
+    font-size: var(--sl-text-xs);
+    line-height: 1.2;
+  }
+  .author {
+    opacity: 0.65;
+  }
+  .author .av {
+    background: var(--sl-color-gray-5);
+  }
+  .author .st {
+    color: var(--sl-color-gray-3);
+  }
+  .verdict {
+    display: grid;
+    justify-items: center;
+    font-size: 0.85rem;
+  }
+  .cnt {
+    grid-area: 1 / 1;
+    padding: 0.3rem 0.9rem;
+    border-radius: 999px;
+  }
+  .c0,
+  .c1 {
+    display: none;
+  }
+  .c2 {
+    color: var(--ok);
+    background: color-mix(in srgb, var(--ok) 14%, transparent);
+    font-weight: 600;
+  }
+
+  /* ───── 3 · federation ───── */
+  .v-fed {
+    grid-template-columns: auto minmax(2.5rem, 1fr) auto;
+    align-items: center;
+    gap: 0.75rem;
+  }
+  .ledger {
+    position: relative;
+    display: grid;
+    gap: 0.5rem;
+    width: clamp(5.5rem, 22vw, 8.5rem);
+    padding: 2rem 0.75rem 0.9rem;
+    border: 1px solid var(--sl-color-hairline);
+    border-radius: 0.85rem;
+    background: color-mix(in srgb, var(--sl-color-black) 40%, transparent);
+  }
+  .ledger .lbl {
+    position: absolute;
+    top: 0.6rem;
+    left: 0.75rem;
+    color: var(--sl-color-gray-3);
+    font-size: 0.7rem;
+  }
+  .ledger i {
+    height: 1.1rem;
+    border-radius: 0.3rem;
+    background: linear-gradient(135deg, #6366f1, #4338ca);
+  }
+  .ledger i.new {
+    background: linear-gradient(135deg, #34d399, #059669);
+  }
+  .wire {
+    position: relative;
+    height: 2px;
+    background: repeating-linear-gradient(to right, var(--sl-color-gray-4) 0 5px, transparent 5px 9px);
+  }
+  .packet {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    padding: 0.2rem 0.55rem;
+    border-radius: 999px;
+    background: var(--act-indigo);
+    color: #fff;
+    font-size: 0.65rem;
+    white-space: nowrap;
+    transform: translate(-50%, -50%);
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--act-indigo) 25%, transparent);
+  }
+  .checks {
+    position: absolute;
+    top: calc(100% + 0.5rem);
+    right: 0;
+    display: grid;
+    gap: 0.15rem;
+    color: var(--ok);
+    font-size: 0.68rem;
+    white-space: nowrap;
+  }
+  .v-fed {
+    padding-bottom: 2.4rem;
+  }
+
+  /* ───── 4 · integration ───── */
+  .v-pipe ol {
+    --step-gap: 1.2rem;
+    display: grid;
+    gap: var(--step-gap);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .v-pipe li {
+    position: relative;
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 1rem;
+    margin: 0;
+    padding: 0.7rem 1rem;
+    border: 1px solid var(--sl-color-hairline);
+    border-radius: 0.75rem;
+    background: color-mix(in srgb, var(--sl-color-black) 40%, transparent);
+    font-size: 0.8rem;
+    animation: rise 450ms ease backwards;
+    animation-delay: calc(var(--k) * 300ms + 150ms);
+  }
+  /* Arrow from one step into the next: a line plus a chevron that lands on the next box. */
+  .v-pipe li:not(:last-child)::before {
+    content: '';
+    position: absolute;
+    left: 1.5rem;
+    top: 100%;
+    width: 2px;
+    height: var(--step-gap);
+    background: color-mix(in srgb, var(--act-indigo) 70%, transparent);
+  }
+  .v-pipe li:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    left: calc(1.5rem - 3px);
+    top: calc(100% + var(--step-gap) - 10px);
+    width: 8px;
+    height: 8px;
+    border-right: 2px solid color-mix(in srgb, var(--act-indigo) 85%, transparent);
+    border-bottom: 2px solid color-mix(in srgb, var(--act-indigo) 85%, transparent);
+    transform: rotate(45deg);
+  }
+  .v-pipe code {
+    background: none;
+    border: 0;
+    padding: 0;
+    color: var(--sl-color-white);
+    font-size: inherit;
+  }
+  .v-pipe li span {
+    color: var(--sl-color-gray-3);
+    font-size: 0.72rem;
+  }
+  .v-pipe li.end {
+    border-color: color-mix(in srgb, var(--ok) 55%, var(--sl-color-hairline));
+  }
+  .v-pipe li.end code {
+    color: var(--ok);
+  }
+  .foot {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem 0.5rem;
+    margin: 0.5rem 0 0;
+    color: var(--sl-color-gray-3);
+    font-size: var(--sl-text-sm);
+  }
+  .lang {
+    padding: 0.1rem 0.55rem;
+    border: 1px solid var(--sl-color-gray-5);
+    border-radius: 999px;
+    font-size: 0.7rem;
+    color: var(--sl-color-gray-2);
+  }
+  .foot .lang:last-of-type {
+    margin-inline-end: 0.4rem;
+  }
+
+  /* ───── looping animations (full-motion only) ───── */
+  @media (prefers-reduced-motion: no-preference) {
+    .v-policy .r1 .st {
+      animation: r1 6s ease infinite;
+    }
+    .v-policy .r2 .st {
+      animation: r2 6s ease infinite;
+    }
+    .v-policy .c0,
+    .v-policy .c1 {
+      display: block;
+    }
+    .v-policy .c0 {
+      animation: c0 6s step-end infinite;
+    }
+    .v-policy .c1 {
+      opacity: 0;
+      animation: c1 6s step-end infinite;
+    }
+    .v-policy .c2 {
+      opacity: 0;
+      animation: c2 6s step-end infinite;
+    }
+    .v-policy .r1 .av,
+    .v-policy .r2 .av {
+      animation: ring 6s ease infinite;
+    }
+    .v-policy .r2 .av {
+      animation-name: ring2;
+    }
+    .v-fed .packet {
+      animation: packet 6s ease-in-out infinite;
+    }
+    .v-fed .checks span {
+      animation: show 6s ease infinite;
+    }
+    .v-fed .checks span:nth-child(2) {
+      animation-name: show2;
+    }
+    .v-fed .ledger i.new {
+      animation: newblock 6s ease infinite;
+    }
+    .v-pipe li {
+      animation:
+        rise 450ms ease backwards,
+        light 6s ease infinite;
+      animation-delay: calc(var(--k) * 300ms + 150ms), calc(var(--k) * 650ms);
+    }
+  }
+  @keyframes r1 {
+    0%,
+    18% {
+      opacity: 0;
+    }
+    26%,
+    90% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 0;
+    }
+  }
+  @keyframes r2 {
+    0%,
+    40% {
+      opacity: 0;
+    }
+    48%,
+    90% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 0;
+    }
+  }
+  @keyframes ring {
+    0%,
+    18% {
+      box-shadow: none;
+    }
+    26%,
+    90% {
+      box-shadow: 0 0 0 4px color-mix(in srgb, var(--ok) 35%, transparent);
+    }
+    100% {
+      box-shadow: none;
+    }
+  }
+  @keyframes ring2 {
+    0%,
+    40% {
+      box-shadow: none;
+    }
+    48%,
+    90% {
+      box-shadow: 0 0 0 4px color-mix(in srgb, var(--ok) 35%, transparent);
+    }
+    100% {
+      box-shadow: none;
+    }
+  }
+  @keyframes c0 {
+    0% {
+      opacity: 1;
+    }
+    18% {
+      opacity: 0;
+    }
+    92% {
+      opacity: 1;
+    }
+  }
+  @keyframes c1 {
+    0%,
+    18% {
+      opacity: 0;
+    }
+    18.1% {
+      opacity: 1;
+    }
+    40% {
+      opacity: 0;
+    }
+  }
+  @keyframes c2 {
+    0%,
+    40% {
+      opacity: 0;
+    }
+    40.1% {
+      opacity: 1;
+    }
+    92% {
+      opacity: 0;
+    }
+  }
+  @keyframes packet {
+    0%,
+    8% {
+      left: 0%;
+      opacity: 0;
+    }
+    14% {
+      left: 0%;
+      opacity: 1;
+    }
+    44% {
+      left: 100%;
+      opacity: 1;
+    }
+    50%,
+    100% {
+      left: 100%;
+      opacity: 0;
+    }
+  }
+  @keyframes show {
+    0%,
+    48% {
+      opacity: 0;
+    }
+    56%,
+    92% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 0;
+    }
+  }
+  @keyframes show2 {
+    0%,
+    58% {
+      opacity: 0;
+    }
+    66%,
+    92% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 0;
+    }
+  }
+  @keyframes newblock {
+    0%,
+    70% {
+      opacity: 0;
+      transform: scaleX(0.4);
+    }
+    78%,
+    92% {
+      opacity: 1;
+      transform: none;
+    }
+    100% {
+      opacity: 0;
+    }
+  }
+  @keyframes light {
+    0%,
+    18% {
+      border-color: var(--act-indigo);
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--act-indigo) 22%, transparent);
+    }
+    24%,
+    100% {
+      box-shadow: none;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .features :global(*) {
+      animation: none !important;
+      transition: none !important;
+    }
+  }
+
+  /* ───── desktop: list left, stage right ───── */
+  @media (min-width: 56rem) {
+    .features {
+      grid-template-columns: minmax(0, 4.5fr) minmax(0, 7.5fr);
+      gap: 2.5rem;
+      align-items: stretch;
+    }
+    .js .tabs {
+      flex-direction: column;
+      flex-wrap: nowrap;
+      gap: 0;
+      align-self: center;
+    }
+    .tab {
+      flex-direction: column;
+      gap: 0.25rem;
+      padding: 1.1rem 0 1.1rem 1.5rem;
+      border: 0;
+      border-left: 2px solid var(--sl-color-hairline);
+      border-radius: 0;
+      background: transparent !important;
+      font-size: clamp(1.4rem, 1rem + 1.3vw, 2rem);
+      font-weight: 650;
+      letter-spacing: -0.02em;
+      line-height: 1.15;
+      color: var(--sl-color-gray-4);
+    }
+    .tab .n {
+      display: block;
+      color: var(--sl-color-gray-5);
+      font-family: var(--act-mono);
+      font-size: var(--sl-text-xs);
+      font-weight: 400;
+      letter-spacing: 0.1em;
+    }
+    .tab[aria-selected='true'] {
+      color: var(--sl-color-white);
+    }
+    .tab[aria-selected='true'] .n {
+      color: var(--act-indigo);
+    }
+    .tab .bar {
+      display: block;
+      position: absolute;
+      left: -2px;
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      background: var(--act-indigo);
+      transform: scaleY(0);
+      transform-origin: top;
+    }
+    .tab[aria-selected='true'] .bar {
+      transform: none;
+    }
+    .auto .tab[aria-selected='true'] .bar {
+      animation: fill var(--dur, 7000ms) linear forwards;
+    }
+  }
+  @keyframes fill {
+    from {
+      transform: scaleY(0);
+    }
+    to {
+      transform: scaleY(1);
+    }
+  }
+</style>

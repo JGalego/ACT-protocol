@@ -1,0 +1,457 @@
+---
+// Interactive tamper demo. The markup is rendered at build time (ids hashed with
+// node:crypto); the script below recomputes everything live with Web Crypto
+// (SHA-256 and Ed25519), so the pass/fail states are real results.
+import { createHash } from 'node:crypto';
+import { SEEDS, payload } from '../lib/chain';
+
+const sha = (s: string) => createHash('sha256').update(s).digest('hex');
+const events: Array<(typeof SEEDS)[number] & { prev: string | null; id: string }> = [];
+for (const s of SEEDS) {
+  const prev = events.length ? events[events.length - 1]!.id : null;
+  events.push({ ...s, prev, id: sha(payload({ ...s, prev })) });
+}
+const short = (h: string | null) => (h ? `${h.slice(0, 8)}…` : '—');
+---
+
+<section
+  class="act-chain"
+  data-chain
+  aria-label="Interactive demo: tamper with a signed, hash-linked chain of events"
+>
+  <ol class="events">
+    {
+      events.map((e, i) => (
+        <li class="ev" data-i={i} style={`--i:${i}`}>
+          {i > 0 && <span class="link" aria-hidden="true" />}
+          <div class="card">
+            <div class="head">
+              <strong>{e.kind}</strong>
+              <span class="who">{e.who}</span>
+            </div>
+            <p class="data">
+              “<span data-role="data">{e.data}</span>”
+            </p>
+            <dl class="mono">
+              <div>
+                <dt>id</dt>
+                <dd data-role="id">{short(e.id)}</dd>
+              </div>
+              <div>
+                <dt>prev</dt>
+                <dd data-role="prev">{short(e.prev)}</dd>
+              </div>
+            </dl>
+            <div class="chips" data-role="chips" />
+          </div>
+        </li>
+      ))
+    }
+  </ol>
+  <div class="bar" aria-live="polite">
+    <span class="status" data-role="status" hidden></span>
+    <span class="caption" data-role="caption"></span>
+    <button type="button" class="act-btn" data-role="action" hidden></button>
+  </div>
+</section>
+
+<script>
+  import { SEEDS, TAMPERED_DATA, payload } from '../lib/chain';
+
+  interface Rec {
+    kind: string;
+    by: string;
+    data: string;
+    prev: string | null;
+    id: string;
+    sig: ArrayBuffer | null;
+  }
+
+  const enc = new TextEncoder();
+  const hex = (b: ArrayBuffer) =>
+    Array.from(new Uint8Array(b), (x) => x.toString(16).padStart(2, '0')).join('');
+  const sha = async (s: string) => hex(await crypto.subtle.digest('SHA-256', enc.encode(s)));
+  const short = (h: string | null) => (h ? `${h.slice(0, 8)}…` : '—');
+  const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  async function makeKeys(): Promise<Record<string, CryptoKeyPair> | null> {
+    try {
+      const out: Record<string, CryptoKeyPair> = {};
+      for (const by of new Set(SEEDS.map((s) => s.by))) {
+        out[by] = (await crypto.subtle.generateKey('Ed25519', false, [
+          'sign',
+          'verify',
+        ])) as CryptoKeyPair;
+      }
+      return out;
+    } catch {
+      return null; // Ed25519 not available in this browser: demo runs hash-only.
+    }
+  }
+
+  // Briefly scramble a hash before it settles, so a changed value is noticeable.
+  function setText(el: HTMLElement, text: string, delay: number) {
+    if (el.dataset.v === text) return;
+    const first = el.dataset.v === undefined;
+    el.dataset.v = text;
+    if (reduced || first) {
+      el.textContent = text;
+      return;
+    }
+    const glyphs = '0123456789abcdef';
+    let n = 0;
+    setTimeout(() => {
+      const t = setInterval(() => {
+        n++;
+        el.textContent =
+          n > 8 ? text : text.replace(/[0-9a-f]/g, () => glyphs[Math.floor(Math.random() * 16)]!);
+        if (n > 8) clearInterval(t);
+      }, 40);
+    }, delay);
+  }
+
+  async function init(root: HTMLElement) {
+    if (!globalThis.crypto?.subtle) return; // insecure context: leave the static chain.
+
+    const keys = await makeKeys();
+    const stages = keys ? 3 : 2;
+
+    const orig: Rec[] = [];
+    for (const [i, s] of SEEDS.entries()) {
+      const prev = i ? orig[i - 1]!.id : null;
+      const id = await sha(payload({ ...s, prev }));
+      const sig = keys
+        ? await crypto.subtle.sign('Ed25519', keys[s.by]!.privateKey, enc.encode(id))
+        : null;
+      orig.push({ kind: s.kind, by: s.by, data: s.data, prev, id, sig });
+    }
+
+    const evs = Array.from(root.querySelectorAll<HTMLElement>('.ev'));
+    const q = (el: HTMLElement, role: string) => el.querySelector<HTMLElement>(`[data-role=${role}]`)!;
+    const status = q(root, 'status');
+    const caption = q(root, 'caption');
+    const button = q(root, 'action') as HTMLButtonElement;
+
+    const COPY = [
+      {
+        caption: 'Each event is hashed, signed, and linked to the one before.',
+        action: 'Tamper with the intent',
+      },
+      {
+        caption: keys
+          ? 'One edit changes the hash and breaks the signature.'
+          : 'One edit changes the hash and breaks the link.',
+        action: keys ? 'Cover it up' : 'Reset',
+      },
+      {
+        caption: 'Re-hashing hides the link, but only the original signers can re-sign.',
+        action: 'Reset',
+      },
+    ];
+
+    let stage = 0;
+    let busy = false;
+
+    async function render() {
+      // What an attacker leaves behind at each stage.
+      const cur: Rec[] = orig.map((r) => ({ ...r }));
+      if (stage >= 1) cur[0]!.data = TAMPERED_DATA;
+      if (stage === 2) {
+        for (let i = 0; i < cur.length; i++) {
+          cur[i]!.prev = i ? cur[i - 1]!.id : null;
+          cur[i]!.id = await sha(payload(cur[i]!));
+        }
+      }
+
+      // What a verifier recomputes from the content.
+      const now = await Promise.all(cur.map((r) => sha(payload(r))));
+      let failures = 0;
+
+      for (const [i, r] of cur.entries()) {
+        const el = evs[i]!;
+        const digestOk = now[i] === r.id;
+        const sigOk = keys
+          ? await crypto.subtle.verify(
+              'Ed25519',
+              keys[r.by]!.publicKey,
+              r.sig!,
+              enc.encode(now[i]!),
+            )
+          : true;
+        const linkOk = i === 0 || r.prev === now[i - 1];
+        const fails = [
+          ...(digestOk ? [] : ['digest']),
+          ...(sigOk ? [] : ['signature']),
+          ...(linkOk ? [] : ['link']),
+        ];
+        failures += fails.length;
+
+        const delay = i * 140;
+        el.style.setProperty('--d', `${delay}ms`);
+        el.dataset.state = fails.length ? 'bad' : 'ok';
+        const link = el.querySelector<HTMLElement>('.link');
+        if (link) link.dataset.state = linkOk ? 'ok' : 'bad';
+
+        q(el, 'data').textContent = r.data;
+        q(el, 'data').dataset.changed = String(r.data !== SEEDS[i]!.data);
+        setText(q(el, 'id'), digestOk ? short(r.id) : `${short(r.id)} → ${short(now[i]!)}`, delay);
+        setText(q(el, 'prev'), short(r.prev), delay);
+
+        const box = q(el, 'chips');
+        box.replaceChildren();
+        for (const label of fails.length ? fails : ['valid']) {
+          const chip = document.createElement('span');
+          chip.className = `chip ${fails.length ? 'bad' : 'ok'}`;
+          chip.textContent = `${fails.length ? '✗' : '✓'} ${label}`;
+          box.append(chip);
+        }
+      }
+
+      status.hidden = false;
+      status.dataset.state = failures ? 'bad' : 'ok';
+      status.textContent = failures ? '✗ Chain broken' : '✓ Chain intact';
+      caption.textContent = COPY[stage]!.caption;
+      button.textContent = COPY[stage]!.action;
+      button.hidden = false;
+    }
+
+    button.addEventListener('click', async () => {
+      if (busy) return;
+      busy = true;
+      stage = (stage + 1) % stages;
+      await render();
+      busy = false;
+    });
+
+    await render();
+  }
+
+  const root = document.querySelector<HTMLElement>('[data-chain]');
+  if (root) void init(root);
+</script>
+
+<style is:global>
+  .act-chain {
+    --ok: #34d399;
+    --bad: #f87171;
+    --accent: #6366f1;
+    --gap: 1.5rem;
+    width: 100%;
+  }
+  :root[data-theme='light'] .act-chain {
+    --ok: #059669;
+    --bad: #dc2626;
+  }
+  .act-chain .events {
+    display: grid;
+    gap: var(--gap);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .act-chain .ev {
+    position: relative;
+    margin: 0;
+    opacity: 0;
+    transform: translateY(14px);
+    animation: act-ev-in 600ms cubic-bezier(0.2, 0.7, 0.2, 1) forwards;
+    animation-delay: calc(var(--i) * 140ms + 150ms);
+  }
+  .act-chain .card {
+    height: 100%;
+    padding: 0.9rem 1rem 1rem;
+    border: 1px solid var(--sl-color-hairline);
+    border-top: 3px solid var(--accent);
+    border-radius: 0.85rem;
+    background: color-mix(in srgb, var(--sl-color-bg-nav) 88%, transparent);
+    box-shadow: 0 10px 30px -20px rgb(0 0 0 / 0.6);
+    transition:
+      border-color 320ms ease var(--d, 0ms),
+      box-shadow 320ms ease var(--d, 0ms);
+  }
+  .act-chain .ev:last-child .card {
+    --accent: var(--ok);
+  }
+  .act-chain .ev[data-state='bad'] .card {
+    --accent: var(--bad);
+    border-color: color-mix(in srgb, var(--bad) 45%, var(--sl-color-hairline));
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--bad) 14%, transparent);
+  }
+  .act-chain .head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 0.5rem;
+  }
+  .act-chain strong {
+    color: var(--sl-color-white);
+    font-size: var(--sl-text-base);
+    font-weight: 600;
+  }
+  .act-chain .who {
+    color: var(--sl-color-gray-3);
+    font-size: var(--sl-text-xs);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .act-chain .data {
+    margin: 0.55rem 0 0.65rem;
+    color: var(--sl-color-gray-2);
+    font-size: var(--sl-text-sm);
+  }
+  .act-chain .data [data-changed='true'] {
+    color: var(--bad);
+    font-weight: 600;
+  }
+  .act-chain dl {
+    display: grid;
+    gap: 0.15rem;
+    margin: 0;
+    font-family: var(--act-mono);
+    font-size: 0.72rem;
+    color: var(--sl-color-gray-3);
+  }
+  .act-chain dl > div {
+    display: flex;
+    gap: 0.6rem;
+    margin: 0;
+  }
+  .act-chain dt {
+    width: 2.2rem;
+    color: var(--sl-color-gray-4);
+  }
+  .act-chain dd {
+    margin: 0;
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+  .act-chain .chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    margin-top: 0.7rem;
+    min-height: 1.4rem;
+  }
+  .act-chain .chip {
+    padding: 0.1rem 0.5rem;
+    border-radius: 999px;
+    font-family: var(--act-mono);
+    font-size: 0.68rem;
+  }
+  .act-chain .chip.ok {
+    color: var(--ok);
+    background: color-mix(in srgb, var(--ok) 14%, transparent);
+  }
+  .act-chain .chip.bad {
+    color: var(--bad);
+    background: color-mix(in srgb, var(--bad) 14%, transparent);
+  }
+
+  /* The hash link between one event and the next. */
+  .act-chain .link {
+    position: absolute;
+    background: var(--accent);
+    transition: background 320ms ease var(--d, 0ms);
+  }
+  .act-chain .link[data-state='bad'] {
+    background: repeating-linear-gradient(
+      to right,
+      var(--bad) 0 5px,
+      transparent 5px 9px
+    );
+  }
+  @media (max-width: 55.99rem) {
+    /* Stacked cards: put the controls first so the result is visible after a tap. */
+    .act-chain {
+      display: flex;
+      flex-direction: column;
+    }
+    .act-chain .bar {
+      order: -1;
+      margin: 0 0 1.5rem;
+    }
+    .act-chain .link {
+      left: 1.5rem;
+      bottom: 100%;
+      width: 2px;
+      height: var(--gap);
+    }
+    .act-chain .link[data-state='bad'] {
+      background: repeating-linear-gradient(to bottom, var(--bad) 0 5px, transparent 5px 9px);
+    }
+  }
+  @media (min-width: 56rem) {
+    .act-chain .events {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+    .act-chain .link {
+      top: 1.6rem;
+      right: 100%;
+      width: var(--gap);
+      height: 2px;
+    }
+  }
+
+  .act-chain .bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem 1.25rem;
+    margin-top: 1.75rem;
+    text-align: center;
+  }
+  .act-chain .status {
+    padding: 0.25rem 0.8rem;
+    border-radius: 999px;
+    font-size: var(--sl-text-sm);
+    font-weight: 600;
+  }
+  .act-chain .status[data-state='ok'] {
+    color: var(--ok);
+    background: color-mix(in srgb, var(--ok) 14%, transparent);
+  }
+  .act-chain .status[data-state='bad'] {
+    color: var(--bad);
+    background: color-mix(in srgb, var(--bad) 14%, transparent);
+  }
+  .act-chain .caption {
+    color: var(--sl-color-gray-2);
+  }
+  .act-chain .act-btn {
+    padding: 0.5rem 1.1rem;
+    border: 1px solid var(--act-indigo);
+    border-radius: 999px;
+    background: transparent;
+    color: var(--sl-color-white);
+    font: inherit;
+    font-size: var(--sl-text-sm);
+    cursor: pointer;
+    transition: background 150ms;
+  }
+  .act-chain .act-btn:hover {
+    background: var(--sl-color-accent-low);
+  }
+  .act-chain .act-btn:focus-visible {
+    outline: 2px solid var(--act-indigo);
+    outline-offset: 3px;
+  }
+
+  @keyframes act-ev-in {
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .act-chain .ev {
+      animation: none;
+      opacity: 1;
+      transform: none;
+    }
+    .act-chain .card,
+    .act-chain .link {
+      transition: none;
+    }
+  }
+</style>

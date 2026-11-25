@@ -15,10 +15,14 @@ export default defineConfig({
     }),
     starlight({
       title: 'ACT Protocol',
-      description:
-        'An open protocol for preserving meaning, provenance, evidence, and accountable decisions across human and AI collaboration.',
+      description: 'An open protocol for recording the provenance of work by people and AI.',
       logo: {
-        src: './src/assets/logo.svg',
+        light: './src/assets/logo-light.svg',
+        dark: './src/assets/logo-dark.svg',
+      },
+      customCss: ['./src/styles/landing.css'],
+      components: {
+        Hero: './src/components/Hero.astro',
       },
       social: [
         { icon: 'github', label: 'GitHub', href: 'https://github.com/JGalego/ACT-protocol' },
