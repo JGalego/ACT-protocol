@@ -1,18 +1,10 @@
 #!/usr/bin/env -S node --import tsx
 /**
- * `make verify-integration`'s actual test: starts services/api's REAL
- * built server (services/api/dist/server.js) as a child process against
- * ACT_STORAGE=postgres, pointed at the dockerized Postgres
- * deploy/compose/docker-compose.test.yml brings up, then drives a real
- * key-registration -> actor -> intent -> event-listing sequence over
- * HTTP. This exercises a genuinely different code path than
- * packages/ledger's embedded-postgres unit tests (which run PostgresAdapter
- * in-process, never through services/api or a container boundary at all).
+ * Starts the built API against PostgreSQL and exercises key registration,
+ * actor registration, intent submission, and event listing over HTTP.
  *
- * Requires: `pnpm run build` already run, and ACT_DATABASE_URL pointing at
- * a real, reachable PostgreSQL (see docs/deployment.md and
- * `make verify-integration`, which brings one up via Docker Compose and
- * sets this).
+ * Requires `pnpm run build` and ACT_DATABASE_URL. `make verify-integration`
+ * supplies the database through deploy/compose/docker-compose.test.yml.
  */
 import { type ChildProcessWithoutNullStreams, spawn } from 'node:child_process';
 import { existsSync } from 'node:fs';

@@ -1,6 +1,6 @@
 # Versioning
 
-ACT distinguishes four version axes that change independently.
+Protocol, schema, API, and implementation versions change independently.
 
 | Axis | Where it appears | Current value | Changes when |
 | --- | --- | --- | --- |
@@ -9,7 +9,7 @@ ACT distinguishes four version axes that change independently.
 | **API version** | The `/v1` path prefix in `services/api` | `v1` | The HTTP contract's request/response shapes change incompatibly. |
 | **Implementation version** | `package.json`/`Cargo.toml`/`pyproject.toml`/`go.mod` version of a specific package, SDK, service, or CLI build | `1.0.0-rc.1` across this repository | Any release of that specific artifact, following semantic versioning. |
 
-## Why Four Axes, Not One
+## Independent Versions
 
 A protocol-version-`act/1.0`-compliant event can be produced by implementation version `1.0.0-rc.1` today and by some future `2.3.0` next year without either the protocol version or the schema version changing, since the implementation improved but the wire contract didn't. Conversely, a schema addition (a new optional field) can ship in implementation `1.1.0` without bumping `protocol_version`, because older `act/1.0` readers that don't understand the new field are required (per `spec/ACT-1.0.md` section 16.2) to preserve it unread rather than reject the event.
 

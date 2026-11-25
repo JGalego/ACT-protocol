@@ -1,17 +1,10 @@
 /**
- * Storage-neutral row shapes and the adapter contract every backing store
- * (SQLite, PostgreSQL) must implement. Extracted from `Ledger`'s previous
- * direct `better-sqlite3` usage so the write path in `ledger.ts` no longer
- * assumes a specific engine (docs/adr/0008-storage-adapter-and-postgres.md).
+ * Storage-neutral rows and the SQLite/PostgreSQL adapter contract (ADR 0008).
  *
- * Every read and write names the ledger it acts on (ADR 0010). Several
- * ledgers (one per tenant) share one database, and the type system, not
- * caller discipline, is what keeps a query from crossing between them.
+ * Operations take a ledger id for tenant-scoped reads and writes (ADR 0010).
  *
- * Every method returns a Promise so one interface covers both a
- * synchronous driver (better-sqlite3, wrapped in already-resolved promises)
- * and an inherently asynchronous one (pg) without special-casing either in
- * `Ledger` itself.
+ * Promise-based methods cover synchronous better-sqlite3 and asynchronous pg
+ * without driver-specific branches in Ledger.
  */
 
 export interface EventRow {
@@ -114,12 +107,9 @@ export interface StorageAdapter {
   listEvents(ledgerId: string, limit: number, afterSequence: number): Promise<EventRow[]>;
   listEventsForArtifact(ledgerId: string, artifactId: string): Promise<EventRow[]>;
   /**
-   * Like listEvents, but narrowed by event_type and/or subject_kind --
-   * both plain indexed columns, so this is a real filtered query, not an
-   * in-memory scan. Filtering by actor is not supported here: actor
-   * identity lives inside envelope_json, not a queryable column, and a
-   * correct implementation would need a schema change (see
-   * docs/roadmap.md) rather than a pagination-breaking in-memory filter.
+   * Filters indexed event_type and subject_kind columns. Actor identity lives
+   * in envelope_json; actor filtering needs schema support to preserve
+   * pagination rather than filtering results in memory (see docs/roadmap.md).
    */
   queryEvents(
     ledgerId: string,

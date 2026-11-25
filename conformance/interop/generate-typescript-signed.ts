@@ -1,14 +1,9 @@
 #!/usr/bin/env -S node --import tsx
 /**
- * One-shot generator: signs real data with packages/crypto and writes it as
- * language-neutral JSON, so sdks/python can independently verify a
- * signature it never produced -- the other half of the SDK profile's
- * bidirectional cross-verification proof (see generate-python-signed.py's
- * docstring for the full rationale).
+ * Signs sample data with packages/crypto for Python cross-SDK verification.
  *
- * Re-run manually (`pnpm run conformance:generate-interop`, from repo root)
- * after a real change to packages/crypto's DSSE behavior; this is checked
- * into git like conformance/vectors/.
+ * Run `pnpm run conformance:generate-interop` intentionally after crypto
+ * changes: it generates a new keypair and replaces the checked-in fixture.
  */
 import { writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';

@@ -1,19 +1,8 @@
 #!/usr/bin/env python3
-"""One-shot generator: signs real data with sdks/python's act_sdk.crypto and
-writes it as language-neutral JSON, so packages/crypto (TypeScript) can
-independently verify a signature it never produced -- the actual proof the
-SDK conformance profile requires (spec/conformance.md section 1: "verification
-of signatures produced by any other conformant SDK"), not merely two SDKs
-each independently reproducing the same frozen vectors.
+"""Sign sample data with act_sdk.crypto for TypeScript cross-SDK verification.
 
-Unlike conformance/vectors/ (fixed inputs so every SDK reproduces identical
-bytes), this uses a freshly generated keypair each run -- what's being
-proven here is cross-verification, not byte-for-byte determinism, so a
-fresh keypair is a stronger proof than a shared fixed one would be.
-
-Re-run manually (`pnpm run conformance:generate-interop`, from repo root)
-after a real change to sdks/python's crypto or packages/crypto's DSSE
-behavior; this is checked into git like conformance/vectors/.
+Run `pnpm run conformance:generate-interop` intentionally after crypto changes:
+it generates a new keypair and replaces the checked-in fixture.
 """
 
 import json

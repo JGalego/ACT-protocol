@@ -37,7 +37,7 @@ Export MUST include, for every included event, the **source receipt** issued by 
 
 On receiving a bundle, the importing ledger MUST, per event, in the bundle's `causal_parents`-respecting topological order:
 
-1. Verify the bundle signature and every per-event signature (§4.5 of `ACT-1.0.md` — all six results computed, none skipped).
+1. Verify the bundle signature and every per-event signature, computing every verification result required by §4.5 of `ACT-1.0.md`.
 2. Recompute the event ID and content digests; reject on mismatch (quarantine, see §4).
 3. Evaluate its own trust policy against the event's actor/key and the bundle's source ledger. An event MAY pass cryptographic checks and still fail trust-policy evaluation — this MUST be reported as a trust-policy failure, not a cryptographic one. Key standing is judged **as of the time the source ledger accepted the event** (the `accepted_at` of its verified source receipt), for the actor key and every co-signing key: never as of the moment of import and never as of the signer-claimed `occurred_at`. History signed while a key was valid therefore stays importable after the key is retired, and an event the source accepted after the importer revoked the key is refused. Key registrations and status changes carried in the bundle are judged the same way, and each takes effect in the importer's key history at its source acceptance time. See ADR 0012.
 4. Deduplicate: if an event with this event ID is already accepted (from this or any other source), the import of that event is a no-op that does not create a duplicate receipt or duplicate projection state.

@@ -25,14 +25,8 @@ function loadFixture(name: string): InteropFixture {
 }
 
 /**
- * SDK profile (spec/conformance.md section 1): "verification of signatures
- * produced by any other conformant SDK." Both directions below are
- * genuinely executed here, not asserted from prose: direction 1 calls
- * @act/crypto in-process against a fixture sdks/python produced; direction
- * 2 shells out to a real Python process (conformance/interop/verify-
- * typescript-signed.py) against a fixture @act/crypto produced, since
- * these two runtimes can't share an in-process call the way this
- * repository's other checks do.
+ * Cross-verifies fixtures using TypeScript in-process and a Python subprocess,
+ * as required by the SDK profile (spec/conformance.md section 1).
  */
 export function run(): CheckResult[] {
   return [...checkTypeScriptVerifiesPython(), ...checkPythonVerifiesTypeScript()];

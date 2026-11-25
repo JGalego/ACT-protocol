@@ -1,12 +1,14 @@
 # Conformance Vectors
 
-Generated artifacts, checked into git — the single source of truth every SDK's conformance suite (including the TypeScript SDK's own tests, so it can never silently drift from its own vectors) loads. Regenerate only when `packages/core` or `packages/crypto` change:
+Committed reference outputs used by the SDK conformance tests. Regenerate only when `packages/core` or `packages/crypto` change:
 
 ```bash
 pnpm run conformance:generate-vectors
 ```
 
-Every value here comes from running the REAL implementation (`conformance/vectors/generate-vectors.ts` imports `@act/core`/`@act/crypto` directly) — nothing here is hand-derived. In particular `canonicalization.json`'s `numbers` section is the actual byte-for-byte RFC 8785 output for edge cases a naive port would get wrong: negative zero collapsing to `"0"`, the precision loss boundary at `2^53`, and JS's exponential-notation thresholds. A correct Python/Go/Rust canonicalizer must reproduce these exact strings, not merely "a reasonable-looking" serialization.
+`generate-vectors.ts` calls `@act/core` and `@act/crypto` to produce expected outputs. The canonicalization cases include negative zero becoming `"0"`, the precision boundary at `2^53`, and ECMAScript's exponential-notation thresholds. Other SDKs must reproduce these strings exactly.
+
+Regeneration creates new random keypairs and signatures. It does not reproduce the committed key material; do not run it as routine cleanup.
 
 | File | Contents |
 | --- | --- |

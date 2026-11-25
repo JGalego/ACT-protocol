@@ -1,6 +1,6 @@
 # Release Checklist
 
-This is the operational checklist `GOVERNANCE.md`'s release process refers to. It mirrors `PROMPT.md`'s Definition of Done, scoped to what this repository actually claims to implement (see `docs/adr/0001-phase-1-scope-and-deferred-work.md` and `docs/roadmap.md` for what is explicitly out of scope).
+The release process in `GOVERNANCE.md` uses this checklist. It applies `PROMPT.md`'s Definition of Done to the scope recorded in `docs/adr/0001-phase-1-scope-and-deferred-work.md` and `docs/roadmap.md`.
 
 ## Before Tagging a Release
 
@@ -22,5 +22,5 @@ This is the operational checklist `GOVERNANCE.md`'s release process refers to. I
 
 ## After a Release
 
-- Confirm the tag's CI run is green (not just the local `make verify`).
-- File roadmap-tracking issues for anything newly discovered to be missing, rather than silently deferring it a second time.
+- Confirm the tag's CI run is green.
+- File tracking issues for newly discovered gaps.

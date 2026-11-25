@@ -2,7 +2,7 @@
 
 An AI-agent group produces competing proposals and a reviewed merge (PROMPT.md's Example Applications item #3).
 
-**Scenario** (`scenario.test.ts`): two independent AI agents each propose a different approach (an in-process cache vs. a materialized view) to the same Intent; a human reviewer records a `Decision` artifact selecting one; only the chosen proposal's approach is carried into an implementation Task, which goes through the same policy/approval/verification cycle as the product-team example.
+**Scenario** (`scenario.test.ts`): independent AI agents propose different approaches (an in-process cache vs. a materialized view) to the same Intent. A human reviewer records a `Decision` selecting an approach. The resulting Task follows the product-team example's policy, approval, and verification cycle.
 
 Run it:
 
@@ -10,11 +10,11 @@ Run it:
 pnpm --filter @act/examples exec vitest run competing-ai-proposals
 ```
 
-## What it proves
+## Checks
 
 - Both competing proposals are permanently recorded on the ledger -- neither is deleted or hidden once one is chosen (`GET /v1/artifacts/:id` for both proposal ids succeeds after the decision).
 - The `Decision` artifact's `data.chosen_option` records exactly which proposal was selected, and its `rationale` explains why.
-- The approved implementation's lineage (`GET /v1/lineage/:id`) reaches back through the decision's own transformation to **both** competing proposals' transformations -- because the reviewer's decision transformation legitimately took both as input, even though only one shaped the implementation.
+- The approved implementation's lineage (`GET /v1/lineage/:id`) reaches both proposal transformations: the decision used both as inputs, although only one shaped the implementation.
 
 ## Equivalent CLI usage
 

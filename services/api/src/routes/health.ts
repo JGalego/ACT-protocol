@@ -9,10 +9,6 @@ const healthRoutes: FastifyPluginAsync<{ registry: TenantRegistry }> = async (
 
   fastify.get('/v1/health/ready', async (_request, reply) => {
     try {
-      // A real, cheap read against the configured storage backend -- not a
-      // hardcoded 200, so a Kubernetes readinessProbe (or Compose
-      // depends_on healthcheck) genuinely reflects whether this instance
-      // can reach its database, not just whether the process is running.
       await registry.ping();
       return { status: 'ok' };
     } catch (err) {

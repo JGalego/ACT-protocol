@@ -10,7 +10,7 @@ ADR 0009 recorded a conservative limitation: when a bundle is imported, every ev
 
 The ADR deferred a fix because "evaluating at the original signing time needs a trustworthy signing time, which `occurred_at` is not." That is true: `occurred_at` is claimed by the signer, so a holder of a revoked key could simply claim an earlier time.
 
-But there is a trustworthy time already in every bundle. Each event carries the **source ledger's receipt**, which states `accepted_at`, the moment the source ledger accepted it. The receipt is signed by the ledger key the operator pinned out of band, and import already verifies it (ADR 0009). The signer cannot influence it. It is the right "signing time" for trust purposes: the instant at which the event became part of an accountable history.
+Each event carries the source ledger's signed receipt, including `accepted_at`. Import verifies that receipt against the operator's pinned ledger key (ADR 0009), so the event signer cannot choose its acceptance timestamp.
 
 ## Decision
 
@@ -22,7 +22,7 @@ But there is a trustworthy time already in every bundle. Each event carries the 
 
 **Consequences for the two cases that motivated this.** An event the source accepted while the key was active is imported even if the key was revoked locally afterwards. An event the source accepted at or after a local revocation is refused, which is the protection revocation exists to give. Because revocation takes effect at a ledger-attested time, there is no way to move an event across it by choosing a timestamp.
 
-**Clocks.** Source acceptance times are compared with local key-history times. Two ledgers' clocks can differ, so around a revocation that happened within the skew between them the outcome can be wrong in either direction. This is stated, not hidden: operators should treat revocation as taking effect across a window of the order of their clock skew, and the compromise grace window (24 hours) already exceeds realistic skew for the case that matters most.
+**Clocks.** Source acceptance times are compared with local key-history times. Clock skew can place an event on either side of a revocation incorrectly. Operators should account for that window. The 24-hour compromise grace window applies to compromise, not ordinary revocation.
 
 **Out of scope.** The CLI's workspace trust (`act key trust`) is an explicit local allow-list with no key history, so it keeps judging at import time. Authority roles (ADR 0011) are evaluated when a decision is accepted, not re-evaluated for imported decisions.
 

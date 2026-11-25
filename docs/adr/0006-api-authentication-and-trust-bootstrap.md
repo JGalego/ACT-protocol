@@ -8,7 +8,7 @@ Accepted
 
 `PROMPT.md` requires OIDC/OAuth 2.0 JWT validation for production, Ed25519 service identities for signed protocol events, a clearly-marked local development identity provider disabled in production, and — most relevantly here — that "API callers MUST NOT gain protocol authority merely because they are authenticated," keeping authentication, signature verification, trust, and authorization as separate evaluations (ACT-1.0.md section 11).
 
-A genuinely new actor has, by definition, no pre-existing trusted key on the ledger it is joining. Some bootstrap mechanism is required to get the first key trusted at all, and it must not amount to "the server trusts whatever key shows up first," which would violate Core Principle 7 ("No Hidden Global Authority").
+A new actor needs a key-registration path. Registration must apply an explicit trust policy rather than trust the first submitted key (Core Principle 7).
 
 ## Decision
 
@@ -26,11 +26,11 @@ This is intentionally a **Phase 1 simplification**: it grants trust to any calle
 
 ## Amendment: Production OIDC/JWT Validation
 
-On 2026-07-18, `services/api` gained real production OIDC/JWT bearer-token validation, closing the gap this ADR originally deferred.
+On 2026-07-18, `services/api` added production OIDC/JWT bearer-token validation.
 
 `plugins/auth.ts` now supports a second, mutually-exclusive path alongside the dev bearer scheme: when `oidc/jwt-verifier.ts`'s `OidcConfig` (issuer + audience, either passed to `buildServer` or read from `ACT_OIDC_ISSUER`/`ACT_OIDC_AUDIENCE`/`ACT_OIDC_JWKS_URI`) is set, an incoming bearer token is verified with `jose` -- real signature verification against the issuer's JWKS (fetched via OIDC discovery unless `ACT_OIDC_JWKS_URI` is given, then cached), plus issuer, audience, and expiry checks. The token's `sub` claim becomes `callerActorId` and its `act_tenant` claim (configurable, defaulting to `'default'` when absent) becomes `tenantId`. As before, this only establishes _who is calling_ -- it grants no ledger authority; every write still independently requires the submitted event envelope's own Ed25519 signature from a registered key.
 
-`server.ts`'s fail-closed check is now precise rather than a placeholder: it refuses to start in `NODE_ENV=production` if `ACT_DEV_MODE` is enabled (regardless of whether OIDC is also configured), and separately refuses to start if neither `ACT_DEV_MODE` nor OIDC configuration is present. Production mode now genuinely succeeds once OIDC is configured, rather than never succeeding at all.
+`server.ts` refuses production startup when `ACT_DEV_MODE` is enabled or OIDC configuration is absent.
 
 `oidc/dev-provider.ts` is a deterministic, offline local OIDC provider -- a real HTTP server serving OIDC discovery, a JWKS endpoint, and a token-issuance endpoint signed with a freshly generated RS256 keypair -- so the verifier is testable end-to-end (`services/api/src/__tests__/oidc-auth.test.ts`) without a paid external identity provider, mirroring the existing deterministic mock for the OpenAI-compatible semantic assessor (`packages/verification/src/semantic/mock-openai-server.ts`). It is the "local OIDC development provider" `docs/roadmap.md`'s Deployment item still needs wiring into Docker Compose.
 

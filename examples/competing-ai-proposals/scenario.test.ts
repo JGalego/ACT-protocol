@@ -14,13 +14,9 @@ import {
 } from '../shared/fixtures.js';
 
 /**
- * An AI-agent group producing competing proposals and a reviewed merge --
- * PROMPT.md's Example Applications item #3. Two independent AI agents
- * each propose a different approach to the same intent; a human reviewer
- * records a Decision selecting one, and only the chosen proposal's
- * approach is carried into the implementation Task. The unselected
- * proposal remains on the ledger (never deleted), distinguishable by
- * being absent from the eventual approval chain.
+ * Competing AI proposals with human selection and approval (PROMPT.md
+ * example #3). The unselected proposal stays in the ledger but is excluded
+ * from the implementation's approval chain.
  */
 describe('example: competing AI proposals and a reviewed merge', () => {
   let server: FastifyInstance;

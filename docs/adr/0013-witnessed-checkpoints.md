@@ -12,7 +12,7 @@ The receipt chain makes a ledger's history tamper-evident _to anyone who already
 - **withholding the tail**: answering "this is everything" while recent events are hidden;
 - **truncating and re-extending** history for a party who only checks the head they were shown.
 
-All three need a statement about the _whole_ history that the operator cannot make differently to different people. Trust in "the operator" is the one trust anchor left in the model (ADR 0009, ADR 0010). Certificate-transparency-style witnessing removes it: independent parties that each refuse to endorse two histories that disagree.
+These attacks require independent observations of the ledger's history. Certificate-transparency-style witnesses refuse to endorse histories that conflict with what they previously observed; consumers require a quorum of their configured witnesses.
 
 ## Decision
 

@@ -14,14 +14,9 @@ import {
 } from '../shared/fixtures.js';
 
 /**
- * An open-source collaboration with external contributions and signed
- * bundle federation -- PROMPT.md's Example Applications item #5. An
- * external contributor works entirely on their own independently-hosted
- * ledger (never sharing a database with upstream); the maintainer's
- * upstream ledger pulls the contribution over real HTTP
- * (POST /v1/federation/pull), trust-bootstrapping the contributor's key
- * from their own Key event in the pulled bundle, then reviews and merges
- * it through the normal approval flow.
+ * Signed bundle federation from an external contributor's ledger (PROMPT.md
+ * example #5). Upstream pulls over HTTP, bootstraps trust from the imported
+ * Key event, and applies the approval flow.
  */
 describe('example: open-source federation with an external contribution', () => {
   let upstream: FastifyInstance;

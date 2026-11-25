@@ -18,7 +18,7 @@ This document describes how ACT relates to, and how it can be extended alongside
 
 ## Proposing an Extension
 
-Two kinds of extension exist:
+Extension types:
 
 1. **A new extension namespace** for the `extensions` field on events and artifact records. No protocol version bump is required. Open an issue using the "Standards Proposal" template with the namespace (reverse-DNS style, e.g. `com.example.act-ext.my-field`), the fields it carries, and a fixture demonstrating a read-write round trip that preserves it.
 2. **A new algorithm registration** (signature or digest) in `schemas/registry/algorithms.json`. This requires conformance vectors (`spec/ACT-1.0.md` section 4.4) before any implementation may produce signatures using it, and does not by itself deprecate the existing required algorithms (Ed25519, SHA-256).

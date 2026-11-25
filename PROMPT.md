@@ -2,21 +2,11 @@
 
 ## Accountability and Chain of Transformation
 
-> An open protocol for preserving meaning, provenance, evidence, and accountable decisions across human and AI collaboration.
-
-### Motto
-
-> Trust is earned through accountability.
->
-> Accountability is enabled by transparency.
->
-> Transparency is achieved through verifiable transformations.
+> An open protocol for recording the provenance of work by people and AI.
 
 ---
 
 ## Execution Directive
-
-Act as a principal protocol designer, security engineer, distributed-systems engineer, full-stack engineer, SDK author, formal-methods practitioner, technical writer, and test engineer.
 
 Build the complete ACT Protocol repository in the current workspace. Do not respond with only a proposal, architecture sketch, sample, or implementation plan. Create the files, install the dependencies, implement every required component, run every available quality gate, fix failures, and leave a usable version 1.0 release candidate.
 
@@ -140,7 +130,7 @@ Use a polyglot monorepo with these required technologies:
 - Helm manifests for Kubernetes deployment
 - OpenTelemetry for traces and metrics
 
-Use current stable dependency versions that are compatible with the selected runtimes. Commit lockfiles. Avoid duplicating authoritative domain definitions: generate language models and API clients from the JSON Schemas and OpenAPI document where practical, then add hand-written cryptographic and ergonomic layers.
+Use current stable dependency versions that are compatible with the selected runtimes. Commit lockfiles. Avoid duplicating authoritative domain definitions: generate language models and API clients from the JSON Schemas and OpenAPI document where practical, then add hand-written cryptographic and client helpers.
 
 ### Required Repository Shape
 
@@ -519,7 +509,7 @@ Implement a verification toolkit that detects and explains:
 
 Every finding MUST include a stable rule ID, severity, affected records, evidence, explanation, remediation guidance, and whether the result is a mechanical fact, policy result, heuristic assessment, or human judgment.
 
-Provide three usable semantic assessors:
+Provide these semantic assessors:
 
 1. A deterministic structural and normalized-text assessor that runs offline.
 2. A provider-neutral OpenAI-compatible assessor with prompt-injection defenses, strict structured output, retries, provenance capture, and configurable endpoint credentials.
@@ -823,7 +813,7 @@ Provide:
 - approval and policy fixtures
 - federation, fork, duplicate, and partial-history fixtures
 - privacy and redaction fixtures
-- executable conformance runners in all four SDK languages
+- executable conformance runners in each required SDK language
 - a machine-readable conformance report
 
 Specify semantic-version compatibility, protocol negotiation, schema evolution, field deprecation, extension namespaces, algorithm registration, and unknown-event handling. A conforming implementation MUST never silently reinterpret unknown normative data.
@@ -839,7 +829,7 @@ Produce:
 - semantic-model documentation
 - generated schema reference
 - API and event API reference
-- SDK guides for all four languages
+- SDK guides for each required language
 - CLI reference
 - Explorer user guide
 - security and privacy guide
@@ -860,7 +850,7 @@ Every citation and URL MUST be real, verified, and bibliographically sufficient.
 
 ## Example Applications
 
-Provide six executable, seeded examples:
+Provide executable, seeded examples:
 
 1. A single human collaborating with an AI coding assistant.
 2. A product team moving from intent through requirements, implementation, tests, and approval.
@@ -956,7 +946,7 @@ The repository is complete only when all of the following are true:
 - no required behavior is represented only by prose or a mock
 - all generated artifacts can be regenerated deterministically
 - all schemas validate their positive fixtures and reject their negative fixtures
-- all four SDKs pass shared conformance tests
+- all required SDKs pass shared conformance tests
 - SQLite and PostgreSQL exhibit equivalent protocol behavior
 - the API implementation matches its OpenAPI contract
 - Docker Compose starts a usable system with seeded data
@@ -977,7 +967,7 @@ Before finishing, run the complete verification suite and repair failures. Repor
 
 ## Success Standard
 
-ACT succeeds when humans and machines can consistently distinguish:
+ACT records must let humans and machines distinguish:
 
 - immutable facts from mutable projections
 - cryptographic validity from trust and authorization
@@ -990,12 +980,4 @@ ACT succeeds when humans and machines can consistently distinguish:
 - known uncertainty from residual unknown risk
 - transparent metadata from access-controlled content
 
-Every transformation is attributable.
-
-Every decision has provenance.
-
-Every approval has explicit scope and authority.
-
-Every artifact version has verifiable lineage or an explicit provenance boundary.
-
-Every claim can be verified, challenged, or identified honestly as unresolved.
+Transformations must identify their actors, decisions their provenance, and approvals their scope and authority. Artifact versions must have verifiable lineage or an explicit provenance boundary. Claims must be verifiable, disputable, or marked unresolved.

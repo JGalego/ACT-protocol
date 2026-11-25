@@ -15,12 +15,9 @@ import {
 } from '../shared/fixtures.js';
 
 /**
- * A product team moves from intent through requirements, implementation,
- * and tests, to a policy-required approval -- PROMPT.md example #2. One
- * real revision (the implementation Task is revised after its first test
- * run fails) is included, matching the "at least one revision" checklist
- * item. Every step is a real signed envelope submitted to a real,
- * listening services/api instance, backed by an in-memory SQLite ledger.
+ * Intent-to-approval workflow with a failed test and Task revision
+ * (PROMPT.md example #2). Signed envelopes are submitted to a SQLite-backed
+ * API over HTTP.
  */
 describe('example: product team workflow', () => {
   let server: FastifyInstance;

@@ -20,7 +20,7 @@ No single maintainer, ledger operator, identity provider, or organization holds 
 
 ## Release Process
 
-Releases follow semantic versioning across four independent axes — protocol, schema, API, and implementation version (`docs/versioning.md`). A release is cut only when `make verify` and `make verify-integration` pass and the Definition of Done in `PROMPT.md` / `docs/release-checklist.md` is satisfied for the scope claimed by that release.
+Releases follow semantic versioning, with independent protocol, schema, API, and implementation versions (`docs/versioning.md`). A release is cut only when `make verify` and `make verify-integration` pass and the Definition of Done in `PROMPT.md` / `docs/release-checklist.md` is satisfied for the scope claimed by that release.
 
 ## Standards Adoption and Extension Process
 

@@ -67,14 +67,9 @@ async function registerActorWithOidc(
 }
 
 /**
- * An enterprise workflow with OIDC identities, quorum approval, restricted
- * evidence, and audit export -- PROMPT.md's Example Applications item #4.
- * Every identity here authenticates via a real, production-shaped OIDC/JWT
- * bearer token (services/api/src/oidc/dev-provider.ts, the same
- * deterministic emulator ADR 0006's amendment adds), not the local dev
- * bearer scheme every other example uses -- `services/api` is built with
- * `devMode: false` and real `oidc` config, exercising the fail-closed
- * production auth path end-to-end.
+ * OIDC identities, quorum approval, restricted evidence, and audit export
+ * (PROMPT.md example #4). Uses devMode: false with the local OIDC provider
+ * to exercise JWT verification rather than bearer-as-actor-id authentication.
  */
 describe('example: enterprise OIDC identities, quorum approval, and audit export', () => {
   let server: FastifyInstance;
@@ -240,7 +235,7 @@ describe('example: enterprise OIDC identities, quorum approval, and audit export
     expect(quorumResult.satisfied).toBe(true);
     expect(quorumResult.approvedCount).toBe(2);
 
-    // A quorum of 1 (only reviewer A) would NOT satisfy this policy -- proving the check is real, not a formality
+    // Reviewer A alone cannot satisfy the quorum-2 policy.
     const insufficientQuorum = evaluateQuorum(requirement, [approvals[0]!], engineer.actorId);
     expect(insufficientQuorum.satisfied).toBe(false);
 

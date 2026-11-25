@@ -1,9 +1,4 @@
-"""Ports `packages/sdk-typescript/src/client.ts`.
-
-Uses only `urllib.request` from the standard library -- no extra runtime
-dependency, matching this SDK's minimal-dependency philosophy (`cryptography`
-is the sole exception, since Ed25519 has no stdlib implementation).
-"""
+"""ACT HTTP client using standard-library urllib.request."""
 
 from __future__ import annotations
 
@@ -27,10 +22,10 @@ class ActApiError(Exception):
 
 
 class ActClient:
-    """A thin, retrying HTTP client for the ACT reference API. Every write
-    method takes an already-signed envelope built with `act_sdk.crypto` --
-    this client never signs on the caller's behalf, preserving
-    non-repudiation."""
+    """Retrying client for the ACT reference API.
+
+    Write methods accept already-signed envelopes; the client does not sign.
+    """
 
     def __init__(
         self,

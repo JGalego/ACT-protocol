@@ -6,7 +6,7 @@ Accepted
 
 ## Context
 
-`apps/cli` operates against a local, embedded SQLite ledger (`act init` creates `.act/ledger.db`) without necessarily talking to `services/api`. It needs a trust model simple enough for a single local user, while still reusing `@act/ledger`'s real `TrustPolicy` interface rather than a special-cased bypass.
+The CLI operates on a local SQLite ledger (`.act/ledger.db`) without requiring the API. It uses the ledger's `TrustPolicy` interface for local key trust.
 
 ## Decision
 
@@ -16,7 +16,7 @@ Accepted
 
 ## Consequences
 
-- A single-user local workspace has zero-configuration trust for its own identity, matching the "embedded operation" requirement's spirit of being immediately usable.
+- A new local workspace trusts its generated identity.
 - Cross-workspace federation via `act export`/`act import` requires an explicit `act key trust` step (or a `Key` artifact event in the bundle) before events signed by an unfamiliar key are accepted — an unknown key is reported as `invalid_signature` (no public key on file to check the signature against) rather than silently trusted, consistent with ACT-1.0.md section 6.1's write-path ordering (signature verification precedes trust-policy evaluation).
 
 ## Amendment: ADR 0009 (key ownership, verified bundles)

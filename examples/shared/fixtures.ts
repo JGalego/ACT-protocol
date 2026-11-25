@@ -1,10 +1,6 @@
 /**
- * Shared envelope-building helpers for the seeded example applications
- * under examples/*. Generalizes the patterns proven in
- * services/api/src/__tests__/helpers.ts across every artifact type an
- * example needs, rather than hand-deriving payload shapes per example --
- * every shape here matches a real schema and (where one exists) the real
- * positive fixture under schemas/**\/fixtures/positive/.
+ * Shared schema-based envelope builders for the example tests, following
+ * services/api/src/__tests__/helpers.ts and the positive schema fixtures.
  */
 import type { AddressInfo } from 'node:net';
 import type { FastifyInstance } from 'fastify';
@@ -575,8 +571,6 @@ export function buildIntentEnvelope(actor: Actor, statement: string): BuiltEnvel
     data: { statement, scope: 'example' },
   });
 }
-
-// --- Real, listening HTTP server helpers (mirrors services/api's federation.test.ts pattern) ---
 
 export async function listenEphemeral(server: FastifyInstance): Promise<string> {
   await server.listen({ port: 0, host: '127.0.0.1' });

@@ -7,7 +7,7 @@ $ pnpm audit
 No known vulnerabilities found
 ```
 
-This was not the starting state. `pnpm audit` initially reported 5 advisories against the transitive `vite` dependency pulled in by `vitest`/`@vitest/coverage-v8`: one critical (an arbitrary file read/execute via Vitest's UI server, which this repository never enables), one high, and three moderate, all `vite` path-traversal/UNC-handling issues. All five were dev-tooling-only: `vite` and `vitest` are `devDependencies` in every workspace package, never included in a package's published `files`, a container image, or any runtime dependency tree, so none of them affected `PROMPT.md`'s bar of "no known critical or high-severity vulnerabilities in shipped runtime dependencies or container images." They were fixed anyway rather than left as an accepted risk:
+The initial audit reported five dev-tooling advisories through `vitest`/`@vitest/coverage-v8` and their transitive `vite` dependency: one critical Vitest UI-server file-read/execute issue, one high, and three moderate path-traversal/UNC-handling issues. The UI server was not enabled and the affected tooling was excluded from published packages and runtime images. The fixes were:
 
 1. Upgraded `vitest` and `@vitest/coverage-v8` from `^2.1.8` to `^3.2.6` across the workspace packages that use them, which resolved the critical Vitest-UI advisory (fixed upstream in `vitest@3.2.6`).
 2. Added a `pnpm-workspace.yaml` dependency override (`overrides: { vite: "6.4.3" }`) to force the transitive `vite` dependency past the remaining path-traversal/UNC advisories while staying on the major version supported by the Explorer's React plugin.
@@ -34,7 +34,7 @@ pnpm audit
 
 ## Runtime Dependency Inventory
 
-Production runtime dependencies (i.e. what actually ships, excluding `devDependencies` used only for building/testing) are, per package:
+Runtime dependencies, excluding build and test tooling:
 
 | Package | Runtime dependencies |
 | --- | --- |
@@ -48,7 +48,7 @@ Production runtime dependencies (i.e. what actually ships, excluding `devDepende
 | `apps/cli` | the above, plus `commander` |
 | `apps/explorer` | `react`, `react-dom`, `cytoscape`, `lucide-react`, and self-hosted IBM Plex font packages |
 
-This is a deliberately small runtime surface: no external crypto, canonicalization, or HTTP-client library is a runtime dependency of the security-critical packages (ADR 0002 explains why canonicalization is hand-rolled rather than imported).
+ADR 0002 explains the local canonicalization implementation.
 
 ## SBOM
 
@@ -56,4 +56,4 @@ An automated SBOM generation step (e.g. `syft` or `cyclonedx-npm` wired into CI)
 
 ## CI Enforcement
 
-`.github/workflows/ci.yml`'s `audit` job runs `pnpm audit` on every push and pull request and fails the build if any vulnerability is reported at or above the `high` severity threshold, so a newly-disclosed advisory in any dependency is caught automatically rather than relying solely on this document staying current.
+The `audit` job in `.github/workflows/ci.yml` runs on every push and pull request and fails for advisories at or above `high` severity.

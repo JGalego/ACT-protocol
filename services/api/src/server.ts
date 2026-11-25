@@ -111,9 +111,7 @@ function resolveOidcConfig(options: BuildServerOptions): OidcConfig | undefined 
 }
 
 /**
- * Builds (but does not start listening on) a fully wired Fastify instance.
- * Exported separately from `start()` so tests can build an in-memory
- * instance with `.inject()` without binding a real port.
+ * Builds a Fastify instance without opening a port, for tests using .inject().
  */
 export async function buildServer(options: BuildServerOptions = {}): Promise<FastifyInstance> {
   const nodeEnv = options.nodeEnv ?? process.env.NODE_ENV ?? 'development';
@@ -122,17 +120,11 @@ export async function buildServer(options: BuildServerOptions = {}): Promise<Fas
 
   if (nodeEnv === 'production') {
     if (devMode) {
-      // The local development bearer scheme grants identity with no
-      // cryptographic proof; ADR 0006 and docs/security-and-privacy-guide.md
-      // require it to be unavailable in production regardless of how it was
-      // enabled.
       throw new Error(
         'ACT_DEV_MODE must not be enabled in production. Configure OIDC (ACT_OIDC_ISSUER, ACT_OIDC_AUDIENCE) instead.',
       );
     }
     if (!oidc) {
-      // Fail closed: rather than silently accept unauthenticated callers,
-      // refuse to start until real OIDC validation is configured.
       throw new Error(
         'Production mode requires OIDC configuration: set ACT_OIDC_ISSUER and ACT_OIDC_AUDIENCE ' +
           '(optionally ACT_OIDC_JWKS_URI to skip discovery).',
@@ -142,10 +134,6 @@ export async function buildServer(options: BuildServerOptions = {}): Promise<Fas
 
   const adminActorIds = resolveAdminActors(options);
   if (nodeEnv === 'production' && (!adminActorIds || adminActorIds.length === 0)) {
-    // Peers, federation imports and key admission are administrator
-    // operations; a production server with no administrator cannot be
-    // operated, and one that treated everyone as an administrator would be
-    // wide open. Refuse to start rather than guess.
     throw new Error(
       'Production mode requires at least one administrator: set ACT_ADMIN_ACTORS to the OIDC subject(s) allowed to administer this ledger.',
     );

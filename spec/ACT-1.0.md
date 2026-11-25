@@ -183,7 +183,7 @@ A consumer MUST NOT trust a checkpoint on the ledger's signature alone when it n
 
 ### 7.1 Node Classes and Lineage
 
-The semantic graph has five signed node classes — Artifact, Transformation, Attestation, Policy, Evidence — plus Events, which are the append-only record of changes to the other four. Lineage between nodes MUST be represented as typed, many-to-many edges pointing from the new node to the existing node(s) it depends on. §6.2 requires these edges to be the only persisted lineage representation (no mutable `children`).
+The semantic graph's signed node classes are Artifact, Transformation, Attestation, Policy, and Evidence. Events are append-only records of changes to these nodes. Lineage between nodes MUST be represented as typed, many-to-many edges pointing from the new node to the existing node(s) it depends on. §6.2 requires these edges to be the only persisted lineage representation (no mutable `children`).
 
 ### 7.2 Transformation Contract and Semantic-Change Taxonomy
 
@@ -310,7 +310,7 @@ See `docs/security-and-privacy-guide.md` for the full normative privacy and reda
 
 ### 16.1 Version Axes
 
-Four version identifiers change independently (`docs/versioning.md`): `protocol_version` (this document's version, e.g. `act/1.0`), schema version (per-`$id` version segment under `schemas/`), API version (the `/v1` path prefix), and implementation version (semantic version of a specific SDK, service, or CLI build).
+Version identifiers change independently (`docs/versioning.md`): `protocol_version` (this document's version, e.g. `act/1.0`), schema version (per-`$id` version segment under `schemas/`), API version (the `/v1` path prefix), and implementation version (semantic version of a specific SDK, service, or CLI build).
 
 ### 16.2 Compatibility
 

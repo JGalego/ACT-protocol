@@ -44,7 +44,7 @@ export function isValidDigestForm(digest: string): boolean {
   return DIGEST_PATTERN.test(digest);
 }
 
-/** Recomputes a digest over canonical bytes and compares to the claimed value in constant-ish time via string equality post-hash. */
+/** Recomputes a digest over canonical bytes and compares it with the claimed value. */
 export function verifyDigest(value: unknown, claimedDigest: string): boolean {
   const { algorithm } = parseDigest(claimedDigest);
   return digestCanonicalValue(value, algorithm) === claimedDigest;

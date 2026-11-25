@@ -1,17 +1,10 @@
 /**
- * One-shot generator: runs the REAL packages/core / packages/crypto
- * implementations over a fixed set of inputs and dumps the result as
- * language-neutral JSON vector files under conformance/vectors/. These are
- * generated artifacts, checked into git, and the single source of truth
- * every SDK's conformance suite (including the TypeScript SDK's own tests)
- * loads -- never hand-derived expected values, so a port can never be
- * "correct according to my own reasoning" without matching this repo's
- * actual byte output.
+ * Generates language-neutral JSON vectors using packages/core and
+ * packages/crypto. Checked-in vectors are frozen conformance inputs.
  *
- * Re-run manually (`pnpm run conformance:generate-vectors`) only when
- * packages/core or packages/crypto change. Keys/signatures below are
- * generated once and frozen; re-running produces a different (but
- * equally valid) frozen set, not a reproduction of these exact bytes.
+ * Regeneration mints random keys and changes the frozen signatures; it does
+ * not reproduce existing bytes. Run `pnpm run conformance:generate-vectors`
+ * only for intended vector changes, not routine cleanup.
  */
 import { writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';

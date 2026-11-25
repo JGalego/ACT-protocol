@@ -10,10 +10,10 @@ Run it:
 pnpm --filter @act/examples exec vitest run open-source-federation
 ```
 
-## What it proves
+## Checks
 
-- The contributor's Ed25519 key is trust-bootstrapped on upstream **purely from their own signed `Key` genesis event** inside the pulled bundle -- proven by upstream accepting a second, independently-submitted event from that same contributor after the pull, with no separate manual registration step upstream.
-- A clean external contribution reports zero forks and zero equivocations (`findings.forks`/`findings.equivocations` both empty) -- both finding classes genuinely exist (`@act/ledger`'s `findForks`/`findEquivocations`) so a real one would be reported, not silently accepted or rejected.
+- The contributor's signed Key event introduces their key through the verified bundle from the pinned peer. Upstream then accepts another event from that contributor without a separate key-registration request.
+- The clean contribution returns empty `findings.forks` and `findings.equivocations` arrays.
 - Upstream's own `GET /v1/artifacts/:id/versions` for the contributed artifact includes the contributor's original signed event byte-for-byte, not a re-signed or re-attributed copy.
 
 ## Equivalent CLI usage

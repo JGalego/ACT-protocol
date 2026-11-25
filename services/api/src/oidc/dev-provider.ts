@@ -2,20 +2,12 @@ import { createServer, type Server } from 'node:http';
 import { exportJWK, generateKeyPair, SignJWT } from 'jose';
 
 /**
- * A deterministic, offline local OIDC provider, so the production OIDC/JWT
- * verification path (`jwt-verifier.ts`) is usable and testable without a
- * paid external identity provider (PROMPT.md's Execution Directive: "a
- * configurable external integration is acceptable only when the repository
- * also includes a deterministic local implementation or emulator"; and
- * separately, "a clearly marked local development identity provider that is
- * disabled in production mode").
+ * Local OIDC provider for development and verifier tests. Serves discovery,
+ * JWKS, and token-issuance endpoints over HTTP.
  *
- * Serves real OIDC discovery, JWKS, and token-issuance endpoints over HTTP.
- * `POST /token` mints a signed ID token for whatever `sub`/`aud`/claims the
- * caller asks for -- there is no real login flow, credential check, or user
- * store, because this exists to exercise the verifier's contract (signature,
- * issuer, audience, expiry, claim mapping), not to emulate a real identity
- * provider's authentication UX.
+ * POST /token accepts caller-supplied subjects and claims without
+ * authenticating the caller. There is no login flow or user store; use only
+ * for local development and tests, not production authentication.
  */
 export interface DevOidcProvider {
   server: Server;

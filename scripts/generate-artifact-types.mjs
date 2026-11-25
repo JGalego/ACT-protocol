@@ -166,7 +166,7 @@ const TYPES = [
     },
     example: {
       title: 'Ledger write path',
-      description: 'Atomic 9-step append',
+      description: 'Atomic append',
       components: ['validator', 'store', 'projector'],
     },
   },

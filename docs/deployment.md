@@ -1,11 +1,11 @@
 # Deployment
 
-Two deployment shapes exist, both under `deploy/`:
+Deployment options under `deploy/`:
 
-- `deploy/compose/`: a full local/demo stack via Docker Compose.
-- `deploy/helm/act/`: a Helm chart for a production-shaped Kubernetes deployment.
+- `deploy/compose/`: a local/demo stack using Docker Compose.
+- `deploy/helm/act/`: a Kubernetes Helm chart.
 
-Both build from `deploy/docker/api.Dockerfile` and `deploy/docker/explorer.Dockerfile`: hardened multi-stage builds that produce non-root runtime images (a dedicated `act` user for the API; `nginxinc/nginx-unprivileged` for the Explorer), using `pnpm deploy` to prune the built API image down to production dependencies only. No monorepo tooling, no other workspace package's source, no devDependencies.
+The multi-stage Dockerfiles produce non-root runtime images: an `act` user for the API and `nginxinc/nginx-unprivileged` for the Explorer. `pnpm deploy` limits the API runtime to its production dependencies.
 
 ## Prerequisites
 
@@ -13,7 +13,7 @@ Both build from `deploy/docker/api.Dockerfile` and `deploy/docker/explorer.Docke
 - **Helm chart:** `helm` 3.x and a Kubernetes cluster (`kubectl` configured against it).
 - **Static validation only** (`make verify-deploy`, no Docker daemon or live cluster required): `helm` is required; `hadolint` (Dockerfile linting) and `kubeconform` (Kubernetes OpenAPI schema validation) run too if present on `PATH`, and are always installed in CI (`.github/workflows/ci.yml`'s `deploy-lint` job) so the full validation runs there even when a contributor's machine lacks them.
 
-This repository's own development sandbox has no usable Docker daemon (WSL2 without the Docker Desktop integration enabled), so `deploy/compose/*.yml` and the Dockerfiles are validated statically here (`docker compose ... config`, `helm template` + `kubeconform`, `hadolint`) but have not been built or run end-to-end in this environment. `make verify-integration`'s and CI's `deploy-lint` job's real, dockerized runs are the actual proof. See `scripts/integration-smoke.ts` for what the former exercises: a real key-registration to event-listing sequence against the actual built `services/api` server, over HTTP, backed by a real containerized PostgreSQL, verified working during development against a local embedded-postgres server standing in for the container.
+During development, static checks passed and `scripts/integration-smoke.ts` ran against the built API with embedded PostgreSQL. That did not validate container builds or a complete Compose deployment. On a Docker host, `make verify-integration` starts PostgreSQL and runs the API's key-registration-to-event-listing smoke sequence over HTTP. CI's `deploy-lint` job checks deployment configuration.
 
 ## Running the Full Local Stack
 
@@ -29,9 +29,9 @@ Brings up:
 | `oidc-provider` | `services/api/src/oidc/dev-provider.ts`, a deterministic, offline OIDC issuer (discovery, JWKS, token endpoint), for exercising the API's production OIDC/JWT path without a paid identity provider |
 | `api` | `services/api`, `ACT_STORAGE=postgres`, pointed at both of the above |
 | `explorer` | The static Vite build of `apps/explorer`, served by nginx |
-| `otel-collector` | Scrapes the API's real `GET /v1/metrics` (Prometheus text format) and logs what it collected via the `debug` exporter. A genuinely functioning pipeline, not a placeholder; see `deploy/compose/otel-collector-config.yaml` |
+| `otel-collector` | Scrapes `GET /v1/metrics` (Prometheus text format) and writes samples through the `debug` exporter; see `deploy/compose/otel-collector-config.yaml` |
 
-Everything here is for local/demo use: fixed development-only credentials, and the OIDC provider mints tokens on request with no real login flow.
+The Compose stack is for local/demo use. It has fixed development credentials, and the OIDC provider issues tokens on request without authenticating users.
 
 ## Environment and Configuration Reference
 
@@ -54,9 +54,9 @@ Everything here is for local/demo use: fixed development-only credentials, and t
 | `ACT_ALLOW_PRIVATE_PEERS` | `false` (`true` in dev mode) | Permit federation peers on loopback/private/link-local addresses. Leave off in production: it is the SSRF guard |
 | `ACT_AUTHORITY_POLICY_FILE` | — | Path to a JSON file `{ "policy": <authority policy> }`: which roles may select or merge an effective intent, and the quorum. Who holds a role is not configuration: it comes from signed accountability assignments (`POST /v1/assignments`, ADR 0011), and a file that still has `actorRoles` stops the server from starting. Without it no one may select or merge an effective intent (`authority_policy_required`) |
 
-A ledger's identity (its id and receipt-signing key) is created once and stored in its database, so every replica of one database shares it and a restart keeps it. Peers pin it out of band via `GET /v1/ledger`. Egress policy is the complete defense against SSRF through federation peers: the API re-resolves a peer's host before each call and refuses redirects, but a network policy limiting outbound traffic to known peers closes the remaining DNS-rebinding race.
+A ledger's id and receipt-signing key are stored in its database and shared by replicas. Peers pin that identity out of band via `GET /v1/ledger`. The API resolves peer hosts before each call and refuses redirects, but a DNS-rebinding race remains; restrict outbound traffic to known peers at the network layer.
 
-`NODE_ENV=production` fails closed at startup unless exactly one of `ACT_DEV_MODE=true` (never in production) or both OIDC variables are set. See `services/api/src/server.ts`.
+Production requires OIDC configuration and at least one administrator. `ACT_DEV_MODE=true` is rejected in production. See `services/api/src/server.ts`.
 
 ## Tenants
 
@@ -75,7 +75,7 @@ To protect against an operator showing different parties different histories, re
 
 `createLedgerContext` (`services/api/src/ledger-context.ts`) applies pending migrations idempotently on every server boot, so no separate step is strictly required. `services/api/src/bin/migrate.ts` (`pnpm --filter @act/api run migrate`, compiled to `dist/bin/migrate.js`) exists as a standalone entrypoint so a Helm pre-install/pre-upgrade Job can apply migrations once before any API replica rolls out, rather than relying on whichever replica boots first (`deploy/helm/act/templates/migration-job.yaml`).
 
-There is no dedicated demo-data seed script yet. `apps/cli`'s `act` commands or `POST /v1/bundles/import` can load events into a running ledger; the seeded example applications tracked in `docs/roadmap.md` (Example Applications) are the natural home for real seed fixtures once built.
+There is no dedicated demo-data seed command. Use the CLI for a local workspace or `POST /v1/bundles/import` for a service ledger. The API scenarios under `examples/` currently run as tests.
 
 ## Helm Chart
 

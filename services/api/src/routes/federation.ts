@@ -48,12 +48,9 @@ async function fetchPeer(
 }
 
 /**
- * Real peer-to-peer federation transport (spec/federation.md): pulling a
- * bundle from, or pushing one to, an independently-hosted ACT ledger over HTTP.
- * Registering a peer is the operator's explicit trust decision and pins the
- * peer's ledger id and signing key; everything pulled is verified against that
- * pin and still goes through the full appendEvent write path. All of it is
- * administrator-only, and no response ever echoes a peer's bearer token.
+ * Administrator-only HTTP bundle pull/push (spec/federation.md). Peer
+ * registration pins the ledger id and signing key; imports verify that pin
+ * and use appendEvent. Responses must not expose peer bearer tokens.
  */
 const federationRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.post('/v1/federation/peers', async (request, reply) => {

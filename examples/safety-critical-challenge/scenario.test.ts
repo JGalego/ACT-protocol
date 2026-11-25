@@ -24,28 +24,17 @@ interface ChallengeRecord {
 }
 
 /**
- * A safety-critical workflow with strict separation of duties, formal
- * evidence, and an unresolved challenge that prevents release --
- * PROMPT.md's Example Applications item #6. The ACT ledger itself never
- * refuses to record a fact (an append-only record, not a gatekeeper), so
- * "blocks release" here means what it means in practice: a
- * release-readiness check -- the kind real release tooling would run --
- * correctly reports NOT READY while a challenge against the approval
- * remains status "open" (schemas/challenge/challenge.schema.json), and
- * READY only once a real challenge_resolved event changes its status.
- * This check is written here, not as a library function, because it is
- * business policy specific to this example, not a protocol invariant.
+ * Release-readiness policy for the safety-critical example (PROMPT.md
+ * example #6). Open challenges against an approval block release until
+ * resolution is recorded. This is example-specific business policy, not a
+ * protocol invariant; the evidence payloads are illustrative.
  */
 function assessReleaseReadiness(
   approvalDecisionEventId: string,
   challenges: ChallengeRecord[],
 ): { ready: boolean; reason: string } {
-  // Events are immutable: a resolved challenge's original challenge_raised
-  // record still says status "open" forever. Only the LATEST event per
-  // challenge artifact_id reflects its current status, so this groups by
-  // artifact and takes the highest-sequence (most recent) record before
-  // checking status -- exactly what real release tooling reading this
-  // ledger would have to do.
+  // The original challenge event stays open after resolution. Use the latest
+  // event per artifact to assess its current state.
   const latestByArtifact = new Map<string, ChallengeRecord>();
   for (const c of challenges) {
     if (!c.subjectArtifactId) continue;
@@ -115,7 +104,7 @@ describe('example: safety-critical workflow with an unresolved challenge', () =>
       (await postEnvelope(url, '/v1/artifacts', change.envelope, implementer.actorId)).status,
     ).toBe(201);
 
-    // Formal evidence: a formally-verified (model-checked) timing proof, not just a manual review.
+    // Illustrative model-checking evidence; this test does not run a proof tool.
     const formalVerification = buildVerificationEnvelope({
       actor: approver,
       subjectEventId: change.eventId,
@@ -222,7 +211,6 @@ describe('example: safety-critical workflow with an unresolved challenge', () =>
       (await postEnvelope(url, '/v1/challenges', challenge.envelope, safetyAuditor.actorId)).status,
     ).toBe(201);
 
-    // Release readiness is now blocked -- the open challenge is real, queryable ledger state, not an out-of-band note.
     const readinessDuringChallenge = assessReleaseReadiness(
       approvalDecision.eventId,
       await fetchChallenges(url, safetyAuditor.actorId),
@@ -230,8 +218,7 @@ describe('example: safety-critical workflow with an unresolved challenge', () =>
     expect(readinessDuringChallenge.ready).toBe(false);
     expect(readinessDuringChallenge.reason).toContain('open challenge');
 
-    // The challenge is resolved (the fault-injection model was added and re-verified),
-    // recorded as a real challenge_resolved event revising the same Challenge artifact.
+    // Resolve by revising the Challenge artifact rather than deleting its history.
     const resolution = buildChallengeResolutionEnvelope({
       actor: safetyAuditor,
       challengeArtifactId: challenge.artifactId,

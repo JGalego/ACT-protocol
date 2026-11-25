@@ -36,4 +36,4 @@ An ADR is never deleted; a changed decision is recorded as a new ADR that marks 
 
 ## Consequences
 
-Every non-obvious design choice in this repository — including scope reductions from `PROMPT.md`'s full ambition to this release's actual implementation — is traceable to a specific, dated rationale instead of being silently assumed. See `docs/roadmap.md` for the consolidated list of what is deferred and why.
+ADRs retain the rationale for design and scope decisions. See `docs/roadmap.md` for deferred work.

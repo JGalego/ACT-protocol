@@ -1,10 +1,10 @@
 # Formal verification
 
-Machine-checked TLA+ models of the protocol's safety-critical rules, checked with the real TLC model checker (`make verify-formal`, `scripts/formal/run-tlc.sh`). It downloads a pinned, checksum-verified `tla2tools.jar` on first run; it needs Java 17+ and no Docker. Every model is tied to the code by a test, and every model is shown to be non-vacuous by mutants that TLC must break.
+TLA+ models of the protocol's safety rules. `make verify-formal` runs TLC against the models and deliberately broken configurations. It requires Java 17+, downloads a pinned, checksum-verified `tla2tools.jar` on first run, and does not require Docker.
 
-## What this proves, and what it does not
+## Scope and Limits
 
-Each model states what an **adversary** can do and asks TLC to explore _every_ interleaving of those actions within the stated bounds. A model passing means: **no reachable state, up to those bounds, violates the named invariant.** It does not mean the invariant holds for all sizes (TLC is a bounded, explicit-state checker), it says nothing about the cryptography itself (SHA-256 and Ed25519 are modelled as perfect: a hash is injective, only the holder of a private key can sign), and it verifies the model, not the TypeScript. The gap between model and code is closed by testing (see "Tying the models to the code"), not by proof. A bounded check is still strong evidence for this kind of protocol logic: the bugs found in the project review were all short counterexamples (3 to 10 steps).
+TLC explores the adversary's actions within each model's bounds. A passing check means **no reachable state within those bounds violates the named invariant**. It does not establish the invariant for all sizes or verify the TypeScript implementation. SHA-256 and Ed25519 are modeled as perfect: hashes are injective and only a private-key holder can sign. Tests compare model-derived predicates with the code, but do not prove their correspondence. The review bugs had short model counterexamples of 3 to 10 steps.
 
 ## The models
 
@@ -21,42 +21,40 @@ Each model states what an **adversary** can do and asks TLC to explore _every_ i
 | `Witness` | Can an operator show two parties conflicting histories and have both endorsed? | A malicious ledger that presents any history to any witness; honest witnesses cosign only a history extending their last one, corrupt witnesses cosign anything; a consumer needs `Threshold` cosignatures | `NoSplitView` (holds while fewer than `2*Threshold - W` witnesses are corrupt) |
 | `LedgerReceiptChain`, `AcyclicLineage`, `ApprovalLifecycle`, `KeyLifecycle`, `ChallengeLifecycle`, `ArtifactVersionLifecycle` | The single-record state machines of `spec/state-machines.md`, one module each (the earlier models) | none: pure transition tables | `TypeOK`, terminal-state stability, `AcyclicLineage`, `ReceiptChainIntegrity` |
 
-The last row is deliberately weak. Those modules are 4 to 16 states each and no adversary is involved; they check that the spec's state diagrams are internally consistent and that terminal states are terminal. They found none of the bugs in the review. `ApprovalLifecycle` once carried a property (`OnlyApprovedAuthorizes`) that restated its own transition guards and could never fail; it was removed rather than counted. `AcyclicLineage` checks the cycle-rejection discipline of `detectCycle`, which a single ledger can never exercise (event ids hash their parents); see the note in the module.
+The single-record modules have 4 to 16 states and no adversary. They check state-diagram consistency and terminal states, and found none of the review bugs. `ApprovalLifecycle`'s former `OnlyApprovedAuthorizes` property merely restated its guards and could not fail, so it was removed. `AcyclicLineage` checks cycle-rejection discipline; a single ledger cannot exercise that case because event ids hash their parents. See the module's note.
 
 ## Non-vacuity: the mutants
 
-A model that cannot fail proves nothing. Each safeguard in the real code corresponds to a boolean constant in its model (`BindSigner`, `UniqueSeq`, `CheckGaps`, ...). The shipped `formal/modules/*.cfg` turn every safeguard on. For each safeguard, `formal/mutants/<Module>.<name>.cfg` turns it (or the minimal combination that matters) off and declares the violation TLC must find on its `\* EXPECT:` line. `run-tlc.sh` runs all of them every time and **fails if a mutant is not caught, or breaks a different property than expected**. A shipped model passing while its mutant is caught means the invariant is reachable-and-violable, and that this specific guard is what upholds it.
+Safeguards correspond to model constants such as `BindSigner`, `UniqueSeq`, and `CheckGaps`. The shipped configurations enable them; each mutant disables a guard or guard combination and names the expected violation on its `\* EXPECT:` line. `run-tlc.sh` **fails if TLC misses a mutant or reports a different violation**. These checks establish that the modeled invariant can fail when its safeguards are removed.
 
-Current result: **15 models verified, 50 mutants caught.**
+Current result: **Models verified; expected mutant violations detected.**
 
 | Module | Mutants (each removes one rule) |
 | --- | --- |
-| `WritePath` (10) | `no-bind-signer`, `no-bind-actor`, `no-fingerprint-no-owner`, `no-fingerprint-overwrite`, `overwrite-resurrects`, `no-revoke-auth`, `no-status-check`, `no-cosigner-check`, `no-genesis-owner`, and `original-code` (every guard off: the write path as it was before ADR 0009, broken in 4 steps) |
-| `LedgerAppend` (3) | `no-unique-sequence`, `no-unique-event`, `non-atomic-append` |
-| `ApprovalAuthorization` (6) | `counts-same-reviewer-twice`, `ignores-revocation`, `ignores-expiry`, `ignores-separation-of-duties`, `ignores-role`, `approval-inherited-by-new-version` |
-| `IntentAuthority` (4) | `anyone-may-select`, `proposer-selects-own`, `no-supersede`, `write-order-picks-winner` |
-| `Federation` (4) | `no-bundle-signature-check`, `no-bundle-digest-check`, `no-peer-pinning`, `no-gap-declaration-check` |
-| `TenantIsolation` (9) | `no-scoped-duplicates`, `no-scoped-reads`, `no-scoped-parents`, `shared-key-registry`, `no-claim-check`, `shared-sequence`, `shared-peer-namespace`, `admin-not-tenant-scoped`, `no-pin-check` |
-| `RoleAssignment` (7) | `no-issuer-check`, `owner-any-scope`, `owner-self-grant`, `ignores-revocation`, `ignores-expiry`, `revive-allowed`, `anyone-may-change` |
-| `ImportTrustTime` (4) | `judged-at-import-time`, `judged-at-claimed-time`, `ignores-revocation`, `no-compromise-grace` |
-| `Witness` (3) | `no-consistency-check`, `threshold-too-low`, `corrupt-at-the-bound` (the guarantee's own limit: one corrupt witness of three with a threshold of two) |
+| `WritePath` | `no-bind-signer`, `no-bind-actor`, `no-fingerprint-no-owner`, `no-fingerprint-overwrite`, `overwrite-resurrects`, `no-revoke-auth`, `no-status-check`, `no-cosigner-check`, `no-genesis-owner`, and `original-code` (every guard off: the write path as it was before ADR 0009, broken in 4 steps) |
+| `LedgerAppend` | `no-unique-sequence`, `no-unique-event`, `non-atomic-append` |
+| `ApprovalAuthorization` | `counts-same-reviewer-twice`, `ignores-revocation`, `ignores-expiry`, `ignores-separation-of-duties`, `ignores-role`, `approval-inherited-by-new-version` |
+| `IntentAuthority` | `anyone-may-select`, `proposer-selects-own`, `no-supersede`, `write-order-picks-winner` |
+| `Federation` | `no-bundle-signature-check`, `no-bundle-digest-check`, `no-peer-pinning`, `no-gap-declaration-check` |
+| `TenantIsolation` | `no-scoped-duplicates`, `no-scoped-reads`, `no-scoped-parents`, `shared-key-registry`, `no-claim-check`, `shared-sequence`, `shared-peer-namespace`, `admin-not-tenant-scoped`, `no-pin-check` |
+| `RoleAssignment` | `no-issuer-check`, `owner-any-scope`, `owner-self-grant`, `ignores-revocation`, `ignores-expiry`, `revive-allowed`, `anyone-may-change` |
+| `ImportTrustTime` | `judged-at-import-time`, `judged-at-claimed-time`, `ignores-revocation`, `no-compromise-grace` |
+| `Witness` | `no-consistency-check`, `threshold-too-low`, `corrupt-at-the-bound` (the guarantee's own limit: one corrupt witness of three with a threshold of two) |
 
-Two things the mutants taught, worth keeping:
+### Guard interactions
 
 - **Redundant guards.** Several mutants only break once a _second_ defence is also off. A key id that is not the fingerprint of its key is harmless _because_ the owner must register it _and_ overwrites are refused; dropping `NoOverwrite` alone changes nothing observable except resurrecting a revoked key. A rejected decision is excluded both by its verdict and by its state. These are defence in depth, and the model says which layer carries which property. The checked-in mutants are the ones where removing a single guard is observable; the pairs are named for what they combine.
 - **A bounded model reflects its bounds.** An early `ApprovalAuthorization` mutant for the role filter survived because separation of duties already excluded the only ineligible reviewer in that configuration. The mutant's own config now removes that shadow. If you add a guard, add a mutant, and check it is not shadowed.
 
 ## Tying the models to the code
 
-A TLA+ model proves facts about the TLA+ model. Three mechanisms connect it to the TypeScript:
-
 1. **Differential test against a spec oracle** (`packages/verification/src/__tests__/authorization.test.ts`). `evaluateApprovalAuthorization` is the code counterpart of `ApprovalAuthorization.tla`. It is compared with an independent transcription of spec section 8.3 (an existential over subsets of decisions) over every combination of the configuration space: about 1.2 million one- and two-decision cases plus 20,000 seeded larger ones. Zero disagreements.
-2. **Stateful adversarial test of the real API** (`services/api/src/__tests__/model-based.test.ts`). It plays the models' adversary (two corrupt principals, two honest ones) against the real Fastify handlers over seeded random action sequences (key registration, key takeover, intents with forged actor/key/signers, artifact-body-free events, genesis takeover, key revocation, approval requests and decisions). For each action it compares the API's accept/reject with a reference predicate transcribed from the TLA+ guards (`predictAccept*`), and after every step it re-checks the model's invariants against the ledger's own contents: no event whose actor key did not sign it, no event under a revoked key, a verified gap-free hash-chained receipt log, one decision per reviewer per request, no artifact with genesis events by two actors. The same adversary idea is applied to tenants in `services/api/src/__tests__/tenant-model.test.ts`: two tenants register the same keys, submit events naming either tenant and any parent, read, list peers, pin each other and import bundles in seeded random order, and each response is compared with a reference model that knows only that tenant's own history (the `TenantIsolation` ideal). Re-introducing five isolation bugs one at a time (unscoped event lookup, no tenant check in the ledger, a shared key registry, administrator entries not scoped to a tenant, one shared metadata namespace) makes it fail every time. Role assignments get the same treatment in `services/api/src/__tests__/assignments.test.ts`, whose cases mirror the `RoleAssignment` guards; re-introducing six bugs into `role-registry.ts` one at a time (no grant authorization, owner self-grant, revoked roles still confer, anyone may change, imported assignments count, terminal states not final) makes it fail each time. The import-time trust rule is mutation-checked the same way in `services/api/src/__tests__/trust-time.test.ts` (five reintroduced bugs, each failing a test). The witness scheme is mutation-checked in `packages/ledger/src/__tests__/checkpoint.test.ts` and `services/api/src/__tests__/checkpoints.test.ts` (seven reintroduced bugs, each failing a test).
-3. **The same mutants, run against the code.** The stateful test is itself checked for non-vacuity by re-introducing the original bugs into the real source one at a time (drop the signer check, drop owner binding, allow a second genesis, skip the approval lifecycle, ignore key status). All five are caught. (A first version missed the signer check, because an artifact's own authoring signature independently rejects those attacks; the artifact-body-free action was added for exactly that reason.)
+2. **Stateful adversarial API tests** (`services/api/src/__tests__/model-based.test.ts`, `tenant-model.test.ts`). Seeded action sequences from two corrupt and two honest principals exercise key registration and takeover, forged actor/key/signers, artifact-body-free events, genesis takeover, key revocation, and approvals. Tenant tests exercise cross-tenant operations. Responses are compared with reference predicates transcribed from the TLA+ guards. After each step, tests check signer attribution, key status, receipt-chain integrity, reviewer uniqueness, genesis ownership, and tenant isolation.
+3. **Mutation checks against the code.** Reintroducing signer, owner-binding, genesis, approval-lifecycle, and key-status bugs makes the stateful test fail. Its first version missed the signer mutant because artifact authoring signatures independently rejected the attack; artifact-body-free actions were added to expose it. Mutation checks also cover tenant isolation, role assignments (`assignments.test.ts`), import-time trust (`trust-time.test.ts`), and witnessed checkpoints (`checkpoint.test.ts`, `checkpoints.test.ts`).
 
-`Federation` and `LedgerAppend` are connected the same way. `services/api/src/__tests__/federation-model.test.ts` plays the Federation adversary (a destination with one pinned honest source; genuine, partial, mis-declared, tampered, self-consistent-forged and impersonating bundles in any order) against the real `importBundle` and re-checks `NoForgedEvents`, `NoUndeclaredGaps` and `BoundaryAccurate` after every step; four reintroduced bugs each make it fail. `packages/ledger/src/__tests__/shared/append-model-suite.ts` runs the real append path on SQLite and on a real PostgreSQL with concurrent workers, duplicate submissions and crashes injected inside the transaction, and checks `ReceiptChainIntegrity`, `NoDuplicateReceipts` and `AtomicEventAndReceipt` against what is stored. That test found a real bug the TLA+ model could not (the model has no notion of one connection shared by reads and a transaction): a SQLite read outside a transaction could see rows the transaction later rolled back.
+`federation-model.test.ts` submits valid, partial, mis-declared, tampered, forged, and impersonating bundles to `importBundle`, checking `NoForgedEvents`, `NoUndeclaredGaps`, and `BoundaryAccurate` after each step. Its reintroduced bugs each fail a test. `append-model-suite.ts` checks `ReceiptChainIntegrity`, `NoDuplicateReceipts`, and `AtomicEventAndReceipt` on SQLite and PostgreSQL with concurrent workers, duplicate submissions, and transaction crashes. It found a SQLite bug absent from the model: a read sharing the transaction's connection could observe rows later rolled back.
 
-What is still not connected by test: `TenantIsolation`, `RoleAssignment`, `ImportTrustTime` and `Witness` are mirrored by `tenant-model.test.ts`, `assignments.test.ts`, `trust-time.test.ts` and the checkpoint tests respectively, but the correspondence is by hand-written reference predicates, not generated traces.
+Model/code correspondence still relies on handwritten reference predicates rather than generated implementation traces, including the tenant, role, trust-time, and witness tests.
 
 ## Running
 
@@ -67,15 +65,13 @@ bash scripts/formal/run-tlc.sh WritePath          # only models/mutants whose na
 
 `ApprovalAuthorization` dominates the runtime (about 3 million distinct states, a couple of minutes). `-workers auto` uses every core.
 
-## Why one module per concern, not one composed spec
+## Separate Model State Spaces
 
 The models share vocabulary but not state. A single composed specification over keys, the log, approvals, intents and federation would multiply the state space (the approval model alone reaches millions of states) while adding no invariant that spans more than one of them: attribution does not depend on quorum, and quorum does not depend on the chain. Where two concerns do interact (the write path trusts the key registry; approvals trust attribution), the dependency is stated as an assumption in the dependent model's header and discharged by the other model's invariant.
 
 ## What a stronger proof would take
 
-Roughly in order of value:
-
-1. **Unbounded proofs of the core invariants.** `NoForgedAttribution` and `ReceiptChainIntegrity` have small inductive invariants. Proving them for all numbers of principals and events needs TLAPS (or Apalache with an inductive-invariant check) and is a bounded amount of work. **Not done:** TLAPS ships only as an opaque 144 MB installer binary, and this repository's tooling will not run an unvetted installer on a developer's behalf; it needs a decision by whoever owns the build environment (see `docs/formal-methods.md`).
+1. **Unbounded proofs of the core invariants.** Proving `NoForgedAttribution` and `ReceiptChainIntegrity` for all numbers of principals and events needs TLAPS or an inductive-invariant check with Apalache. TLAPS is not integrated: its installer needs provenance and checksum review before execution (see `docs/formal-methods.md`).
 2. **Refine the models into the code mechanically.** Generate TLC traces and replay them against the API, or validate recorded implementation traces against the spec (trace validation). The randomized tests above are the cheap version of this: they compare the code with hand-transcribed guards, so a transcription error in a test is still possible.
 3. **Prove the pure functions** (`evaluateApprovalAuthorization`, `evaluateQuorum`, `evaluateKeyValidityAt`, `verifyReceipt`) in Dafny or Lean, which could also give one verified source for both SDKs.
 4. **A protocol-level cryptographic analysis** (Tamarin or ProVerif) of signature binding and federation: replay across payload types, key substitution, and bundle splicing.

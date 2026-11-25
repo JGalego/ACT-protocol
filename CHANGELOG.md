@@ -1,8 +1,8 @@
 # Changelog
 
-All notable changes to this project are documented in this file. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project uses [Semantic Versioning](https://semver.org/).
+The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and [Semantic Versioning](https://semver.org/).
 
-Note: this repository distinguishes four version axes that change independently — see [docs/versioning.md](docs/versioning.md):
+Version axes change independently — see [docs/versioning.md](docs/versioning.md):
 
 - **Protocol version** (`protocol_version`, e.g. `act/1.0`)
 - **Schema version** (per-schema `$id` version segment)
@@ -72,11 +72,11 @@ A project review found that the write path verified signatures and key trust but
 - `packages/ledger`: SQLite-backed content-addressed ledger with an atomic write path, hash-chained receipts, causal-parent and cycle validation, duplicate/idempotency handling, and rebuildable projections.
 - `packages/policy`: versioned policy documents and a deterministic evaluation engine for approval requirements and quorum rules.
 - `packages/verification`: a verification toolkit covering schema, cryptographic/ledger-integrity, and lineage checks, with explained, attributable findings.
-- `packages/sdk-typescript`: an ergonomic client built on `core` and `crypto` for constructing, signing, and submitting events.
+- `packages/sdk-typescript`: a client built on `core` and `crypto` for constructing, signing, and submitting events.
 - `services/api`: a Fastify HTTP service implementing a first slice of the `/v1` OpenAPI 3.1 contract against the embedded SQLite ledger.
 - `apps/cli`: the `act` command-line tool (`init`, `actor`, `key`, `intent`, `transform`, `verify`, `lineage`, `history`, `export`, `import`) with human-readable and JSON output modes.
 - `make verify`: formatting, linting, strict type checking, and the full first-party test suite, runnable offline from a clean checkout.
 
 ### Known limitations in this release candidate
 
-See [docs/roadmap.md](docs/roadmap.md) for the complete, explicit list of deferred scope (PostgreSQL adapter, federation import/export, Python/Go/Rust SDKs, the remaining full ACT Explorer profile beyond the implemented animated demonstration, formal-model checking, Helm/production deployment, and five additional example applications). Nothing on that list is claimed as done in this release.
+The original release deferred the PostgreSQL adapter, federation import/export, Python/Go/Rust SDKs, the full ACT Explorer profile, formal-model checking, Helm/production deployment, and additional example applications. See [docs/roadmap.md](docs/roadmap.md) for current status.

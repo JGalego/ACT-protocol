@@ -1,9 +1,8 @@
-"""ACT Python SDK: ergonomic client for constructing, signing, and submitting ACT events.
+"""ACT Python SDK for constructing, signing, and submitting events.
 
-Mirrors `@act/sdk` (TypeScript) at the same abstraction level: canonicalization
-and digests (`act_sdk.core`), Ed25519/DSSE (`act_sdk.crypto`), an unsigned
-event builder (`act_sdk.event_builder`), and a thin retrying HTTP client
-(`act_sdk.client`).
+Includes canonicalization and digests (`act_sdk.core`), Ed25519/DSSE
+(`act_sdk.crypto`), event construction (`act_sdk.event_builder`), and a retrying
+HTTP client (`act_sdk.client`), matching the TypeScript SDK's functionality.
 """
 
 from .client import ActApiError, ActClient

@@ -1,15 +1,10 @@
 #!/usr/bin/env -S node --import tsx
 /**
- * Profile-aware conformance report generator (spec/conformance.md). Runs
- * every check category, aggregates results per profile (profiles are
- * cumulative: "Core, plus: ..."), and writes both a machine-readable
- * CONFORMANCE_REPORT.json and a generated CONFORMANCE_REPORT.md from the
- * SAME in-memory result object, so the two can never disagree.
+ * Aggregates checks by cumulative conformance profile and writes JSON and
+ * Markdown reports from the same results (spec/conformance.md).
  *
- * A profile is reported as claimed (`pass: true`) only if every check in
- * that profile AND every profile it builds on passes -- never asserted
- * from prose. Profiles with no checks implemented yet are reported
- * explicitly as not claimed, with a reason, rather than silently omitted.
+ * A profile is claimed only when its checks and prerequisites pass.
+ * Unimplemented profiles are reported as unclaimed with a reason.
  */
 import { writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -112,10 +107,8 @@ function main(): void {
     );
   }
 
-  // Fails the build only if a CLAIMED profile's checks don't all pass, or
-  // if any implemented check unexpectedly failed. A profile that's
-  // honestly not-yet-covered does not fail the build -- see
-  // spec/conformance.md section 3.
+  // Any implemented check failure fails the run. Unimplemented profiles may
+  // remain unclaimed (spec/conformance.md section 3).
   const anyImplementedFailure = results.some((r) => !r.pass);
   if (anyImplementedFailure) {
     console.error('\nOne or more implemented conformance checks failed.');

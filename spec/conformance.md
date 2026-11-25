@@ -7,7 +7,7 @@ Status: Normative, companion to `spec/ACT-1.0.md` §16.5.
 | Profile | Requires |
 | --- | --- |
 | **Core** | Correct unsigned-event and artifact-type schema validation; canonicalization per RFC 8785; correct identifier derivation (§3 of ACT-1.0.md); acyclic lineage; append-only projections rebuildable from events alone. |
-| **Cryptographic Integrity** | Core, plus: Ed25519 signing/verification; DSSE envelope construction/parsing; the six independent verification results of §4.5; key lifecycle (§11.2) enforcement; receipt hash-chain construction and tamper detection. |
+| **Cryptographic Integrity** | Core, plus: Ed25519 signing/verification; DSSE envelope construction/parsing; the independent verification results of §4.5; key lifecycle (§11.2) enforcement; receipt hash-chain construction and tamper detection. |
 | **Secure Service** | Cryptographic Integrity, plus: authentication (OIDC/JWT and/or Ed25519 service identity) kept separate from authorization; tenant isolation; policy-based authorization on every protected operation; secure defaults from `docs/threat-model.md`'s mitigation list; fail-closed production configuration. |
 | **Federation** | Cryptographic Integrity, plus: bundle export/import (`spec/federation.md`); duplicate detection; partial-history representation; quarantine of invalid/untrusted imports; fork and equivocation detection. |
 | **SDK** | Identical canonical bytes and identifiers to every other conformant SDK for the shared vector suite (`conformance/vectors/`); verification of signatures produced by any other conformant SDK; rejection of the shared negative-fixture suite. |

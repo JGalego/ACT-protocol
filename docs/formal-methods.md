@@ -4,13 +4,11 @@
 
 **Implemented.** The authoritative description, with the exact invariants, mutants, results and limits, is [`formal/README.md`](../formal/README.md). Run it with `make verify-formal` (`scripts/formal/run-tlc.sh`).
 
-This page records the scoping rationale and the toolchain choice.
-
 ## What Is Modeled
 
-`spec/ACT-1.0.md` section 13 requires, at minimum: append-only receipt-chain integrity, immutable history, acyclic lineage, approval-lifecycle safety, and prevention of an unauthorized effective-intent transition. The first version of `formal/` modeled each state machine of `spec/state-machines.md` as a single-record transition table and checked those five names. A review of the project then found real defects in the very properties those models claimed to cover (events attributable to an actor who did not sign them, a key id that could be taken over, a ledger identity lost on restart, an effective-intent transition open to anyone). The old models passed because they contained no adversary and no notion of _who_ may take a step: they could not express the failure.
+`spec/ACT-1.0.md` section 13 requires receipt-chain integrity, immutable history, acyclic lineage, approval-lifecycle safety, and authorized effective-intent transitions. The initial models checked single-record transition tables. A later code review found attribution forgery, key-id takeover, ledger identity loss on restart, and unauthorized intent selection. The models could not express those failures because they had no adversary or actor-permission model.
 
-The models now state the adversary explicitly, and cover what actually failed:
+The adversarial models cover:
 
 | Property family | Module |
 | --- | --- |
@@ -25,13 +23,13 @@ The models now state the adversary explicitly, and cover what actually failed:
 | Witnessed checkpoints: no two endorsed histories conflict, up to the stated corrupt-witness bound | `Witness` |
 | Acyclic lineage (discipline of the cycle check) and the single-record state machines | `AcyclicLineage`, `ApprovalLifecycle`, `KeyLifecycle`, ... |
 
-## Why Unit Tests Are Not a Substitute
+## Tests and Model Checking
 
 Hand-picked scenarios catch the bugs their author thought of. A model checker explores every interleaving of the adversary's actions within the bound and returns the shortest counterexample. Each of the bugs fixed in the review has a 3 to 10 step counterexample against the corresponding mutant in `formal/mutants/`. Unit tests remain necessary: the model is not the code, and the tests listed in `formal/README.md` ("Tying the models to the code") are what connect them.
 
 ## Toolchain
 
-**TLA+/TLC.** The invariants are about sequences of actions by an adversary over time, which is TLA+'s strength. TLC is bounded and explicit-state, so a pass means "no violation within the bounds", not a proof for all sizes; `formal/README.md` lists what a stronger proof would take (TLAPS or Apalache for unbounded inductive invariants, trace validation against the implementation, Dafny/Lean for the pure functions, Tamarin/ProVerif for the cryptographic layer).
+**TLA+/TLC.** The models describe sequences of adversarial actions. TLC explores bounded state spaces: a pass establishes no violation within those bounds, not a proof for all sizes. `formal/README.md` describes unbounded proofs, implementation-trace validation, pure-function proofs, and cryptographic analysis as follow-up work.
 
 ## Non-Normative
 
@@ -39,4 +37,4 @@ Nothing in this document is itself normative; `spec/state-machines.md` and `spec
 
 ## Unbounded proofs
 
-TLC is bounded: a pass means no violation within the stated sizes. A TLAPS proof would hold for every number of principals, events and workers. The inductive invariants are small (for `LedgerAppend`: `ReceiptChainIntegrity` plus "each worker's snapshot is a prefix of the log"), so the proof is a bounded piece of work, but TLAPS is distributed as a single opaque installer binary. Install it deliberately (checksum it, review its provenance, run it in a throwaway environment) before adding `.tlaps` proof steps to the CI target; this repository does not fetch and execute it automatically the way it does the pinned `tla2tools.jar`.
+A TLAPS proof could establish inductive invariants for unbounded numbers of principals, events, and workers. For `LedgerAppend`, these include `ReceiptChainIntegrity` and each worker's snapshot being a prefix of the log. TLAPS is distributed as an installer binary; verify its checksum and provenance and run it in an isolated environment before adding proof steps to CI. This repository does not download and execute that installer automatically.

@@ -1,6 +1,6 @@
 # ACT Python SDK
 
-An ergonomic client for constructing, signing, and submitting [ACT protocol](https://act-protocol.org) events -- the Python counterpart to `packages/sdk-typescript` (`@act/sdk`), at the same abstraction level:
+A Python client for constructing, signing, and submitting [ACT protocol](https://act-protocol.org) events, matching the functionality of `packages/sdk-typescript` (`@act/sdk`):
 
 | Module | Mirrors | Contents |
 | --- | --- | --- |
@@ -17,7 +17,7 @@ pip install -e ".[dev]"
 
 ## Conformance
 
-`tests/test_vectors.py` loads the same generated, frozen vectors under `../../conformance/vectors/` that `conformance/vectors/vectors.test.ts` checks the TypeScript implementation against -- this SDK's canonicalization, digests, DSSE PAE, keys, signatures, envelopes, and key-lifecycle evaluation all reproduce that JSON byte-for-byte. Ed25519 signatures are deterministic per RFC 8032, so `test_signatures` is a genuine cross-language proof: the same keypair and message produce the identical signature bytes `packages/crypto` produced when the vectors were generated.
+`tests/test_vectors.py` checks canonicalization, digests, DSSE PAE, keys, signatures, envelopes, and key lifecycle against the same frozen vectors used by TypeScript. Ed25519 is deterministic (RFC 8032), so `test_signatures` compares Python's signature bytes with TypeScript's for identical inputs. Fixtures under `../../conformance/interop/` also check signature verification in both directions.
 
 Run the whole suite:
 

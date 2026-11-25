@@ -1,12 +1,7 @@
 """RFC 8785 (JSON Canonicalization Scheme, JCS) serialization.
 
-Ports `packages/core/src/canonical.ts` byte-for-byte: this is intentionally
-not delegated to a third-party canonicalizer, for the same reason as the
-TypeScript implementation -- this is security-critical code (every ACT
-digest and signature is computed over this output) small enough to audit
-directly.
-
-Two details make a naive ``json.dumps`` insufficient:
+Implements the JSON serialization rules used by `packages/core/src/canonical.ts`.
+``json.dumps`` needs additional handling for:
 
 * **Number formatting.** JSON.stringify's number formatting is ECMA-262's
   ``Number::toString`` (shortest round-tripping decimal digits, with its own
@@ -37,8 +32,7 @@ class CanonicalizationError(Exception):
 
 class _Undefined:
     """Sentinel mirroring JavaScript's `undefined`: dropped from objects,
-    becomes `null` inside arrays. Python has no native equivalent -- use
-    this only when porting a case that genuinely needs that JS semantic."""
+    becomes `null` inside arrays. Use when porting JavaScript data."""
 
     def __repr__(self) -> str:
         return "UNDEFINED"

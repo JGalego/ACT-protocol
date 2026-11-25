@@ -6,7 +6,7 @@ Accepted. Amended by ADR 0010: every adapter method now names the ledger it acts
 
 ## Context
 
-`PROMPT.md` requires "a storage abstraction with behaviorally equivalent SQLite and PostgreSQL adapters." This release implements only the SQLite adapter (ADR 0001), but a same-named-later PostgreSQL adapter should not force a breaking change to `packages/ledger`'s public API or to every caller in `services/api` and `apps/cli`.
+`PROMPT.md` requires behaviorally equivalent SQLite and PostgreSQL adapters. The initial release implements SQLite only (ADR 0001). Adding PostgreSQL should preserve the storage-neutral API used by the service and CLI.
 
 ## Decision
 
@@ -16,5 +16,5 @@ A future `PostgresLedgerAdapter` would implement the same constructor-and-method
 
 ## Consequences
 
-- No premature abstraction was introduced now (there is exactly one concrete adapter today); the interface boundary exists only where it is already exercised (the constructor and public methods), not as a speculative plugin system.
+- The initial storage boundary consists of the constructor and public methods; no plugin system is introduced.
 - The Definition of Done item "SQLite and PostgreSQL exhibit equivalent protocol behavior" is not met by this release and is tracked explicitly in `docs/roadmap.md`, not silently skipped.

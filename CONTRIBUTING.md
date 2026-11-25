@@ -1,6 +1,6 @@
 # Contributing to ACT
 
-Thank you for considering a contribution to the ACT Protocol reference implementation. This document covers day-to-day contribution mechanics; see `GOVERNANCE.md` for decision-making authority and `docs/adr/` for the rationale behind existing design choices.
+See `GOVERNANCE.md` for decision-making authority and `docs/adr/` for existing design decisions.
 
 ## Prerequisites
 
@@ -24,7 +24,7 @@ make verify
 
 1. **Open an issue first** for anything that changes normative protocol behavior (anything in `spec/` or `schemas/`). Protocol changes require an Architecture Decision Record (see `docs/adr/0000-adr-process.md`).
 2. **Write the test first** where practical, especially for canonicalization, cryptographic, ledger, and policy code — these packages maintain a 90% branch-coverage floor (`docs/testing-strategy.md`).
-3. **No placeholder behavior.** Do not merge disabled tests, TODO-only handlers, or APIs that return fabricated data. If something is out of scope for now, it must be absent and documented in `docs/roadmap.md`, not present and fake.
+3. **No placeholder behavior.** Do not merge disabled tests, TODO-only handlers, or APIs that return fabricated data. Leave deferred features unimplemented and document them in `docs/roadmap.md`.
 4. **Schemas are authoritative.** Do not hand-duplicate a type that a JSON Schema already defines; regenerate language models instead (`scripts/generate-schema-types.mjs`).
 5. **Conventional commits** are appreciated but not required; a clear, imperative-mood summary line is.
 
